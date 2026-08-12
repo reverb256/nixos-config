@@ -140,7 +140,7 @@
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
-    ./services/memlawb-server.nix  # opt-in encrypted memory server (Hermes MCP backend)
+    ./services/memlawb-server.nix # opt-in encrypted memory server (Hermes MCP backend)
 
     # Monitoring
     ./services/monitoring/default.nix

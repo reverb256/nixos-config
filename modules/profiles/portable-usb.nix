@@ -27,7 +27,6 @@
   # integration optional so pure flake evaluation never reads a host path.
   modelAvailable = false;
   bonsaiModel = null;
-
 in {
   imports = [
     "${modulesPath}/image/repart.nix"
@@ -38,7 +37,7 @@ in {
   # Apply the repo's overlays (bugfixes re-adds libdisplay-info_0_2 that the
   # niri-flake overlay still requires after the nixpkgs bump).
   nixpkgs.overlays = [
-    (import ../../overlays/default.nix { inherit inputs; })
+    (import ../../overlays/default.nix {inherit inputs;})
   ];
 
   # ── Image definition (systemd-repart) ──
@@ -48,10 +47,8 @@ in {
     partitions = {
       "esp" = {
         contents = {
-          "/EFI/BOOT/BOOTX64.EFI".source =
-            "${pkgs.systemd}/lib/systemd/boot/efi/systemd-bootx64.efi";
-          "/EFI/Linux/${config.system.boot.loader.ukiFile}".source =
-            "${config.system.build.uki}/${config.system.boot.loader.ukiFile}";
+          "/EFI/BOOT/BOOTX64.EFI".source = "${pkgs.systemd}/lib/systemd/boot/efi/systemd-bootx64.efi";
+          "/EFI/Linux/${config.system.boot.loader.ukiFile}".source = "${config.system.build.uki}/${config.system.boot.loader.ukiFile}";
         };
         repartConfig = {
           Type = "esp";
@@ -203,7 +200,8 @@ in {
     serviceConfig = {
       Type = "simple";
       User = "j_kro";
-      ExecStart = lib.getExe (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix { })
+      ExecStart =
+        lib.getExe (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix {})
         + " -m /models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf"
         + " --host 127.0.0.1 --port 8080 -ngl 99 -fa on"
         + " -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 --fit off"
@@ -218,18 +216,18 @@ in {
   # Hermes desktop client: point at the local Bonsai server.
   environment.etc."hermes/config.toml" = lib.mkIf modelAvailable {
     text = ''
-    [models.local]
-    name = "bonsai-27b-1bit-local"
-    provider = "openai"
-    base_url = "http://127.0.0.1:8080/v1"
-    api_key = "sk-local"
-    context_length = 131072
-    default = true
+      [models.local]
+      name = "bonsai-27b-1bit-local"
+      provider = "openai"
+      base_url = "http://127.0.0.1:8080/v1"
+      api_key = "sk-local"
+      context_length = 131072
+      default = true
 
-    [providers.local]
-    type = "openai"
-    base_url = "http://127.0.0.1:8080/v1"
-    api_key = "sk-local"
+      [providers.local]
+      type = "openai"
+      base_url = "http://127.0.0.1:8080/v1"
+      api_key = "sk-local"
     '';
   };
 
@@ -274,9 +272,9 @@ in {
     vulkan-tools
     pciutils
     # AI inference runner (Vulkan backend — NVIDIA + AMD)
-    (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix { })
+    (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix {})
     # Hermes desktop client, configured for local inference
-    (pkgs.callPackage ../../packages/hermes-chat.nix { })
+    (pkgs.callPackage ../../packages/hermes-chat.nix {})
   ];
 
   system.stateVersion = "25.05"; # sticky: matches repo channel

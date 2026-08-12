@@ -175,14 +175,21 @@
     };
   };
 
-  outputs =
-    inputs@{ self, nixpkgs, home-manager, home-manager-config, aagl, nur, claude-native, colmena, nixpkgs-xr, ... }:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } (
-      { config, ... }:
-      {
-        systems = [ "x86_64-linux" ];
-
-
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    home-manager,
+    home-manager-config,
+    aagl,
+    nur,
+    claude-native,
+    colmena,
+    nixpkgs-xr,
+    ...
+  }:
+    inputs.flake-parts.lib.mkFlake {inherit inputs;} (
+      {config, ...}: {
+        systems = ["x86_64-linux"];
 
         imports = [
           # B namespace: class-checked flake.modules.nixos.* (self-registering
@@ -226,11 +233,10 @@
 
           # HELPER FUNCTION - Create NixOS system (eliminates duplication)
           # Classic hosts only — zephyr is built dendritically.
-          mkNixosSystem =
-            {
-              hostName,
-              extraModules ? [ ],
-            }:
+          mkNixosSystem = {
+            hostName,
+            extraModules ? [],
+          }:
             nixpkgs.lib.nixosSystem {
               # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
               # system, python, images, hardware, apps) via the supported
@@ -265,34 +271,35 @@
           #   NOTE: also update ./machines (its keys are colmena machine entries).
           # Dendritic cutover: zephyr + forge removed here (now under modules/hosts/<n>);
           # nexus, sentry still classic until their cutovers.
-          classicHosts = builtins.removeAttrs hosts [ "zephyr" "forge" ];
+          classicHosts = builtins.removeAttrs hosts ["zephyr" "forge"];
 
           # Portable USB stick — standalone rescue/pinch config (wayfinder #421/#425).
           # Shared by nixosConfigurations.portable and packages.portable-image.
           portableConfig = nixpkgs.lib.nixosSystem {
             system = "x86_64-linux";
-            specialArgs = { inherit inputs; };
-            modules = [ ./modules/profiles/portable-usb.nix ];
+            specialArgs = {inherit inputs;};
+            modules = [./modules/profiles/portable-usb.nix];
           };
-        in
-        {
+        in {
           # OUTPUT 1: nixosConfigurations (classic shim — nexus/sentry only;
           # zephyr/forge dendritic definitions come from modules/hosts/<n>/default.nix)
 
-          nixosConfigurations = builtins.mapAttrs (
-            _name: value:
-              mkNixosSystem {
-                inherit (value) hostName extraModules;
-              }
-          ) classicHosts
-          # OUTPUT 1b: portable USB stick — standalone rescue/pinch config.
-          # Deliberately OUTSIDE the cluster hive (no commonModules: no
-          # sops-nix / peakminer / mcp-registry / caddy). Built only as a
-          # systemd-repart disk image (see modules/profiles/portable-usb.nix).
-          # Wayfinder map #421; contract #425.
-          // {
-            portable = portableConfig;
-          };
+          nixosConfigurations =
+            builtins.mapAttrs (
+              _name: value:
+                mkNixosSystem {
+                  inherit (value) hostName extraModules;
+                }
+            )
+            classicHosts
+            # OUTPUT 1b: portable USB stick — standalone rescue/pinch config.
+            # Deliberately OUTSIDE the cluster hive (no commonModules: no
+            # sops-nix / peakminer / mcp-registry / caddy). Built only as a
+            # systemd-repart disk image (see modules/profiles/portable-usb.nix).
+            # Wayfinder map #421; contract #425.
+            // {
+              portable = portableConfig;
+            };
 
           # OUTPUT 2: colmena (raw hive configuration)
           # The typed inventory is the whole-cluster source of truth.
@@ -312,7 +319,7 @@
 
           colmenaHive = colmena.lib.makeHive config.flake.colmena;
 
-          overlays.default = import ./overlays/default.nix { inherit inputs; };
+          overlays.default = import ./overlays/default.nix {inherit inputs;};
 
           # OUTPUT 4: homeConfigurations — consumed from standalone home-manager-config flake
           # Layer 2 of the 3-layer model (NixOS / Home Manager / nix profile).
@@ -328,7 +335,11 @@
         # test throws, which fails `nix flake check` in CI — the P0 eval gate.
         # (Fixes: CI tests job never asserted results; flake exported no checks.)
 
-        perSystem = { system, pkgs, ... }: {
+        perSystem = {
+          system,
+          pkgs,
+          ...
+        }: {
           # Custom pkgs: this flake-parts rev's nixpkgs flakeModule sets
           # `_module.args.pkgs` via `lib.mkOptionDefault` (unconfigured
           # legacyPackages); override it with the classic-flake-equivalent
@@ -342,12 +353,12 @@
 
           checks = let
             mkCheck = name: file: let
-              result = import file { inherit pkgs; };
+              result = import file {inherit pkgs;};
               passed = result.passed or result.all_pass or false;
-              failures = result.failures or [ ];
+              failures = result.failures or [];
             in
               if passed
-              then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
+              then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
               else throw "test ${name} FAILED: ${builtins.toJSON failures}";
           in {
             firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
@@ -383,23 +394,24 @@
           # /etc/nixos/pkgs/claude-code-image/default.nix — pkgs.callPackage'd.
           # /etc/nixos/pkgs/opencode-image/default.nix — pkgs.callPackage'd.
           packages.claude-code-image =
-            pkgs.callPackage ./pkgs/claude-code-image { };
+            pkgs.callPackage ./pkgs/claude-code-image {};
           packages.opencode-image =
-            pkgs.callPackage ./pkgs/opencode-image { };
+            pkgs.callPackage ./pkgs/opencode-image {};
           packages.ai-inference-gateway-image =
             pkgs.callPackage ./pkgs/ai-inference-gateway-image
-              { };
+            {};
           # NVIDIA Switchyard LLM routing proxy (standalone server binary).
           # Build on nexus: nix build .#switchyard-server
           packages.switchyard-server =
-            pkgs.callPackage ./pkgs/switchyard-server { };
+            pkgs.callPackage ./pkgs/switchyard-server {};
           # Portable USB stick disk image (systemd-repart, persistent).
           # Build: nix build .#portable-image
           # Flash: sudo dd if=result/portable-image of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync
-          packages.portable-image = (nixpkgs.lib.nixosSystem {
+          packages.portable-image =
+            (nixpkgs.lib.nixosSystem {
               system = "x86_64-linux";
-              specialArgs = { inherit inputs; };
-              modules = [ ./modules/profiles/portable-usb.nix ];
+              specialArgs = {inherit inputs;};
+              modules = [./modules/profiles/portable-usb.nix];
             }).config.system.build.image;
           # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
           # packages.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };

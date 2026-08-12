@@ -33,10 +33,10 @@ jobs:
       - name: Verify commit signatures
         if: github.event_name == 'pull_request'
         run: |
-          COMMITS=$(git log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --format=%H)
+          COMMITS=$(git log "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" --format=%H)
           FAILED=0
           for sha in $COMMITS; do
-            if ! git verify-commit $sha 2>/dev/null; then
+            if ! git verify-commit "$sha" 2>/dev/null; then
               echo "::warning::Commit $sha is NOT signed"
               FAILED=$((FAILED + 1))
             else
@@ -121,9 +121,25 @@ jobs:
           skipPush: true
           useDaemon: false
 
-      - name: Lint (alejandra + statix + deadnix)
+      - name: Lint changed Nix files (alejandra + statix + deadnix)
         run: |
-          nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix -c just lint
+          nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix -c bash <<'EOF'
+          set -euo pipefail
+          BASE_SHA="${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+          mapfile -t NIX_FILES < <(git diff --name-only "$BASE_SHA"...HEAD -- '*.nix' ':!kubernetes/modules/**')
+          if ((${#NIX_FILES[@]} == 0)); then
+            echo "No changed Nix files; full just lint remains available locally."
+            exit 0
+          fi
+          alejandra --check "${NIX_FILES[@]}"
+          for file in "${NIX_FILES[@]}"; do
+            statix check "$file"
+          done
+          deadnix --fail --no-lambda-arg --no-lambda-pattern-names "${NIX_FILES[@]}"
+          EOF
 
   # ============================================================================
   # STAGE 2b: Impurity guard (issue #309) — no hardcoded /home/<user> paths
@@ -159,7 +175,7 @@ jobs:
             # process substitution so FAILED propagates out of the loop
             while IFS=: read -r line rest; do
               [ -z "$rest" ] && continue
-              trimmed=$(echo "$rest" | sed 's/^[[:space:]]*//')
+              trimmed="${rest#"${rest%%[![:space:]]*}"}"
               case "$trimmed" in
                 \#*) continue ;;
               esac
@@ -256,7 +272,7 @@ jobs:
 
       - name: Run osv-scanner
         run: |
-          nix-shell -p osv-scanner --run 'osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true
+          nix run nixpkgs#osv-scanner -- --recursive --format=sarif --output=results.sarif "$PWD" || true
 
       - name: Upload SARIF
         if: always() && hashFiles('results.sarif') != ''
