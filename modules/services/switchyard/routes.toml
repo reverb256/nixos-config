@@ -1,16 +1,29 @@
-# Switchyard routes — switchyard-server 0.2.0 schema (verified from crate README).
-# Clients select a route by posting "model": "<route id>".
-# API keys come from env vars (api_key_env); the TOML never holds secrets.
-# Env names must match secretspec env-var names wired into the systemd unit
-# via services.switchyard.envFiles (zephyr configuration.nix).
+# Switchyard routes — switchyard-server 0.2.0 (schema verified 2026-08-12 from
+# docs/reference/toml_schema.md). Clients select a route by posting
+# "model": "<route id>". API keys come from env vars (api_key_env); the TOML
+# never holds secrets. Env names must match secretspec env-var names wired
+# into the systemd unit via services.switchyard.envFiles.
 #
-# Policy (2026-08-11 overhaul):
-#   opencode-go  -> deepseek-v4-flash            (j_kro directive: go = flash only)
-#   opencode-zen -> nemotron-3.5-lightning-free  (resilient free tier; DSpark family)
-#   nim          -> nvidia/nemotron-3.5-lightning-30b-a3b (best NIM; stale 70b hung upstream)
-#   local        -> 70% zephyr ternary+DSpark (3090, 262K) / 30% sentry 1-bit (Vulkan)
-#   bonsai       -> sentry 1-bit (explicit route)
-#   muse         -> REMOVED (dead :21560; was 70% of local)
+# Policy (2026-08-12 v2 — full routing strategy coverage):
+#   passthrough : bonsai, nim, opencode-go, opencode-zen (existing)
+#   random      : local (70/30 DSpark/1bit), ab (GLM-5.2 vs MiniMax M3),
+#                 multimodal (Inkling/Muse/MiniMax)
+#   stage_router: switchyard/stage — capable=GLM-5.2, efficient=nano-30b
+#                 (zero extra model calls; signal-driven per tool iteration)
+#   llm_classifier capability: switchyard/smart — judge=deepseek-v4-flash,
+#                 strong=GLM-5.2, weak=nano-30b, session affinity
+#   escalation  : switchyard/escalate — weak-first, judge latches to strong
+#
+# NIM model research (live /v1/models poll + benchmarks, 2026-08-12):
+#   z-ai/glm-5.2                         strongest open coder (Terminal-Bench 81.0)
+#   deepseek-ai/deepseek-v4-flash-0731   agentic monster, 13B active, DSpark
+#   minimaxai/minimax-m3                 428B/23B, frontier coding + 1M ctx + multimodal
+#   thinkingmachines/inkling             975B/41B, multimodal + audio frontier
+#   meta/muse-glimmer-30b                29.6B dense multimodal, DFlash drafter
+#   nvidia/nemotron-3-nano-30b-a3b       FASTEST 30B (122 tok/s) — efficient tier
+#   nvidia/nemotron-3.5-lightning-30b-a3b 53 tok/s — existing nim route
+# NOTE: gemma-4-31b-it, granite-34b, nemotron-nano-3-30b are LISTED but
+# 404/timeout on our account — do NOT route to them.
 schema_version = 1
 
 # ── LLM clients ──────────────────────────────────────────────────────────────
@@ -41,6 +54,7 @@ api_key_env = "OPENCODE_ZEN_API_KEY"
 max_retries = 2
 
 # ── Targets (id = exact model id sent upstream) ──────────────────────────────
+# Local
 [targets.bonsai_zephyr_dspark]
 id = "Ternary-Bonsai-27B-Q2_0.gguf"
 llm_client = "bonsai_zephyr"
@@ -49,10 +63,36 @@ llm_client = "bonsai_zephyr"
 id = "bonsai-27b-1bit-sentry"
 llm_client = "bonsai_sentry"
 
+# NIM — frontier + specialized
 [targets.nim_default]
 id = "nvidia/nemotron-3.5-lightning-30b-a3b"   # was meta/llama-3.3-70b-instruct — hangs upstream
 llm_client = "nim"
 
+[targets.nim_glm52]
+id = "z-ai/glm-5.2"
+llm_client = "nim"
+
+[targets.nim_dsv4flash]
+id = "deepseek-ai/deepseek-v4-flash-0731"
+llm_client = "nim"
+
+[targets.nim_minimax_m3]
+id = "minimaxai/minimax-m3"
+llm_client = "nim"
+
+[targets.nim_inkling]
+id = "thinkingmachines/inkling"
+llm_client = "nim"
+
+[targets.nim_muse]
+id = "meta/muse-glimmer-30b"
+llm_client = "nim"
+
+[targets.nim_nano30b]
+id = "nvidia/nemotron-3-nano-30b-a3b"
+llm_client = "nim"
+
+# OpenCode
 [targets.opencode_go_default]
 id = "deepseek-v4-flash"   # was "go" — 401 Model go is not supported
 llm_client = "opencode_go"
@@ -62,6 +102,7 @@ id = "nemotron-3.5-lightning-free"   # was "zen" — 401; nemotron free = resili
 llm_client = "opencode_zen"
 
 # ── Routes (id = model id clients send) ──────────────────────────────────────
+# Passthrough — one model, one target
 [routes.bonsai]
 id = "switchyard/bonsai"
 type = "passthrough"
@@ -82,9 +123,60 @@ id = "switchyard/opencode-zen"
 type = "passthrough"
 target = "opencode_zen_default"
 
-# Random split between local models: 70% zephyr ternary+DSpark (3090, 262K), 30% sentry 1-bit.
+# Random — fixed traffic splits
+# Local: 70% zephyr ternary+DSpark (3090, 262K), 30% sentry 1-bit.
 [routes.local_default]
 id = "switchyard/local"
 type = "random"
 targets = ["bonsai_zephyr_dspark", "bonsai_1bit"]
 weights = [7, 3]
+
+# A/B benchmark the two top open models: GLM-5.2 vs MiniMax M3.
+[routes.ab]
+id = "switchyard/ab"
+type = "random"
+targets = ["nim_glm52", "nim_minimax_m3"]
+weights = [5, 5]
+
+# Multimodal experimentation: Inkling / Muse Glimmer / MiniMax M3.
+[routes.multimodal]
+id = "switchyard/multimodal"
+type = "random"
+targets = ["nim_inkling", "nim_muse", "nim_minimax_m3"]
+weights = [4, 3, 3]
+
+# Stage Router — tool-signal-driven tier selection. ZERO extra model calls.
+# Routine tool turns stay on nano-30b (122 tok/s); errors/exploration/hard
+# turns go to GLM-5.2. Best fit for Hermes' tool-heavy loop.
+[routes.stage]
+id = "switchyard/stage"
+type = "stage_router"
+capable_target = "nim_glm52"
+efficient_target = "nim_nano30b"
+picker = "efficient_first"
+confidence_threshold = 0.6
+
+# LLM Classifier (capability) — judge routes by request difficulty up front.
+# deepseek-v4-flash-0731 judges; session affinity reuses the first decision
+# so the judge call is amortized to ~1 per session.
+[routes.smart]
+id = "switchyard/smart"
+type = "llm_classifier"
+mode = "capability"
+classifier_target = "nim_dsv4flash"
+strong_target = "nim_glm52"
+weak_target = "nim_nano30b"
+base_threshold = 0.7
+session_affinity = true
+
+# Escalation — weak-first; judge latches session to strong on sustained trouble.
+[routes.escalate]
+id = "switchyard/escalate"
+type = "llm_classifier"
+mode = "escalation"
+classifier_target = "nim_dsv4flash"
+strong_target = "nim_glm52"
+weak_target = "nim_nano30b"
+
+[routes.escalate.escalation]
+confirmations = 2
