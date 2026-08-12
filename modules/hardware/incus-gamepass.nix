@@ -1,11 +1,10 @@
 # Game Pass Windows VM via Incus — Zephyr only
 #
-# This is the parallel Incus backend for modules/hardware/vfio-gamepass.nix.
-# Both backends intentionally remain dormant and use separate storage. The
-# existing libvirt domain is the rollback path; this Incus VM becomes the
-# migration target after Windows is installed and tested.
+# This is the sole Incus backend for the Zephyr Game Pass VM.
+# Incus exclusively owns the RTX 3060 Ti when the VM is started; the RTX 3090
+# remains host-owned. The retired libvirt backend is not imported or started.
 #
-# Guest contract shared with libvirt:
+# Incus guest contract:
 #   - 8 vCPUs pinned to host CPUs 8-15
 #   - 16 GiB RAM
 #   - Windows guest firmware/clock behavior
@@ -16,18 +15,30 @@
 #
 # Important: Incus instance state is deliberately not created at activation.
 # The operator must run `incus-gamepass-vm create` once, then install Windows
-# from the imported ISO. This avoids an activation unexpectedly creating or
-# starting a VM, and keeps the libvirt rollback definition untouched.
-{config, lib, pkgs, ...}: let
+# from the imported ISO. This avoids activation unexpectedly creating or
+# starting a VM.
+{config, lib, pkgs, vfioPkgs, ...}: let
   cfg = config.virtualisation.incus;
   incus = cfg.clientPackage;
   incusVm = "gamepass-win11-incus";
-  libvirtVm = "gamepass-win11";
   storagePool = "gamepass";
   storageRoot = "/var/lib/incus-gamepass";
   incusNetwork = "incusbr-gp";
   vfioGpu = "0000:24:00.0";
   vfioAudio = "0000:24:00.1";
+  vfioGpuVendor = "0x10de";
+  vfioGpuDevice = "0x2486";
+  vfioAudioVendor = "0x10de";
+  vfioAudioDevice = "0x228b";
+  vfioIommuGroup = "24";
+  protectedGpu = "0000:2d:00.0";
+  protectedAudio = "0000:2d:00.1";
+  protectedGpuVendor = "0x10de";
+  protectedGpuDevice = "0x2204";
+  protectedAudioVendor = "0x10de";
+  protectedAudioDevice = "0x1aef";
+  protectedIommuGroup = "27";
+  nvidiaSmi = "${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
   lookingGlass = pkgs.looking-glass-client;
 
   # nixpkgs' virtio-win is only the extracted driver tree (no ISO). Windows'
@@ -66,10 +77,8 @@
       "$@"
   '';
 
-  # Shared dynamic handoff for both VM backends. Incus does not provide
-  # libvirt's managed="yes" behavior, so make the ownership transition
-  # explicit and reversible. The lock and owner marker also protect against
-  # two wrapper-managed starts racing each other.
+  # Incus VFIO preflight guard. The lock and owner marker protect against
+  # concurrent starts while Incus moves the 3060 Ti between host driver and VFIO.
   handoffScript = pkgs.writeShellScript "gamepass-vfio-handoff" ''
     set -euo pipefail
 
@@ -77,128 +86,250 @@
     ${pkgs.util-linux}/bin/flock -x 9
     mode="''${1:-}"
     owner_file=/run/gamepass-vfio/owner
+    state_file=/run/gamepass-vfio/original-drivers
+    protected_state_file=/run/gamepass-vfio/protected-drivers
     devices=("${vfioGpu}" "${vfioAudio}")
+    protected_devices=("${protectedGpu}" "${protectedAudio}")
 
     driver_for() {
       local dev="$1"
       if [ -L "/sys/bus/pci/devices/$dev/driver" ]; then
-        basename "$(readlink "/sys/bus/pci/devices/$dev/driver")"
+        ${pkgs.coreutils}/bin/basename "$(${pkgs.coreutils}/bin/readlink "/sys/bus/pci/devices/$dev/driver")"
       else
         echo none
       fi
     }
 
-    rollback_claim() {
-      # ERR trap path: restore every function touched before returning the
-      # original failure. Never leave a half-bound GPU behind.
-      set +e
+    validate_identity() {
+      local dev vendor device group gpu_group audio_group
       for dev in "''${devices[@]}"; do
-        if [ "$(driver_for "$dev")" = vfio-pci ]; then
-          echo "$dev" > /sys/bus/pci/drivers/vfio-pci/unbind
-        fi
-        echo "" > "/sys/bus/pci/devices/$dev/driver_override"
-        echo "$dev" > /sys/bus/pci/drivers_probe
+        test -e "/sys/bus/pci/devices/$dev" || {
+          echo "Required passthrough function is missing: $dev" >&2
+          return 1
+        }
+        vendor=$(cat "/sys/bus/pci/devices/$dev/vendor")
+        device=$(cat "/sys/bus/pci/devices/$dev/device")
+        case "$dev" in
+          "${vfioGpu}")
+            [ "$vendor" = "${vfioGpuVendor}" ] && [ "$device" = "${vfioGpuDevice}" ] || {
+              echo "Unexpected GPU identity at $dev: $vendor:$device (expected ${vfioGpuVendor}:${vfioGpuDevice})" >&2
+              return 1
+            }
+            ;;
+          "${vfioAudio}")
+            [ "$vendor" = "${vfioAudioVendor}" ] && [ "$device" = "${vfioAudioDevice}" ] || {
+              echo "Unexpected audio identity at $dev: $vendor:$device (expected ${vfioAudioVendor}:${vfioAudioDevice})" >&2
+              return 1
+            }
+            ;;
+        esac
       done
-      modprobe nvidia 2>/dev/null || true
-      modprobe snd_hda_intel 2>/dev/null || true
+      gpu_group=$(${pkgs.coreutils}/bin/basename "$(${pkgs.coreutils}/bin/readlink -f "/sys/bus/pci/devices/${vfioGpu}/iommu_group")")
+      audio_group=$(${pkgs.coreutils}/bin/basename "$(${pkgs.coreutils}/bin/readlink -f "/sys/bus/pci/devices/${vfioAudio}/iommu_group")")
+      [ "$gpu_group" = "${vfioIommuGroup}" ] && [ "$audio_group" = "$gpu_group" ] || {
+        echo "Unexpected IOMMU groups: ${vfioGpu}=$gpu_group ${vfioAudio}=$audio_group (expected shared group ${vfioIommuGroup})" >&2
+        return 1
+      }
+      group_members=$(${pkgs.findutils}/bin/find "/sys/kernel/iommu_groups/${vfioIommuGroup}/devices" -mindepth 1 -maxdepth 1 -type l -printf '%f\\n' | ${pkgs.coreutils}/bin/sort)
+      expected_members=$(printf '%s\\n' "${vfioGpu}" "${vfioAudio}" | ${pkgs.coreutils}/bin/sort)
+      [ "$group_members" = "$expected_members" ] || {
+        echo "Refusing handoff: IOMMU group ${vfioIommuGroup} contains unexpected members:" >&2
+        printf '%s\\n' "$group_members" >&2
+        return 1
+      }
+      for dev in "''${protected_devices[@]}"; do
+        test -e "/sys/bus/pci/devices/$dev" || {
+          echo "Protected RTX 3090 function is missing: $dev" >&2
+          return 1
+        }
+        vendor=$(cat "/sys/bus/pci/devices/$dev/vendor")
+        device=$(cat "/sys/bus/pci/devices/$dev/device")
+        case "$dev" in
+          "${protectedGpu}")
+            [ "$vendor" = "${protectedGpuVendor}" ] && [ "$device" = "${protectedGpuDevice}" ] || {
+              echo "Unexpected protected GPU identity at $dev: $vendor:$device (expected ${protectedGpuVendor}:${protectedGpuDevice})" >&2
+              return 1
+            }
+            ;;
+          "${protectedAudio}")
+            [ "$vendor" = "${protectedAudioVendor}" ] && [ "$device" = "${protectedAudioDevice}" ] || {
+              echo "Unexpected protected audio identity at $dev: $vendor:$device (expected ${protectedAudioVendor}:${protectedAudioDevice})" >&2
+              return 1
+            }
+            ;;
+        esac
+        case "$dev:$(driver_for "$dev")" in
+          "${protectedGpu}:nvidia"|"${protectedAudio}:snd_hda_intel") ;;
+          *)
+            echo "Refusing handoff: protected RTX 3090 function has unexpected driver: $dev=$(driver_for "$dev")" >&2
+            return 1
+            ;;
+        esac
+        protected_group=$(${pkgs.coreutils}/bin/basename "$(${pkgs.coreutils}/bin/readlink -f "/sys/bus/pci/devices/$dev/iommu_group")")
+        [ "$protected_group" = "${protectedIommuGroup}" ] || {
+          echo "Unexpected protected RTX 3090 IOMMU group for $dev: $protected_group (expected ${protectedIommuGroup})" >&2
+          return 1
+        }
+      done
+    }
+
+    capture_driver_state() {
+      : > "$state_file"
+      : > "$protected_state_file"
+      local dev
       for dev in "''${devices[@]}"; do
-        echo "$dev" > /sys/bus/pci/drivers_probe
+        printf '%s %s\\n' "$dev" "$(driver_for "$dev")" >> "$state_file"
       done
-      rm -f "$owner_file"
+      for dev in "''${protected_devices[@]}"; do
+        printf '%s %s\\n' "$dev" "$(driver_for "$dev")" >> "$protected_state_file"
+      done
+    }
+
+    verify_protected_state() {
+      local dev expected actual
+      while read -r dev expected; do
+        actual=$(driver_for "$dev")
+        [ "$actual" = "$expected" ] && [ "$actual" != "vfio-pci" ] || {
+          echo "Protected RTX 3090 driver changed for $dev: was $expected, now $actual" >&2
+          return 1
+        }
+      done < "$protected_state_file"
+    }
+
+    verify_original_state() {
+      local dev expected actual
+      while read -r dev expected; do
+        actual=$(driver_for "$dev")
+        [ "$actual" = "$expected" ] || {
+          echo "3060 Ti rollback incomplete for $dev: was $expected, now $actual" >&2
+          return 1
+        }
+      done < "$state_file"
     }
 
     claim() {
       local backend="$1"
-      trap rollback_claim ERR
       mkdir -p /run/gamepass-vfio
       if [ -s "$owner_file" ] && [ "$(cat "$owner_file")" != "$backend" ]; then
         echo "3060 Ti is already owned by $(cat "$owner_file")" >&2
         exit 1
       fi
 
-      if [ "$backend" = incus ]; then
-        if ${pkgs.libvirt}/bin/virsh -c qemu:///system domstate ${libvirtVm} 2>/dev/null \
-          | ${pkgs.gnugrep}/bin/grep -Eiq 'running|paused'; then
-          echo "Refusing Incus ownership: libvirt ${libvirtVm} is active" >&2
-          exit 1
-        fi
-      else
-        if ${incus}/bin/incus info ${incusVm} --format csv -c status 2>/dev/null \
-          | ${pkgs.gnugrep}/bin/grep -Eiq 'running|paused|frozen'; then
-          echo "Refusing libvirt ownership: Incus ${incusVm} is active" >&2
-          exit 1
-        fi
+      if [ "$backend" != incus ]; then
+        echo "Unsupported VFIO backend: $backend (Incus is the only backend)" >&2
+        exit 2
       fi
 
-      # Stop only the workloads known to use this card. The RTX 3090 services
-      # are not touched.
-      for unit in peakminer-zephyr-3060ti.service bonsai-1bit-zephyr.service; do
-        systemctl stop "$unit" 2>/dev/null || true
-      done
-
-      modprobe vfio-pci
-      for dev in "''${devices[@]}"; do
-        driver=$(driver_for "$dev")
-        case "$driver" in
-          vfio-pci|none) ;;
-          nvidia|snd_hda_intel)
-            echo "$dev" > "/sys/bus/pci/drivers/$driver/unbind"
-            ;;
+      validate_identity
+      capture_driver_state
+      while read -r dev original_driver; do
+        case "$dev:$original_driver" in
+          "${vfioGpu}:nvidia"|"${vfioAudio}:snd_hda_intel") ;;
           *)
-            echo "Refusing to detach $dev from unexpected driver $driver" >&2
+            echo "Refusing handoff from unexpected host driver: $dev=$original_driver" >&2
             exit 1
             ;;
         esac
-        echo vfio-pci > "/sys/bus/pci/devices/$dev/driver_override"
-        echo "$dev" > /sys/bus/pci/drivers/vfio-pci/bind
+      done < "$state_file"
+
+      # Incus performs the actual vfio-pci bind and records its own
+      # last_state.pci.driver for restoration. The host guard is deliberately
+      # preflight-only: it must not bind/unbind the same functions behind
+      # Incus's back. If a later check fails, discard only our state marker;
+      # no host driver transition has occurred yet.
+      trap 'rc=$?; trap - EXIT; if [ "$rc" -ne 0 ]; then rm -f "$owner_file" "$state_file" "$protected_state_file"; fi; exit "$rc"' EXIT
+
+      # Stop only the workloads known to use this card. The RTX 3090 services
+      # are not touched. A successful stop command is not enough: refuse the
+      # handoff if either workload remains active.
+      for unit in peakminer-zephyr-3060ti.service bonsai-1bit-zephyr.service; do
+        systemctl stop "$unit" 2>/dev/null || true
+        if systemctl is-active --quiet "$unit" 2>/dev/null; then
+          echo "Refusing VFIO handoff: workload remains active: $unit" >&2
+          exit 1
+        fi
       done
 
-      for dev in "''${devices[@]}"; do
-        [ "$(driver_for "$dev")" = vfio-pci ] || {
-          echo "VFIO bind failed for $dev" >&2
-          exit 1
-        }
-      done
+      if ! gpu_rows=$(${nvidiaSmi} --query-gpu=pci.bus_id,uuid --format=csv,noheader,nounits 2>/dev/null); then
+        echo "Refusing VFIO handoff: cannot query GPU identities from ${nvidiaSmi}" >&2
+        exit 1
+      fi
+      target_matches=$(printf '%s\\n' "$gpu_rows" | ${pkgs.gawk}/bin/awk -F', ' '$1 ~ /24:00\\.0$/ && $2 ~ /^GPU-[[:alnum:]-]+$/ {count += 1; uuid = $2} END {print count, uuid}')
+      read -r target_match_count target_uuid <<EOF
+$target_matches
+EOF
+      [ "$target_match_count" = 1 ] && [ -n "$target_uuid" ] || {
+        echo "Refusing VFIO handoff: expected exactly one valid RTX 3060 Ti identity row, got: $target_matches" >&2
+        exit 1
+      }
+      if ! compute_rows=$(${nvidiaSmi} --query-compute-apps=gpu_uuid,pid,process_name --format=csv,noheader,nounits 2>/dev/null); then
+        echo "Refusing VFIO handoff: cannot query CUDA clients from ${nvidiaSmi}" >&2
+        exit 1
+      fi
+      target_clients=$(printf '%s\\n' "$compute_rows" | ${pkgs.gawk}/bin/awk -F', ' -v uuid="$target_uuid" '$1 == uuid {print}')
+      [ -z "$target_clients" ] || {
+        echo "Refusing VFIO handoff: unexpected CUDA clients still use the RTX 3060 Ti:" >&2
+        printf '%s\\n' "$target_clients" >&2
+        exit 1
+      }
+      pmon_output=""
+      if ! pmon_output=$(${nvidiaSmi} pmon -i 00000000:24:00.0 -c 1 2>/dev/null); then
+        echo "Refusing VFIO handoff: nvidia-smi pmon failed for the RTX 3060 Ti" >&2
+        exit 1
+      fi
+      printf '%s\\n' "$pmon_output" | ${pkgs.gnugrep}/bin/grep -Eq 'gpu[[:space:]]+pid' || {
+        echo "Refusing VFIO handoff: nvidia-smi pmon returned an unrecognized sample" >&2
+        exit 1
+      }
+      target_graphics=$(printf '%s\\n' "$pmon_output" | ${pkgs.gawk}/bin/awk '$2 ~ /^[0-9]+$/ {print}')
+      [ -z "$target_graphics" ] || {
+        echo "Refusing VFIO handoff: graphics/compute clients still use the RTX 3060 Ti:" >&2
+        printf '%s\\n' "$target_graphics" >&2
+        exit 1
+      }
+
+      # Incus now owns the transition. It loads vfio-pci, applies the IOMMU
+      # group override, and restores the recorded host drivers after stop.
+      # Keep this marker until ExecStopPost verifies that Incus restored them.
       printf '%s\\n' "$backend" > "$owner_file"
-      trap - ERR
+      trap - EXIT
     }
 
     release() {
       local backend="''${1:-}"
-      [ -e "$owner_file" ] || backend=""
-      if [ -n "$backend" ] && [ -s "$owner_file" ] && [ "$(cat "$owner_file")" != "$backend" ]; then
+      if [ ! -s "$owner_file" ]; then
+        echo "No active Incus GPU ownership; refusing to touch PCI drivers"
+        return 0
+      fi
+      if [ -n "$backend" ] && [ "$(cat "$owner_file")" != "$backend" ]; then
         echo "Not releasing GPU owned by $(cat "$owner_file")" >&2
         exit 1
       fi
+      [ -s "$state_file" ] && [ -s "$protected_state_file" ] || {
+        echo "VFIO state files are incomplete; refusing to release the GPU" >&2
+        exit 1
+      }
 
-      for dev in "''${devices[@]}"; do
-        if [ "$(driver_for "$dev")" = vfio-pci ]; then
-          echo "$dev" > /sys/bus/pci/drivers/vfio-pci/unbind || true
-        fi
-        echo "" > "/sys/bus/pci/devices/$dev/driver_override" || true
-        echo "$dev" > /sys/bus/pci/drivers_probe || true
-      done
-      modprobe nvidia 2>/dev/null || true
-      modprobe snd_hda_intel 2>/dev/null || true
-      local expected=(nvidia snd_hda_intel)
-      local index=0
-      for dev in "''${devices[@]}"; do
-        echo "$dev" > /sys/bus/pci/drivers_probe || true
-        actual=$(driver_for "$dev")
-        if [ "$actual" != "''${expected[$index]}" ]; then
-          echo "GPU cleanup incomplete: $dev is bound to $actual (expected ''${expected[$index]})" >&2
-          return 1
-        fi
-        index=$((index + 1))
-      done
-      rm -f "$owner_file"
+      vm_state=$(${incus}/bin/incus info ${lib.escapeShellArg incusVm} --format csv -c status 2>/dev/null || echo unknown)
+      [ "$vm_state" = STOPPED ] || {
+        echo "Refusing to release VFIO while ${incusVm} is not stopped (state: $vm_state)" >&2
+        exit 1
+      }
+      # Incus owns VFIO unbind/rebind in its post-stop hook. The host guard
+      # only verifies that Incus restored the exact drivers captured above;
+      # it never races Incus by writing to the PCI driver sysfs itself.
+      if ! verify_original_state; then
+        echo "Incus did not restore the 3060 Ti host drivers; refusing to clear ownership state" >&2
+        return 1
+      fi
+      verify_protected_state
+      rm -f "$owner_file" "$state_file" "$protected_state_file"
     }
 
     case "$mode" in
       pre-incus) claim incus ;;
-      pre-libvirt) claim libvirt ;;
       post) release "''${2:-}" ;;
-      *) echo "Usage: $0 {pre-incus|pre-libvirt|post [owner]}" >&2; exit 2 ;;
+      *) echo "Usage: $0 {pre-incus|post [owner]}" >&2; exit 2 ;;
     esac
   '';
 
@@ -206,29 +337,24 @@
     set -euo pipefail
 
     incus=${incus}/bin/incus
-    virsh=${pkgs.libvirt}/bin/virsh
     vm=${lib.escapeShellArg incusVm}
-    libvirt_vm=${lib.escapeShellArg libvirtVm}
     pool=${lib.escapeShellArg storagePool}
-    iso=${lib.escapeShellArg "/var/lib/libvirt/images/win11.iso"}
+    source_root=${lib.escapeShellArg storageRoot}
+    orphan_pool_dir=${lib.escapeShellArg "/var/lib/incus/storage-pools/gamepass"}
+    iso=${lib.escapeShellArg "/var/lib/incus-gamepass/win11.iso"}
     virtio_iso=${lib.escapeShellArg "${virtioWinIso}/virtio-win.iso"}
 
     usage() {
       cat >&2 <<'EOF'
 Usage:
+  incus-gamepass-vm reconcile      Inspect Incus pool/source drift (read-only)
   incus-gamepass-vm create         Create the dormant Incus VM and import ISOs
   incus-gamepass-vm start           Start Incus VM through the ownership guard
   incus-gamepass-vm stop            Stop Incus VM through the ownership guard
-  incus-gamepass-vm start-libvirt   Start the dormant libvirt rollback VM
-  incus-gamepass-vm stop-libvirt    Stop the libvirt rollback VM
   incus-gamepass-vm status          Show both backend states
   incus-gamepass-vm check-looking-glass  Verify host KVMFR access
 EOF
       exit 2
-    }
-
-    libvirt_state() {
-      $virsh -c qemu:///system domstate "$libvirt_vm" 2>/dev/null || echo "undefined"
     }
 
     incus_state() {
@@ -246,6 +372,34 @@ EOF
         exit 1
       }
       echo "KVMFR ready: $(stat -c '%U:%G %a' /dev/kvmfr0)"
+    }
+
+    reconcile_storage() {
+      local registered source_value
+      if ! registered=$($incus storage list -f csv -c n 2>/dev/null); then
+        echo "ERROR: unable to query Incus storage pools; refusing reconciliation" >&2
+        exit 1
+      fi
+      if printf '%s\\n' "$registered" | ${pkgs.gnugrep}/bin/grep -Fxq "$pool"; then
+        source_value=$($incus storage get "$pool" source 2>/dev/null || true)
+        if [ "$source_value" = "$source_root" ]; then
+          echo "OK: Incus pool '$pool' is registered with source '$source_root'"
+          exit 0
+        fi
+        echo "ERROR: Incus pool '$pool' has unexpected source '$source_value' (expected '$source_root')" >&2
+        exit 1
+      fi
+      if [ -e "$orphan_pool_dir" ]; then
+        echo "BLOCKED: unregistered Incus storage directory exists: $orphan_pool_dir" >&2
+        echo "Inventory it before any preseed or cleanup; no automatic deletion is performed." >&2
+        exit 2
+      fi
+      if [ -d "$source_root" ] && [ -n "$(${pkgs.findutils}/bin/find "$source_root" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+        echo "BLOCKED: expected source directory is non-empty but pool '$pool' is unregistered: $source_root" >&2
+        echo "Confirm ownership and backup state before registering or migrating it." >&2
+        exit 2
+      fi
+      echo "READY: no registered '$pool' pool or orphan state detected; preseed may initialize '$source_root'"
     }
 
     ensure_iso_volume() {
@@ -288,30 +442,16 @@ EOF
       create)
         create_vm
         ;;
+      reconcile)
+        reconcile_storage
+        ;;
       start)
-        $virsh -c qemu:///system domstate "$libvirt_vm" 2>/dev/null \
-          | grep -qx running && {
-            echo "Refusing Incus start: $libvirt_vm is running" >&2
-            exit 1
-          } || true
         exec systemctl start gamepass-incus-vm.service
         ;;
       stop)
         exec systemctl stop gamepass-incus-vm.service
         ;;
-      start-libvirt)
-        $incus info "$vm" --format csv -c status 2>/dev/null \
-          | grep -Eiq 'running|started' && {
-            echo "Refusing libvirt start: $vm is running" >&2
-            exit 1
-          } || true
-        exec systemctl start gamepass-libvirt-vm.service
-        ;;
-      stop-libvirt)
-        exec systemctl stop gamepass-libvirt-vm.service
-        ;;
       status)
-        printf 'libvirt %-24s %s\n' "$libvirt_vm" "$(libvirt_state)"
         printf 'incus   %-24s %s\n' "$vm" "$(incus_state)"
         ;;
       *)
@@ -325,16 +465,46 @@ EOF
     ${incus}/bin/incus stop ${lib.escapeShellArg incusVm} --force 2>/dev/null || true
   '';
 
-  libvirtStopScript = pkgs.writeShellScript "gamepass-libvirt-stop" ''
+  vmStartScript = pkgs.writeShellScript "gamepass-incus-start" ''
     set -euo pipefail
-    ${pkgs.libvirt}/bin/virsh -c qemu:///system shutdown ${lib.escapeShellArg libvirtVm} 2>/dev/null || true
+    rc=0
+    ${incus}/bin/incus start ${lib.escapeShellArg incusVm} || rc=$?
+    [ "$rc" -eq 0 ] && exit 0
+    state=$(${incus}/bin/incus info ${lib.escapeShellArg incusVm} --format csv -c status 2>/dev/null || echo unknown)
+    if [ "$state" = STOPPED ]; then
+      echo "Incus start failed after VFIO claim; checking Incus driver restoration" >&2
+      if ! ${handoffScript} post incus; then
+        echo "CRITICAL: Incus did not restore the 3060 Ti; inspect /run/gamepass-vfio and journal immediately" >&2
+      fi
+    else
+      echo "CRITICAL: Incus start failed and VM state is '$state'; refusing automatic GPU release" >&2
+      echo "Confirm the VM is stopped before running: ${handoffScript} post incus" >&2
+    fi
+    exit "$rc"
   '';
+
 in {
   config = lib.mkIf (config.networking.hostName == "zephyr") {
+    # Incus-only host prerequisites. The 3060 Ti remains on the host driver
+    # until gamepass-incus-vm.service performs the guarded handoff; the 3090
+    # is never detached or passed through.
+    boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
+    boot.kernelModules = [ "kvmfr" ];
+    boot.kernelParams = [ "kvmfr.static_size_mb=64" ];
+    boot.extraModulePackages = [
+      (vfioPkgs.linuxPackagesFor config.boot.kernelPackages.kernel).kvmfr
+    ];
+    services.udev.packages = lib.singleton (pkgs.writeTextFile {
+      name = "kvmfr-udev";
+      text = ''SUBSYSTEM=="kvmfr", GROUP="kvm", MODE="0660", TAG+="uaccess"'';
+      destination = "/etc/udev/rules.d/70-kvmfr.rules";
+    });
+    users.users.j_kro.extraGroups = [ "incus" "incus-admin" "kvm" ];
+
     virtualisation.incus = {
       enable = true;
-      # Incus owns its own bridge and storage pool; libvirt's default network
-      # remains separate. Preseed is idempotent and does not remove entities.
+      # Incus owns its own bridge and storage pool. Preseed is idempotent and
+      # does not remove existing entities.
       preseed = {
         networks = [
           {
@@ -368,8 +538,7 @@ in {
               "boot.host_shutdown_action" = "stop";
               # Incus passes these raw QEMU arguments to the VM so the guest
               # can use the same 64 MiB Looking Glass shared-memory transport
-              # as the libvirt backend. The host kvmfr module is supplied by
-              # vfio-gamepass.nix.
+              # using the host kvmfr module declared above.
               "raw.qemu" = "-object memory-backend-file,id=looking-glass,mem-path=/dev/kvmfr0,size=64M,share=on -device ivshmem-plain,memdev=looking-glass";
             };
             devices = {
@@ -387,9 +556,13 @@ in {
               tpm = {
                 type = "tpm";
               };
+              # Incus' VM GPU device type models a whole physical GPU and
+              # lets Incus/QEMU apply its PCI passthrough lifecycle. The
+              # companion HDMI-audio function remains a raw PCI device.
               gpu = {
-                type = "pci";
-                address = vfioGpu;
+                type = "gpu";
+                gputype = "physical";
+                pci = vfioGpu;
               };
               gpu-audio = {
                 type = "pci";
@@ -414,10 +587,58 @@ in {
         ExecStart = lib.mkForce [
           (pkgs.writeShellScript "incus-preseed-guarded" ''
             set -euo pipefail
-            if ${incus}/bin/incus storage pool list -f csv -c name 2>/dev/null \
-              | ${pkgs.gnugrep}/bin/grep -qx gamepass; then
-              echo "incus gamepass pool already present; skipping preseed (idempotent)"
-              exit 0
+            # Incus 7 exposes registered pools via `storage list`; the old
+            # `storage pool list` spelling always failed and made every
+            # activation fall through to a second init attempt.
+            if ! registered=$(${incus}/bin/incus storage list -f csv -c n 2>/dev/null); then
+              echo "ERROR: unable to query Incus storage pools; refusing preseed" >&2
+              exit 1
+            fi
+            if printf '%s\\n' "$registered" | ${pkgs.gnugrep}/bin/grep -Fxq gamepass; then
+              driver=$(${incus}/bin/incus storage show gamepass --format yaml 2>/dev/null | ${pkgs.gnused}/bin/sed -n 's/^driver: *//p' | ${pkgs.coreutils}/bin/head -n 1)
+              source=$(${incus}/bin/incus storage get gamepass source 2>/dev/null || true)
+              if [ "$driver" = "dir" ] && [ "$source" = "${storageRoot}" ]; then
+                echo "incus gamepass pool already present with expected driver/source; skipping preseed"
+                exit 0
+              fi
+              echo "ERROR: registered gamepass pool has unexpected driver/source '$driver'/'$source' (expected 'dir'/'${storageRoot}')" >&2
+              exit 1
+            fi
+            if [ -e "/var/lib/incus/storage-pools/gamepass" ]; then
+              echo "ERROR: unregistered Incus storage directory exists at /var/lib/incus/storage-pools/gamepass" >&2
+              echo "Inventory and reconcile it before activation; refusing to delete or overwrite VM state." >&2
+              exit 1
+            fi
+            if [ -d "${storageRoot}" ] && [ -n "$(${pkgs.findutils}/bin/find "${storageRoot}" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+              echo "ERROR: expected Incus source ${storageRoot} is non-empty but gamepass is unregistered" >&2
+              echo "Confirm ownership and backup state before registering or migrating it." >&2
+              exit 1
+            fi
+            if ! existing_storage=$(${incus}/bin/incus storage list -f csv -c n 2>/dev/null); then
+              echo "ERROR: unable to query Incus storage resources; refusing preseed" >&2
+              exit 1
+            fi
+            if ! existing_profiles=$(${incus}/bin/incus profile list -f csv -c n 2>/dev/null); then
+              echo "ERROR: unable to query Incus profiles; refusing preseed" >&2
+              exit 1
+            fi
+            unexpected_storage=$(printf '%s\\n' "$existing_storage" | ${pkgs.gnugrep}/bin/grep -vFx gamepass | ${pkgs.gnugrep}/bin/grep -v '^$' || true)
+            unexpected_profiles=$(printf '%s\\n' "$existing_profiles" | ${pkgs.gnugrep}/bin/grep -vFx default | ${pkgs.gnugrep}/bin/grep -v '^$' || true)
+            if [ -n "$unexpected_storage" ] || [ -n "$unexpected_profiles" ]; then
+              echo "ERROR: Incus has existing resources but the Game Pass pool/profile is incomplete" >&2
+              echo "Storage resources: ''${unexpected_storage:-none}" >&2
+              echo "Non-default profiles: ''${unexpected_profiles:-none}" >&2
+              echo "Refusing to re-run admin init; use incus-gamepass-vm reconcile and complete an explicit operator-approved registration." >&2
+              exit 1
+            fi
+            if ! existing_networks=$(${incus}/bin/incus network list -f csv -c n 2>/dev/null); then
+              echo "ERROR: unable to query Incus networks; refusing preseed" >&2
+              exit 1
+            fi
+            if printf '%s\\n' "$existing_networks" | ${pkgs.gnugrep}/bin/grep -Fxq '${incusNetwork}'; then
+              echo "ERROR: Incus already has network '${incusNetwork}' but no registered Game Pass pool/profile" >&2
+              echo "Refusing to re-run admin init against a partially initialized daemon; use incus-gamepass-vm reconcile." >&2
+              exit 1
             fi
             exec ${incus}/bin/incus admin init --preseed < ${pkgs.writeText "incus-gamepass-preseed.yaml" (lib.generators.toYAML {} config.virtualisation.incus.preseed)}
           '')
@@ -425,11 +646,9 @@ in {
       };
     };
 
-    users.users.j_kro.extraGroups = [ "incus" "incus-admin" ];
-
     # Incus delegates its cgroup to the QEMU VM process. Give that service
-    # access to the same KVMFR character device used by libvirt's QEMU. This
-    # is intentionally narrower than a blanket device policy.
+    # access to the KVMFR character device used by the Incus QEMU VM. This is
+    # intentionally narrower than a blanket device policy.
     systemd.services.incus.serviceConfig = {
       SupplementaryGroups = [ "kvm" ];
       DeviceAllow = [ "/dev/kvmfr0 rw" ];
@@ -441,33 +660,13 @@ in {
 
     environment.systemPackages = [ gamepassVm lookingGlassLauncher pkgs.squashfsTools ];
 
-    # Both backend units are manual-only. Conflicts prevents a normal
-    # systemctl start from allowing both managers to own the GPU at once.
-    # Direct `virsh`/`incus` commands can bypass any service guard, so normal
-    # operations should use incus-gamepass-vm.
-    systemd.services.gamepass-libvirt-vm = {
-      description = "Dormant libvirt Game Pass Windows VM (rollback backend)";
-      after = [ "libvirtd.service" "gamepass-vm-define.service" ];
-      wants = [ "gamepass-vm-define.service" ];
-      conflicts = [ "gamepass-incus-vm.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStartPre = "${handoffScript} pre-libvirt";
-        ExecStart = "${pkgs.libvirt}/bin/virsh -c qemu:///system start ${libvirtVm}";
-        ExecStop = libvirtStopScript;
-        ExecStopPost = "${handoffScript} post libvirt";
-        TimeoutStartSec = "infinity";
-        TimeoutStopSec = 120;
-      };
-    };
-
+    # The Incus VM is manual-only and never autostarts. Direct `incus` commands
+    # can bypass this wrapper; normal operations should use incus-gamepass-vm.
     systemd.services.gamepass-incus-vm = {
-      description = "Dormant Incus Game Pass Windows VM (migration backend)";
+      description = "Dormant Incus-only Game Pass Windows VM";
       after = [ "incus.service" "incus-preseed.service" ];
       wants = [ "incus-preseed.service" ];
       requires = [ "incus-preseed.service" ];
-      conflicts = [ "gamepass-libvirt-vm.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -475,7 +674,7 @@ in {
           lookingGlassCheck
           "${handoffScript} pre-incus"
         ];
-        ExecStart = "${incus}/bin/incus start ${incusVm}";
+        ExecStart = vmStartScript;
         ExecStop = vmStopScript;
         ExecStopPost = "${handoffScript} post incus";
         TimeoutStartSec = "infinity";

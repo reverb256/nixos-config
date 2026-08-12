@@ -27,22 +27,10 @@ in {
       priority = 110;
     };
 
-    gaming-detection.enable = lib.mkForce false;
-
     nexus-exec.enable = true;
 
 
 
-  };
-
-  # SteamOS gaming console on the 4K TV (native nixpkgs gamescopeSession,
-  # 2026-08-08). This op used to mkForce-disable steam when nexus was headless;
-  # nexus now boots SDDM -> Steam gamescope session by default (desktop.nix).
-  # Must NOT mkForce false here — eval conflict with configuration.nix's
-  # gamescopeSession.enable = mkForce true.
-  programs.steam = {
-    enable = true;
-    gamescopeSession.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
@@ -252,7 +240,12 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/secrets/github-runner-pat";
+    # 2026-08-11: was tokenFile, which passed the raw PAT straight to
+    # config.sh --token -> GitHub 404 ("Bad credentials" on registration).
+    # patFile makes the setup script exchange the PAT for a fresh
+    # registration token via POST /actions/runners/registration-token
+    # (verified: HTTP 201 + "√ Successfully replaced the runner").
+    patFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["nexus"];
   };

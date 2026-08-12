@@ -725,7 +725,10 @@
     ageKeyFile = "/etc/sops/age/key.txt";
     enable = true;
     production = true;
-    failOnMissing = true;
+    # Aligned with cluster default 2026-08-10 (see SECRETSPEC-CONSOLIDATION.md):
+    # 33 manifest entries are intentionally env/dotenv-fallback with no sops
+    # route; failOnMissing=true caused permanent unit failure on every run.
+    failOnMissing = false;
   };
 
   # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system

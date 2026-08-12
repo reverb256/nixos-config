@@ -109,7 +109,12 @@
   services.secretspec-validator = {
     enable = true;
     production = true;
-    failOnMissing = true;
+    # failOnMissing=false is the cluster default per
+    # modules/system/SECRETSPEC-CONSOLIDATION.md (flipped 2026-07-25). The
+    # manifest intentionally declares 33 env/dotenv-fallback secrets with no
+    # sops route; failOnMissing=true made the unit fail every run by design
+    # of those entries, drowning journals. Drift still surfaces as warnings.
+    failOnMissing = false;
   };
 
   # ============================================================================
@@ -205,6 +210,12 @@
   ];
 
   services = {
+    # Keep automatic workload mutation disabled: PeakMiner remains enabled
+    # declaratively, and Ampere coexistence is an explicit operator choice.
+    gaming-detection.enable = lib.mkForce false;
+    gpu-profile-manager.enable = lib.mkForce false;
+    mining-coordinator.enable = lib.mkForce false;
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -445,35 +456,9 @@
   #
   # Nexus-specific service additions:
 
-  # Enable Steam Gamescope session — SteamOS-style console on the 4K TV
-  # (nixpkgs-native gamescopeSession, "steam-nix style"). The custom
-  # modules/gaming/gamescope-session.nix + desktop/gamescope-tty.nix were
-  # dead code and are not imported (native nixpkgs option supersedes them).
-  # Session name = "steam" (steam.desktop from steam.nix); desktop.nix sets
-  # it as the SDDM autoLogin default, niri-uwsm stays selectable.
-  programs.steam = {
-    enable = true;
-    gamescopeSession.enable = lib.mkForce true;
-    gamescopeSession.args = [
-      # SteamOS console behavior: fullscreen, expose Wayland for HDR
-      "--expose-wayland"
-      "--force-composition"
-      # 4K TV mode — gamescope upscales internal res to output
-      "-W"
-      "3840"
-      "-H"
-      "2160"
-      "-r"
-      "60"
-    ];
-  };
-
   services = {
     # Compute workload monitor - pauses mining during builds
     # Modular workload monitoring (replaces old compute-workload-monitor monolith)
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
 
     # Crash detection and logging
     # services.crash-watchdog.enable = true; # Module not available yet

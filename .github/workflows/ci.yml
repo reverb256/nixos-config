@@ -79,8 +79,10 @@ jobs:
         uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
         with:
           name: reverb-os
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           cachixBin: /run/current-system/sw/bin/cachix
+          skipAddingSubstituter: true
+          skipPush: true
+          useDaemon: false
 
       - name: Nix flake check
         run: nix flake check --no-build
@@ -110,8 +112,10 @@ jobs:
         uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
         with:
           name: reverb-os
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           cachixBin: /run/current-system/sw/bin/cachix
+          skipAddingSubstituter: true
+          skipPush: true
+          useDaemon: false
 
       - name: Lint (alejandra + statix + deadnix)
         run: |
