@@ -1064,10 +1064,11 @@
     NCCL_IB_DISABLE = "1"; # Disable InfiniBand (not applicable)
     NCCL_ALGO = "Tree"; # Tree algorithm for multi-GPU communication
 
-    # llama.cpp/llama-cpp CUDA settings
-    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; # Critical for heterogeneous GPU support
-    GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
-    LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
+    # llama.cpp/llama-cpp CUDA settings (UMA pinned to 0 in hardware.nix —
+    # =1 spilled GPU memory to system RAM and earlyoom killed llama-server).
+    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+    GGML_CUDA_GPU_MEMORY_FRACTION = "0.9";
+    LLAMA_GRAPH_POOL_SIZE = "0.2";
     # KV cache quantization (Q4_0) is configured per-model in backend
   };
 
