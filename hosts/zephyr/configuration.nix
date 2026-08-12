@@ -1167,11 +1167,16 @@
   # Disable edk2-uefi-shell to avoid python3 → tkinter → tcl-8_6 eval error
   boot.loader.systemd-boot.edk2-uefi-shell.enable = false;
 
-  # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
+  # Bonsai 27B: HOME-MANAGER OWNS the services on zephyr (user units declared
+  # in home-manager-config modules/zephyr-gpu-workloads.nix with correct
+  # CUDA pinning: ternary on 3090 = CUDA_VISIBLE_DEVICES=0, 1-bit on 3060 Ti =
+  # CUDA_VISIBLE_DEVICES=1 — llama.cpp enumeration is REVERSED vs nvidia-smi).
+  # Disabled here to avoid port conflicts (8005/1236) with the HM user units
+  # and the old reversed-GPU crash loop (cudaMalloc OOM on 8 GB).
   services.bonsai = {
-    enable = true;
-    binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";  # GC'd 6pnbfx3... rebuilt fork (2026-08-12)
-    turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
+    enable = false;
+    binaryStorePath = null;
+    turboBinaryStorePath = null;
   };
 
   # NVIDIA Switchyard LLM routing proxy - local + remote backends.
