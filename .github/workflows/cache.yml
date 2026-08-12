@@ -17,10 +17,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cache-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   populate-cache:
     name: Build & push to nexus cache
     runs-on: [self-hosted, nixos]
+    timeout-minutes: 90
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -47,11 +52,11 @@ jobs:
       - name: Build all host toplevels and push to nexus cache
         continue-on-error: true
         run: |
-          set -u
+          set -uo pipefail
           for host in zephyr nexus forge sentry; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Building $host toplevel..."
-            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/cache-build-$host.log; then
+            if ! timeout --foreground 60m nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/cache-build-$host.log; then
               echo "::warning::Build failed for $host — skipping cache push"
               continue
             fi
