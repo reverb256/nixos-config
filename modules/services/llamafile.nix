@@ -236,6 +236,9 @@ in {
         Environment =
           [
             "LD_LIBRARY_PATH=${llamaPkg}/lib"
+            # UMA OFF (same rationale as services.bonsai): =1 spills GPU memory
+            # into system RAM and triggers earlyoom kills.
+            "GGML_CUDA_ENABLE_UNIFIED_MEMORY=0"
           ]
           ++ lib.optional (cfg.vulkanDevice == null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
