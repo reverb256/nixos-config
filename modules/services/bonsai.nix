@@ -84,7 +84,7 @@ with lib; let
   # `model` and `memoryMax` are overridable per-host (sentry uses /srv/models
   # and a smaller ctx/ram cap than the 8-24 GB NVIDIA hosts). Also opens the
   # service port in the host firewall (cluster convention: mkOptionDefault).
-  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, model ? cfg.onebitModel, contextSize ? "131072", cacheTypeK ? "q4_0", cacheTypeV ? "q4_0", memoryMax ? "6G" }: {
+  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, model ? cfg.onebitModel, contextSize ? "131072", cacheTypeK ? "q4_0", cacheTypeV ? "q4_0", memoryMax ? "6G", specType ? null, specDraftNMax ? null, draftModel ? null }: {
     systemd.services."bonsai-1bit-${name}" = {
       description = desc;
       after = ["network.target"];
@@ -93,7 +93,10 @@ with lib; let
         Type = "simple";
         User = "bonsai";
         RuntimeDirectory = "bonsai-1bit-${name}";
-        ExecStart = "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias bonsai-27b-1bit-${name}";
+        ExecStart = "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias bonsai-27b-1bit-${name}"
+          + optionalString (specType != null) " --spec-type ${specType}"
+          + optionalString (specDraftNMax != null) " --spec-draft-n-max ${toString specDraftNMax}"
+          + optionalString (draftModel != null) " -md ${draftModel}";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
@@ -106,7 +109,7 @@ with lib; let
         ProtectHome = true;
         PrivateTmp = true;
         ReadWritePaths = ["/run/bonsai-1bit-${name}"];
-        ReadOnlyPaths = [model];
+        ReadOnlyPaths = [ model ] ++ optionals (draftModel != null) [ draftModel ];
       };
       environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; } // extraEnv;
     };
