@@ -59,7 +59,10 @@ in {
       serviceConfig.Type = "oneshot";
       # The sync script calls `git`, which is absent from systemd's minimal PATH.
       # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
-      path = [pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep];
+      # openssh is REQUIRED for git fetch over SSH (origin is
+      # git@github.com/...): without it, git fetch dies with
+      # "cannot run ssh: No such file or directory" (observed nexus 2026-08-12).
+      path = [pkgs.git pkgs.openssh pkgs.coreutils pkgs.findutils pkgs.gnugrep];
       # 2026-08-11: HOME was NOT in the unit env, so `git config --global
       # --add safe.directory` (the dubious-ownership mitigation above) wrote to
       # no effective location and every sync died with exit 128 / 0B I/O under
