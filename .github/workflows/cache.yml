@@ -1,15 +1,14 @@
 ---
 name: Cache
 
-# Populate the nexus binary cache (10.1.1.120:50000, nix-serve) from PR/push
-# builds so reviewers and `nixos-rebuild` downloads instead of rebuilding.
+# Populate the nexus binary cache (10.1.1.120:50000, nix-serve) from main
+# pushes and manual runs so deployments download instead of rebuilding.
 # This is the one real benefit of a CI cache (what garnix-ci provided) without
 # adopting the garnix stack — it reuses the existing nexus nix-serve + the
 # self-hosted GitHub Actions runner. A cache-population failure is non-fatal:
 # the PR build still succeeds locally, we just miss the cache hit.
 
 on:
-  pull_request:
   push:
     branches: [main, master, develop]
   workflow_dispatch:

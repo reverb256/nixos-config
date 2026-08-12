@@ -154,10 +154,13 @@ with lib; let
 
   # ── All services, each gated by hostname ──
 
-  # Ternary on zephyr 3090 (GPU 1, 24 GB) — full capabilities including vision + DSpark
+  # Ternary on zephyr 3090 (CUDA0 = 24 GB) — full capabilities including vision + DSpark
+  # NOTE: llama.cpp enumerates CUDA0 = RTX 3090, CUDA1 = RTX 3060 Ti — the
+  # REVERSE of nvidia-smi (GPU0 = 3060 Ti, GPU1 = 3090). GPU pinning uses
+  # CUDA_VISIBLE_DEVICES, so ternary (24 GB card) = "0", 1-bit (8 GB) = "1".
   ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
     name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) q8_0 KV + DSpark";
-    port = 8005; gpu = "1"; memoryMax = "20G";
+    port = 8005; gpu = "0"; memoryMax = "20G";
     extraEnv = {
       GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
       GGML_CUDA_GRAPH_OPT = "1";
@@ -167,10 +170,10 @@ with lib; let
     };
   });
 
-  # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB) — explicit 128K + q4_0 KV
+  # 1-bit on zephyr 3060 Ti (CUDA1 = 8 GB) — explicit 128K + q4_0 KV
   bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
     name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236) q4_0 KV 128K";
-    port = 1236; gpu = "0";
+    port = 1236; gpu = "1";
   });
 
   # 1-bit on nexus 3060 Ti (8 GB)
