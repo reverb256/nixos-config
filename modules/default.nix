@@ -160,7 +160,7 @@
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
-    # NixOS config sync — force git origin/main on all hosts
+    # NixOS config sync — fast-forward clean remote checkouts only
     ./services/nixos-sync.nix
     # Network modules
     ./network/cluster-hosts.nix

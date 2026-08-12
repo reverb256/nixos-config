@@ -158,7 +158,13 @@ with lib; let
   ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
     name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) q8_0 KV + DSpark";
     port = 8005; gpu = "1"; memoryMax = "20G";
-    extraEnv = { GGML_CUDA_GRAPH_OPT = "1"; LLAMA_ATTN_ROT_DISABLE = "1"; CUDA_SCALE_LAUNCH_QUEUES = "4"; LD_LIBRARY_PATH = "/usr/local/lib/bonsai-turbo:/run/opengl-driver/lib"; };
+    extraEnv = {
+      GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+      GGML_CUDA_GRAPH_OPT = "1";
+      LLAMA_ATTN_ROT_DISABLE = "1";
+      CUDA_SCALE_LAUNCH_QUEUES = "4";
+      LD_LIBRARY_PATH = "/usr/local/lib/bonsai-turbo:/run/opengl-driver/lib";
+    };
   });
 
   # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB) — explicit 128K + q4_0 KV

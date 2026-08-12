@@ -1,5 +1,5 @@
-# NixOS config sync — force all hosts to track origin/main
-# Every 5 minutes: git fetch + reset --hard origin/main
+# NixOS config sync — fast-forward clean remote checkouts
+# Every 5 minutes: fetch origin/main and update only clean, non-diverged trees.
 # This prevents config drift from local changes or stale copies
 {
   config,
@@ -11,31 +11,56 @@ with lib; let
   cfg = config.services.nixos-sync;
   syncScript = pkgs.writeShellScript "nixos-sync" ''
     set -euo pipefail
-    # 2026-07-28: FLAKE assigned BEFORE its first reference. With `set -u`
-    # enabled, the original ordering (used `$FLAKE` on line 10, declared `=…`
-    # on line 11) exited immediately with "FLAKE: unbound variable", leaving
-    # /etc/nixos un-synced across the cluster. Hard-coded to /etc/nixos because
-    # nixos-sync always operates against the local flake.
     FLAKE="/etc/nixos"
-    # Mitigate git dubious-ownership (systemd runs as root, repo belongs to j_kro)
-    git config --global --add safe.directory "$FLAKE" 2>/dev/null || true
     LOG="/var/log/nixos-sync.log"
 
+    log() {
+      echo "$(date -Iseconds) $*" >> "$LOG"
+    }
+
+    # The service runs as root, while the checkout is owned by j_kro. Pass the
+    # safe-directory exception on every Git invocation instead of relying on a
+    # mutable global Git config that may not exist in the service environment.
+    git_safe() {
+      git -C "$FLAKE" -c safe.directory="$FLAKE" "$@"
+    }
+
     if [ ! -d "$FLAKE/.git" ]; then
-      echo "$(date -Iseconds) no git repo at $FLAKE" >> "$LOG"
+      log "no git repo at $FLAKE"
       exit 0
     fi
 
-    cd "$FLAKE"
-    BEFORE=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    BEFORE="$(git_safe rev-parse --short HEAD 2>>"$LOG" || echo "unknown")"
+    BRANCH="$(git_safe branch --show-current 2>>"$LOG" || true)"
+    if [ "$BRANCH" != "main" ]; then
+      log "skip $FLAKE: checkout is not on main (branch=$BRANCH)"
+      exit 0
+    fi
 
-    # Fetch and reset — hard, no mercy
-    git fetch origin main 2>> "$LOG"
-    git reset --hard origin/main 2>> "$LOG"
-    AFTER=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    STATUS="$(git_safe status --porcelain=v1 --untracked-files=all 2>>"$LOG")" || {
+      log "skip $FLAKE: unable to read checkout status"
+      exit 1
+    }
+    if [ -n "$STATUS" ]; then
+      log "skip $FLAKE: checkout is dirty at $BEFORE"
+      exit 0
+    fi
 
+    if ! git_safe fetch origin main 2>>"$LOG"; then
+      log "fetch failed for $FLAKE"
+      exit 1
+    fi
+
+    # Never overwrite local commits or files. A divergent or otherwise
+    # non-fast-forward checkout is reported and left for operator review.
+    if ! git_safe merge --ff-only origin/main 2>>"$LOG"; then
+      log "skip $FLAKE: origin/main is not a fast-forward from $BEFORE"
+      exit 0
+    fi
+
+    AFTER="$(git_safe rev-parse --short HEAD 2>>"$LOG" || echo "unknown")"
     if [ "$BEFORE" != "$AFTER" ]; then
-      echo "$(date -Iseconds) reset $BEFORE -> $AFTER" >> "$LOG"
+      log "fast-forwarded $BEFORE -> $AFTER"
     fi
   '';
 in {
@@ -43,7 +68,7 @@ in {
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enable NixOS config auto-sync (force git reset to origin/main)";
+      description = "Enable non-destructive NixOS config auto-sync from origin/main";
     };
     interval = mkOption {
       type = types.str;
@@ -54,18 +79,12 @@ in {
 
   config = mkIf cfg.enable {
     systemd.services.nixos-sync = {
-      description = "Sync /etc/nixos to origin/main (force reset)";
+      description = "Fast-forward clean /etc/nixos checkouts to origin/main";
       script = "${syncScript}";
       serviceConfig.Type = "oneshot";
       # The sync script calls `git`, which is absent from systemd's minimal PATH.
-      # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
+      # Provide a full PATH so all Git and logging commands resolve.
       path = [pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep];
-      # 2026-08-11: HOME was NOT in the unit env, so `git config --global
-      # --add safe.directory` (the dubious-ownership mitigation above) wrote to
-      # no effective location and every sync died with exit 128 / 0B I/O under
-      # systemd, while the same script ran fine manually with HOME=/root.
-      # Pin HOME so git's global config lands in /root/.gitconfig.
-      environment = { HOME = "/root"; };
     };
 
     systemd.timers.nixos-sync = {
