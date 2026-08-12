@@ -3,15 +3,14 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
-  ...
-}:
+  ...}:
 stdenv.mkDerivation {
   pname = "peakminer";
-  version = "2.8.2";
+  version = "2.9.0";
 
   src = fetchurl {
-    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/peakminer-2-8-2/peakminer-2.8.2.tar.gz";
-    hash = "sha256-iVUAgmTf4E6KrtyrZCkfdsCFXsGGdlD7sxFYTut6Jm8=";
+    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/peakminer-2-9-0/peakminer-2.9.0.tar.gz";
+    hash = "sha256-EIjzBVp/yYqzDlKz6S2LWtBwcb2ta8U9E4OvXM1U1EU=";
   };
 
   nativeBuildInputs = [autoPatchelfHook];
