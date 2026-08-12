@@ -60,6 +60,12 @@ in {
       # The sync script calls `git`, which is absent from systemd's minimal PATH.
       # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
       path = [pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep];
+      # 2026-08-11: HOME was NOT in the unit env, so `git config --global
+      # --add safe.directory` (the dubious-ownership mitigation above) wrote to
+      # no effective location and every sync died with exit 128 / 0B I/O under
+      # systemd, while the same script ran fine manually with HOME=/root.
+      # Pin HOME so git's global config lands in /root/.gitconfig.
+      environment = { HOME = "/root"; };
     };
 
     systemd.timers.nixos-sync = {

@@ -240,7 +240,12 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/secrets/github-runner-pat";
+    # 2026-08-11: was tokenFile, which passed the raw PAT straight to
+    # config.sh --token -> GitHub 404 ("Bad credentials" on registration).
+    # patFile makes the setup script exchange the PAT for a fresh
+    # registration token via POST /actions/runners/registration-token
+    # (verified: HTTP 201 + "√ Successfully replaced the runner").
+    patFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["nexus"];
   };
