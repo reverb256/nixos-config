@@ -31,6 +31,14 @@
 
     [brightness.monitor."HDMI-A-1"]
     backend = "normal"
+
+    # Launch Electron apps (Vesktop, Discord, Hermes Desktop, etc.) as transient
+    # systemd --user units instead of direct spawn. Direct spawn of Electron under
+    # Noctalia v5 dies silently (terminal launch works, launcher does nothing) —
+    # upstream issue #2519. Requires Noctalia itself to run as a systemd user
+    # service, which it does here. ENABLE 2026-08-11 for Hermes Desktop launcher.
+    [shell]
+    launch_apps_as_systemd_services = true
   '';
 in {
   options.desktop.zephyr-sdr-brightness = {
