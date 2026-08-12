@@ -41,6 +41,8 @@ in {
 
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
     # This module only adds/overrides Wayland-specific settings
+    # Wire the profile option to the real Steam/Proton graphics setting.
+    hardware.graphics.enable32Bit = cfg.enable32Bit;
     hardware.nvidia = {
       open = cfg.openModules;
       modesetting.enable = true;

@@ -11,12 +11,12 @@ in {
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
-    # Enable OpenGL
-    # NOTE: enable32Bit disabled to prevent Wayland issues on multi-GPU systems.
-    # LM Studio GUI works fine without it. CLI has 32-bit lib issues but GUI is primary use.
+    # Enable graphics for the Steam/Proton host path. 32-bit support is
+    # required by many native games and Proton/Wine dependencies; host-specific
+    # exceptions must be explicit rather than a global force-disable.
     hardware.graphics = {
       enable = true;
-      enable32Bit = lib.mkForce false; # Keep disabled for Wayland stability
+      enable32Bit = lib.mkDefault true;
 
       extraPackages = with pkgs; [
         vulkan-loader
