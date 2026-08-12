@@ -1,35 +1,24 @@
-# Switchyard routes — switchyard-server 0.2.0 (schema verified 2026-08-12 from
-# docs/reference/toml_schema.md). Clients select a route by posting
-# "model": "<route id>". API keys come from env vars (api_key_env); the TOML
-# never holds secrets. Env names must match secretspec env-var names wired
-# into the systemd unit via services.switchyard.envFiles.
+# Switchyard routes — switchyard-server 0.2.0 (schema verified 2026-08-12).
+# Clients select a route by posting "model": "<route id>".
 #
-# Policy (2026-08-12 v2 — full routing strategy coverage):
-#   passthrough : bonsai, nim, opencode-go, opencode-zen (existing)
-#   random      : local (70/30 DSpark/1bit), ab (GLM-5.2 vs MiniMax M3),
-#                 multimodal (Inkling/Muse/MiniMax)
-#   stage_router: switchyard/stage — capable=GLM-5.2, efficient=nano-30b
-#                 (zero extra model calls; signal-driven per tool iteration)
-#   llm_classifier capability: switchyard/smart — judge=deepseek-v4-flash,
-#                 strong=GLM-5.2, weak=nano-30b, session affinity
-#   escalation  : switchyard/escalate — weak-first, judge latches to strong
-#
-# NIM model research (live /v1/models poll + benchmarks, 2026-08-12):
-#   z-ai/glm-5.2                         strongest open coder (Terminal-Bench 81.0)
-#   deepseek-ai/deepseek-v4-flash-0731   agentic monster, 13B active, DSpark
-#   minimaxai/minimax-m3                 428B/23B, frontier coding + 1M ctx + multimodal
-#   thinkingmachines/inkling             975B/41B, multimodal + audio frontier
-#   meta/muse-glimmer-30b                29.6B dense multimodal, DFlash drafter
-#   nvidia/nemotron-3-nano-30b-a3b       FASTEST 30B (122 tok/s) — efficient tier
-#   nvidia/nemotron-3.5-lightning-30b-a3b 53 tok/s — existing nim route
-# NOTE: gemma-4-31b-it, granite-34b, nemotron-nano-3-30b are LISTED but
-# 404/timeout on our account — do NOT route to them.
+# Policy (2026-08-12 v3 — rate-limit compensation):
+#   NIM free tier is a shared ~40 RPM bucket. Burst tests: 12 rapid requests
+#   -> 3 timeouts + 1 explicit 429, even with retries. Compensation layers:
+#     1. max_retries raised on NIM (4) — transient 529/429 bursts recover
+#        (verified: direct 529 -> retry -> 200).
+#     2. Judge for smart/escalate uses opencode-go (deepseek-v4-flash) —
+#        SEPARATE quota bucket from NIM targets; judge calls no longer eat
+#        NIM RPM and NIM deepseek 529s cannot break the classifier.
+#     3. Resilient routes mix providers per-request (NIM + go + zen) so a
+#        NIM 429 fails at most its own share, not the whole route.
+#     4. Hermes fallback chain (config.yaml) remains the outer net:
+#        switchyard/local -> zen free -> go -> nim direct.
 schema_version = 1
 
 # ── LLM clients ──────────────────────────────────────────────────────────────
 [llm_clients.bonsai_zephyr]
 format = "openai_chat"
-base_url = "http://127.0.0.1:8005/v1"   # zephyr RTX 3090 ternary + DSpark drafter, 262K
+base_url = "http://127.0.0.1:8005/v1"   # zephyr RTX 3090 ternary + DSpark drafter, 262K (local — no quota)
 
 [llm_clients.bonsai_sentry]
 format = "openai_chat"
@@ -39,22 +28,22 @@ base_url = "http://10.1.1.140:8003/v1"
 format = "openai_chat"
 base_url = "https://integrate.api.nvidia.com/v1"
 api_key_env = "NVIDIA_API_KEY"
-max_retries = 2
+max_retries = 4          # burst 429/529 recovery (transient on NIM free tier)
 
 [llm_clients.opencode_go]
 format = "openai_chat"
 base_url = "https://opencode.ai/zen/go/v1"
 api_key_env = "OPENCODE_GO_API_KEY"
-max_retries = 2
+max_retries = 3
 
 [llm_clients.opencode_zen]
 format = "openai_chat"
 base_url = "https://opencode.ai/zen/v1"
 api_key_env = "OPENCODE_ZEN_API_KEY"
-max_retries = 2
+max_retries = 3
 
 # ── Targets (id = exact model id sent upstream) ──────────────────────────────
-# Local
+# Local — unlimited quota
 [targets.bonsai_zephyr_dspark]
 id = "Ternary-Bonsai-27B-Q2_0.gguf"
 llm_client = "bonsai_zephyr"
@@ -63,9 +52,9 @@ llm_client = "bonsai_zephyr"
 id = "bonsai-27b-1bit-sentry"
 llm_client = "bonsai_sentry"
 
-# NIM — frontier + specialized
+# NIM — shared ~40 RPM bucket
 [targets.nim_default]
-id = "nvidia/nemotron-3.5-lightning-30b-a3b"   # was meta/llama-3.3-70b-instruct — hangs upstream
+id = "nvidia/nemotron-3.5-lightning-30b-a3b"
 llm_client = "nim"
 
 [targets.nim_glm52]
@@ -92,17 +81,17 @@ llm_client = "nim"
 id = "nvidia/nemotron-3-nano-30b-a3b"
 llm_client = "nim"
 
-# OpenCode
+# OpenCode — separate quota buckets from NIM
 [targets.opencode_go_default]
-id = "deepseek-v4-flash"   # was "go" — 401 Model go is not supported
+id = "deepseek-v4-flash"
 llm_client = "opencode_go"
 
 [targets.opencode_zen_default]
-id = "nemotron-3.5-lightning-free"   # was "zen" — 401; nemotron free = resilient quota + DSpark family
+id = "nemotron-3.5-lightning-free"
 llm_client = "opencode_zen"
 
 # ── Routes (id = model id clients send) ──────────────────────────────────────
-# Passthrough — one model, one target
+# Passthrough
 [routes.bonsai]
 id = "switchyard/bonsai"
 type = "passthrough"
@@ -123,31 +112,42 @@ id = "switchyard/opencode-zen"
 type = "passthrough"
 target = "opencode_zen_default"
 
-# Random — fixed traffic splits
-# Local: 70% zephyr ternary+DSpark (3090, 262K), 30% sentry 1-bit.
+# Random — fixed splits
 [routes.local_default]
 id = "switchyard/local"
 type = "random"
 targets = ["bonsai_zephyr_dspark", "bonsai_1bit"]
 weights = [7, 3]
 
-# A/B benchmark the two top open models: GLM-5.2 vs MiniMax M3.
 [routes.ab]
 id = "switchyard/ab"
 type = "random"
 targets = ["nim_glm52", "nim_minimax_m3"]
 weights = [5, 5]
 
-# Multimodal experimentation: Inkling / Muse Glimmer / MiniMax M3.
 [routes.multimodal]
 id = "switchyard/multimodal"
 type = "random"
 targets = ["nim_inkling", "nim_muse", "nim_minimax_m3"]
 weights = [4, 3, 3]
 
-# Stage Router — tool-signal-driven tier selection. ZERO extra model calls.
-# Routine tool turns stay on nano-30b (122 tok/s); errors/exploration/hard
-# turns go to GLM-5.2. Best fit for Hermes' tool-heavy loop.
+# Resilient — mix providers per-request so no single 429 takes the whole route.
+# GLM-5.2 (NIM) / deepseek-v4-flash (go) / nemotron-free (zen): three buckets.
+[routes.resilient]
+id = "switchyard/resilient"
+type = "random"
+targets = ["nim_glm52", "opencode_go_default", "opencode_zen_default"]
+weights = [4, 3, 3]
+
+# Resilient-fast — efficient tier across two buckets: nano-30b (NIM) + go flash.
+[routes.resilient_fast]
+id = "switchyard/resilient-fast"
+type = "random"
+targets = ["nim_nano30b", "opencode_go_default"]
+weights = [5, 5]
+
+# Stage Router — tool-signal-driven. Efficient first; NIM nano-30b carries
+# routine turns, GLM-5.2 (NIM) handles errors/exploration/hard turns.
 [routes.stage]
 id = "switchyard/stage"
 type = "stage_router"
@@ -156,25 +156,24 @@ efficient_target = "nim_nano30b"
 picker = "efficient_first"
 confidence_threshold = 0.6
 
-# LLM Classifier (capability) — judge routes by request difficulty up front.
-# deepseek-v4-flash-0731 judges; session affinity reuses the first decision
-# so the judge call is amortized to ~1 per session.
+# LLM Classifier (capability) — judge on opencode-go (separate bucket),
+# strong=GLM-5.2 (NIM), weak=nano-30b (NIM). Session affinity amortizes.
 [routes.smart]
 id = "switchyard/smart"
 type = "llm_classifier"
 mode = "capability"
-classifier_target = "nim_dsv4flash"
+classifier_target = "opencode_go_default"
 strong_target = "nim_glm52"
 weak_target = "nim_nano30b"
 base_threshold = 0.7
 session_affinity = true
 
-# Escalation — weak-first; judge latches session to strong on sustained trouble.
+# Escalation — weak-first on NIM nano-30b; judge (opencode-go) latches strong.
 [routes.escalate]
 id = "switchyard/escalate"
 type = "llm_classifier"
 mode = "escalation"
-classifier_target = "nim_dsv4flash"
+classifier_target = "opencode_go_default"
 strong_target = "nim_glm52"
 weak_target = "nim_nano30b"
 
