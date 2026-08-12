@@ -88,8 +88,12 @@ jobs:
           skipPush: true
           useDaemon: false
 
-      - name: Nix flake check
-        run: nix flake check --no-build --no-eval-cache
+      - name: Evaluate flake checks
+        run: |
+          set -euo pipefail
+          # Evaluate the explicit check set. Package/image outputs are
+          # validated by dedicated build jobs.
+          nix eval --no-eval-cache --json .#checks.x86_64-linux >/dev/null
 
   # ============================================================================
   # STAGE 2: Linting and static analysis
