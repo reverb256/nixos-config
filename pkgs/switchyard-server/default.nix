@@ -6,7 +6,7 @@ rustPlatform.buildRustPackage rec {
     pname = "switchyard-server";
     version = version;
     # sha256 and cargoHash will be filled in from the first nix-build run error message.
-    sha256 = lib.fakeSha256;
+    sha256 = "sha256-jb56/vjZ4cHKTASa6T8KiRpiJ72RYGS3Okr0smTTqBk=";
   };
   cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   meta = with lib; {
