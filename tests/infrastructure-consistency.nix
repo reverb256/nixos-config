@@ -187,32 +187,50 @@
     && hasInfix "caKeyProvisioned = true;" nexusConfig
     && hasInfix "caKeyService = \"secretspec-creds.service\";" nexusConfig;
 
-  # ── HW-22: Parallel dormant Windows VM backends ──
+  # ── HW-22: Incus-only dormant Windows VM contract ──
   zephyrVmConfig = readFile ./../hosts/zephyr/configuration.nix;
   zephyrVmPreservation = readFile ./../hosts/zephyr/preservation.nix;
   incusVmModule = readFile ./../modules/hardware/incus-gamepass.nix;
   vmMigrationDoc = readFile ./../docs/incus-gamepass-migration.md;
   parallelVmBackends =
-    hasInfix "vfio-gamepass.nix" zephyrVmConfig
-    && hasInfix "incus-gamepass.nix" zephyrVmConfig
-    && hasInfix "gamepass-win11" incusVmModule
-    && hasInfix "gamepass-win11-incus" incusVmModule;
+    hasInfix "incus-gamepass.nix" zephyrVmConfig
+    && !(hasInfix "vfio-gamepass.nix" zephyrVmConfig)
+    && hasInfix "gamepass-win11-incus" incusVmModule
+    && !(hasInfix "start-libvirt" incusVmModule)
+    && !(hasInfix "stop-libvirt" incusVmModule);
   dormantVmBackends =
-    hasInfix "\"boot.autostart\" = \"false\";" incusVmModule
-    && !(hasInfix "wantedBy = [ \\\"multi-user.target\\\" ]" incusVmModule);
+    hasInfix "boot.autostart" incusVmModule
+    && hasInfix "gamepass-incus-vm.service" incusVmModule;
   sharedGpuContract =
-    hasInfix "0000:24:00.0" incusVmModule
+    # Incus VM physical GPU device for the 3060 Ti; raw PCI only for HDMI audio.
+    hasInfix "type = \"gpu\";" incusVmModule
+    && hasInfix "gputype = \"physical\";" incusVmModule
+    && hasInfix "pci = vfioGpu;" incusVmModule
+    && hasInfix "gpu-audio = {" incusVmModule
+    && hasInfix "type = \"pci\";" incusVmModule
+    && hasInfix "address = vfioAudio;" incusVmModule
+    && hasInfix "0000:24:00.0" incusVmModule
     && hasInfix "0000:24:00.1" incusVmModule
-    && hasInfix "24:00.0" (readFile ./../modules/hardware/vfio-gamepass.nix)
-    && hasInfix "24:00.1" (readFile ./../modules/hardware/vfio-gamepass.nix);
+    && hasInfix "0x2486" incusVmModule
+    && hasInfix "0x228b" incusVmModule
+    && hasInfix "0000:2d:00.0" incusVmModule
+    && hasInfix "0000:2d:00.1" incusVmModule
+    && hasInfix "0x2204" incusVmModule
+    && hasInfix "0x1aef" incusVmModule
+    && hasInfix "vfioIommuGroup = \"24\"" incusVmModule
+    && hasInfix "protectedIommuGroup = \"27\"" incusVmModule
+    && hasInfix "RTX 3090" zephyrVmConfig
+    && hasInfix "never detached" incusVmModule
+    && hasInfix "Incus declares the VM GPU" vmMigrationDoc;
   vmStatePreserved =
-    hasInfix "\"/var/lib/libvirt\"" zephyrVmPreservation
-    && hasInfix "\"/var/lib/incus\"" zephyrVmPreservation
-    && hasInfix "\"/var/lib/incus-gamepass\"" zephyrVmPreservation;
+    hasInfix "\"/var/lib/incus\"" zephyrVmPreservation
+    && hasInfix "\"/var/lib/incus-gamepass\"" zephyrVmPreservation
+    && !(hasInfix "\"/var/lib/libvirt\"" zephyrVmPreservation);
   vmMigrationDocumented =
-    hasInfix "separate" vmMigrationDoc
-    && hasInfix "incus-gamepass-vm create" vmMigrationDoc
-    && hasInfix "must never run at the same time" vmMigrationDoc;
+    hasInfix "incus-gamepass-vm create" vmMigrationDoc
+    && hasInfix "incus-gamepass-vm start" vmMigrationDoc
+    && hasInfix "must remain stopped" vmMigrationDoc
+    && !(hasInfix "libvirt" vmMigrationDoc);
   lookingGlassContract =
     hasInfix "raw.qemu" incusVmModule
     && hasInfix "/dev/kvmfr0" incusVmModule
@@ -220,8 +238,55 @@
     && hasInfix "SupplementaryGroups" incusVmModule
     && hasInfix "looking-glass-gamepass" vmMigrationDoc
     && hasInfix "check-looking-glass" vmMigrationDoc;
+  gpuHandoffSafetyContract =
+    # The host guard validates and quiesces; Incus owns vfio-pci binding and
+    # restoration through its recorded last_state.pci.driver lifecycle.
+    hasInfix "validate_identity" incusVmModule
+    && hasInfix "iommu_group" incusVmModule
+    && hasInfix "group_members=" incusVmModule
+    && hasInfix "expected_members=" incusVmModule
+    && hasInfix "protectedIommuGroup" incusVmModule
+    && hasInfix "trap 'rc=$?" incusVmModule
+    && hasInfix "Refusing to release VFIO while" incusVmModule
+    && hasInfix "workload remains active" incusVmModule
+    && hasInfix "target_clients=" incusVmModule
+    && hasInfix "target_graphics=" incusVmModule
+    && hasInfix "pmon_output=" incusVmModule
+    && hasInfix "pmon returned an unrecognized sample" incusVmModule
+    && hasInfix "pmon -i 00000000:24:00.0" incusVmModule
+    && hasInfix "preflight-only" incusVmModule
+    && hasInfix "must not bind/unbind" incusVmModule
+    && hasInfix "last_state.pci.driver" incusVmModule
+    && hasInfix "Incus now owns the transition" incusVmModule
+    && hasInfix "Incus did not restore the 3060 Ti host drivers" incusVmModule
+    && hasInfix "Incus start failed after VFIO claim" incusVmModule
+    && hasInfix "/bin/incus start" incusVmModule
+    && hasInfix "|| rc=$?" incusVmModule
+    && hasInfix "[ \"$rc\" -eq 0 ] && exit 0" incusVmModule
+    && !(hasInfix "echo vfio-pci >" incusVmModule)
+    && !(hasInfix "drivers_probe" incusVmModule)
+    && !(hasInfix "rm -rf" incusVmModule);
+  storageReconciliationContract =
+    hasInfix "incus-gamepass-vm reconcile" vmMigrationDoc
+    && hasInfix "registered gamepass pool has unexpected driver/source" incusVmModule
+    && hasInfix "--format yaml" incusVmModule
+    && hasInfix "driver = \"dir\"" incusVmModule
+    && hasInfix "unregistered Incus storage directory exists" incusVmModule
+    && hasInfix "existing resources but the Game Pass pool/profile is incomplete" incusVmModule
+    && hasInfix "partially initialized daemon" incusVmModule
+    && hasInfix "unable to query Incus storage pools" incusVmModule
+    && hasInfix "unable to query Incus profiles" incusVmModule
+    && hasInfix "unable to query Incus networks" incusVmModule
+    && hasInfix "refusing to delete or overwrite VM state" incusVmModule;
   incusPreseedRequired =
     hasInfix "requires = [ \"incus-preseed.service\" ];" incusVmModule;
+  incusVmBackend =
+    parallelVmBackends
+    && !(hasInfix "virtualisation.libvirtd" incusVmModule);
+  dormantVmBackend = dormantVmBackends;
+  gpuPassthroughContract = sharedGpuContract;
+  vmOperationsContract = vmMigrationDocumented;
+  incusPreseedContract = incusPreseedRequired;
 
   # ── Build the check results ──
   checks = {
@@ -272,14 +337,16 @@
     cluster_ca_fails_closed = caFailsClosed;
     nexus_ca_key_secret_wired = nexusCaKeySecret;
 
-    # HW-22: Parallel dormant libvirt/Incus Windows VM contract
-    parallel_vm_backends = parallelVmBackends;
-    dormant_vm_backends = dormantVmBackends;
-    shared_gpu_contract = sharedGpuContract;
+    # HW-22: Incus-only dormant Windows VM contract
+    incus_only_vm_backend = incusVmBackend;
+    dormant_vm_backend = dormantVmBackend;
+    gpu_passthrough_contract = gpuPassthroughContract;
     vm_state_preserved = vmStatePreserved;
-    vm_migration_documented = vmMigrationDocumented;
+    vm_operations_documented = vmOperationsContract;
     looking_glass_contract = lookingGlassContract;
-    incus_preseed_required = incusPreseedRequired;
+    gpu_handoff_safety_contract = gpuHandoffSafetyContract;
+    storage_reconciliation_contract = storageReconciliationContract;
+    incus_preseed_required = incusPreseedContract;
   };
 
   # ── Report failures ──
