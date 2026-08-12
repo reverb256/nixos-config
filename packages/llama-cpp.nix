@@ -21,9 +21,13 @@
   # Pinned to a commit that includes Muse Glimmer + Nemotron 3.5 Lightning
   # architecture support (PR #26841 "model: Muse Glimmer Support" merged
   # 2026-08-10; PR #26905 "Dflash support for nemotron-3.5" merged
-  # 2026-08-11). Earlier pins fail with "unknown model architecture" or
+  # 2026-08-11) plus upstream fixes through 2026-08-12:
+  #   - 0b1bad14 chat: fix muse-glimmer detection of tool calls after EOM
+  #   - 5d16e81d convert: keep quantization scales for nemotron --mtp export
+  #   - 59886331 cuda: warp-per-row wkv7 kernel for single-token decode
+  # Earlier pins fail with "unknown model architecture" or
   # "wrong number of tensors" on the Nemotron 3.5 Lightning GGUF.
-  version ? "0-unstable-2026-08-11",
+  version ? "0-unstable-2026-08-12",
   # Feature flags
   native ? false,
   sharedLibs ? false,
@@ -39,8 +43,8 @@
   # muse-glimmer commit specifically).
   defaultSrc = fetchgit {
     url = "https://github.com/ggml-org/llama.cpp";
-    rev = "cc078b45b635b3a59aa9adc1b888150ab67798a8";
-    hash = "sha256-9ZSkkXO+ReZMHeprON+omy2BHfXHrVi+xm8WtqLB6gI=";
+    rev = "8e7f22b67ef4667b4ddd50230771287f328cfb3f";
+    hash = "sha256-jK1D2x7Yc8nkaKeXPK2DjcyQAFgmXrqc+s2ZFMlZCR8=";
     leaveDotGit = false;
   };
   # src defined as let binding above

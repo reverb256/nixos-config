@@ -373,6 +373,16 @@
 
           packages.claude = claude-native.packages.x86_64-linux.claude;
           packages.llama-cpp = pkgs.llama-cpp;
+          # One llama.cpp binary with BOTH CUDA and Vulkan backends, covering
+          # the whole fleet: NVIDIA 3090/3060 Ti (CUDA) + Navi 10 Radeons on
+          # forge/sentry (Vulkan). Build once on nexus, reference the store
+          # path everywhere (llm-loader, llama-swap, bonsai).
+          packages.llama-cpp-unified =
+            pkgs.llama-cpp.override {
+              cudaSupport = true;
+              vulkanSupport = true;
+              cudaArchitectures = "86;89";  # GA102/GA104 (3090/3060Ti) + AD107 (4060)
+            };
           packages.secretspec = pkgs.secretspec;
           # CONTAINER IMAGES (for Kubernetes deployment)
 
