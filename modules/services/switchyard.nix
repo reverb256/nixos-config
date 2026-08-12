@@ -66,6 +66,9 @@ in {
         Type = "simple";
         User = "switchyard";
         Group = "switchyard";
+        # /run/secrets is drwxr-x--x root:keys — switchyard must traverse it
+        # to read api keys at runtime.
+        SupplementaryGroups = [ "keys" ];
         RuntimeDirectory = "switchyard";
         RuntimeDirectoryMode = "0700";
         ExecStartPre = envFileScript;
@@ -78,7 +81,7 @@ in {
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadOnlyPaths = [ cfg.configFile ];
+        ReadOnlyPaths = [ cfg.configFile "/run/secrets" ];
       };
     };
 
