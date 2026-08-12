@@ -56,10 +56,27 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Refresh /run/secrets before the proxy starts. secretspec-creds runs at
+    # boot only (RemainAfterExit) and colmena activation recreates /run/secrets
+    # empty — every deploy starves switchyard of API keys. This oneshot
+    # restarts the unit (root) so the envFileScript sees fresh files.
+    systemd.services.switchyard-secrets = {
+      description = "Refresh SecretSpec credentials for switchyard";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "secretspec-creds.service" ];
+      wants = [ "secretspec-creds.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${pkgs.systemd}/bin/systemctl restart secretspec-creds.service";
+      };
+    };
+
     systemd.services.switchyard = {
       description = "Switchyard LLM routing proxy";
-      after = [ "network-online.target" "secretspec-creds.service" ];
+      after = [ "network-online.target" "switchyard-secrets.service" ];
       wants = [ "network-online.target" ];
+      requires = [ "switchyard-secrets.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
