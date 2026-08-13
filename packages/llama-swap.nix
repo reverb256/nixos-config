@@ -44,6 +44,16 @@
   preBuild = ''
     ldflags+=" -X main.commit=$(cat COMMIT)"
     ldflags+=" -X main.date=$(cat SOURCE_DATE_EPOCH)"
+    # proxy/ui_embed.go does //go:embed ui_dist but the GitHub tarball omits
+    # the built web UI (see pkg.go.dev docs: 'the compilation requires the
+    # folder proxy/ui_dist that does not exist within the source code').
+    # Upstream-documented fix: provide a minimalist ui_dist/index.html so the
+    # embed pattern resolves. The /ui route degrades to a placeholder.
+    mkdir -p proxy/ui_dist
+    cat > proxy/ui_dist/index.html <<'HTML'
+    <!doctype html><html><head><title>llama-swap</title></head>
+    <body><h1>llama-swap</h1><p>UI bundle not built; API is at /v1.</p></body></html>
+    HTML
   '';
 
   excludedPackages = [
