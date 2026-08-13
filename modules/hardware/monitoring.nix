@@ -30,12 +30,26 @@ in {
     kernelModules = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "nct6775"
+        "it87"
         "k10temp"
         "jc42"
       ];
       example = ["nct6775" "k10temp" "jc42" "coretemp"];
       description = "Kernel modules for hardware monitoring chips";
+    };
+
+    useIt87Fork = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      example = true;
+      description = "Use the frankcrawford/it87 out-of-tree fork (IT8686E/IT8792E + MMIO, Gigabyte boards) instead of in-tree it87";
+    };
+
+    fanScript = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      example = "/etc/nixos/scripts/fancontrol-nexus.py";
+      description = "Path to the fan control script (board-specific)";
     };
   };
 
@@ -48,7 +62,7 @@ in {
             cfg.enable
             || (cfg.autoDetect
               && !cfg.fanControl
-              && cfg.kernelModules == ["nct6775" "k10temp" "jc42"]);
+              && cfg.kernelModules == ["it87" "k10temp" "jc42"]);
           message = "hardware.monitoring: sub-options customized but enable = false. Add `enable = true` or remove the sub-options.";
         }
       ];
@@ -59,7 +73,25 @@ in {
         nvtopPackages.full
       ];
 
+      # it87 fork: the cachyos kernelPackages set already exposes `it87`
+      # (frankcrawford fork). Compress the module to .ko.xz so it overrides
+      # the in-tree copy (fork builds .ko; modprobe picks .ko.xz first).
+      # MMIO + ignore_resource_conflict for Gigabyte EC-controlled channels.
+      # Computed inline (not in a let) to avoid the colmena config-read cycle.
+      boot.extraModulePackages = lib.mkIf cfg.useIt87Fork [
+        (config.boot.kernelPackages.it87.overrideAttrs (super: {
+          postInstall = (super.postInstall or "") + ''
+            find $out -name '*.ko' -exec xz {} \;
+          '';
+        }))
+      ];
       boot.kernelModules = cfg.kernelModules;
+      boot.extraModprobeConfig = lib.mkIf cfg.useIt87Fork ''
+        options it87 mmio=on ignore_resource_conflict=1
+      '';
+      boot.kernelParams = lib.mkIf cfg.useIt87Fork [
+        "acpi_enforce_resources=lax"
+      ];
 
       systemd = {
         services = {
@@ -99,7 +131,7 @@ in {
             after = ["multi-user.target" "sensors.service"];
             wants = ["sensors.service"];
             serviceConfig = {
-              ExecStart = lib.getExe pkgs.python3 + " /etc/nixos/scripts/simple-fancontrol.py";
+              ExecStart = lib.getExe pkgs.python3 + " ${cfg.fanScript}";
               Restart = "always";
               RestartSec = "5s";
               NoNewPrivileges = true;
@@ -113,10 +145,9 @@ in {
       };
 
       services.udev.extraRules = ''
-        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nct6775*", SYMLINK+="sensors/fan_controller"
-
+        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="it87*", SYMLINK+="sensors/fan_controller"
+        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="it8792", SYMLINK+="sensors/fan_controller_ec"
         ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="k10temp", SYMLINK+="sensors/cpu_temp"
-
         ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nvme", SYMLINK+="sensors/nvme%n"
       '';
 

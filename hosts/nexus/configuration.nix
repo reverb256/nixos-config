@@ -325,7 +325,13 @@
     # Hardware monitoring extras (not covered by profile)
     monitoring = {
       autoDetect = false; # Disabled: sensors-detect has bug with --auto flag
-      fanControl = false; # BIOS fan control for now
+      # Full fan visibility + control (2026-08-13): Gigabyte X470 AORUS ULTRA
+      # has TWO SuperIO chips (IT8686E + IT8792E, 8 fan headers). In-tree it87
+      # lacks IT8686E + MMIO; the frankcrawford fork exposes everything.
+      useIt87Fork = true;
+      fanControl = true;
+      fanScript = "/etc/nixos/scripts/fancontrol-nexus.py";
+      kernelModules = ["it87" "k10temp" "jc42"];
     };
 
     # RGB control for Razer Naga Pro and Gigabyte X470 Aorus motherboard.
