@@ -104,6 +104,13 @@ in
           kvantum.enable = lib.mkForce false;
         };
         home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
+        # Dolphin/KDE MIME fix (Arch wiki): KDE apps build their KSycoca
+        # app/MIME registry from .desktop files; under niri (non-Plasma) they
+        # need the plasma- menu prefix to find them.
+        home.sessionVariables.XDG_MENU_PREFIX = lib.mkForce "plasma-";
+        # KDE platform theme for KDE apps (read kdeglobals + color scheme).
+        home.sessionVariables.QT_QPA_PLATFORMTHEME = lib.mkForce "kde";
+        home.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = lib.mkForce "kde";
         home.pointerCursor.enable = true;
 
         # CopyQ clipboard manager (replaces cliphist)
