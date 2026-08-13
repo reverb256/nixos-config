@@ -254,7 +254,6 @@ in {
   # nexus-quill-runner against reverb256/quill with the same labels.
   # Lower cgroup ceiling: quill CI is pnpm/tsc, not nix builds.
   services.ci-runners = {
-    enable = true;
     instances = {
       quill = {
         user = "runner-quill";
