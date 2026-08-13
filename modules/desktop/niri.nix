@@ -133,6 +133,11 @@ in {
               pkgs.swayidle
               pkgs.polkit_gnome
               pkgs.xwayland-satellite
+              # Handy — offline speech-to-text (replaces Hermes voice on the
+              # desktop). wtype (Wayland text input) is already in
+              # services.nix. rdev global hotkeys need /dev/uinput (udev
+              # rule below) + the input group.
+              pkgs.handy
             ]
             ++ config.desktop.niri.extraPackages;
         }
