@@ -154,7 +154,6 @@ in {
       MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
 
-      };
     # ── Qdrant Vector Database ──────────────────────────────────
     # Persistent vector store for RAG, knowledge base, embeddings
     # Storage: hostPath at /storage/qdrant (data) + /storage/qdrant-snapshots
@@ -1857,4 +1856,5 @@ in {
         };
       };
     };
+  };
 }
