@@ -156,6 +156,27 @@ Open follow-ups filed 2026-08-13: #463 qdrant admission-policy block, #464 gatew
 placeholder keys, #465 orphaned HPAs, #466 maplespike secrets re-wiring (cross-linked
 with quill PR #826).
 
+## 2026-08-13 PR merge session
+
+Merged to `origin/main` (all sibling PRs reviewed, eval-verified):
+
+- **#457** nixos-sync non-destructive (`merge --ff-only`, skip dirty/non-main trees,
+  per-command safe.directory) — supersedes the earlier hard-reset approach.
+- **#459** zephyr cgroups (issue #453) — `use-cgroups`, idle daemon CPU/IO scheduling.
+- **#460** CI Layer-2 lock guard — deploy aborts if home-manager-config flake.lock is
+  behind master.
+- **#461** ai-inference parse coverage — restored `}` in kubernetes/modules/ai-inference.nix.
+- **#462** nim-proxy concurrency — ThreadingHTTPServer + BoundedSemaphore (issue #313).
+- **#467** portable pure-eval (#309) — cherry-picked from auto-closed #458 (GitHub closed
+  it during the #457 merge race; content identical, 4 files: cache.yml timeout guard,
+  portable-usb modelAvailable gate, flake.nix check, new test).
+- **flake.lock** bumped to home-manager-config `af29c5037` (Alt+Tab + KDE/MIME fix) —
+  keeps the #460 guard green.
+
+Not merged (coordination): **quill PR reverb256/maplespike#826** — sibling agent has
+in-flight dev-mode work on the same files (nix/saas-manifests.nix, AGENTS.md). Merging
+now would force their rebase; land it after their dev-mode namespace work commits.
+
 See [`../DOCS-MAINTENANCE.md`](../DOCS-MAINTENANCE.md) for the classification and
 freshness policy. The documentation cleanup manifest records completed and planned
 migration batches without rewriting historical evidence.
