@@ -58,8 +58,14 @@ jobs:
 
       - name: Parse changed Nix files
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "$GITHUB_SHA" ]; then BASE_SHA=HEAD^; fi
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            TARGET_SHA="$GITHUB_SHA"
+          fi
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then BASE_SHA=HEAD^; fi
           FAILED=0
           while IFS= read -r -d '' f; do
             [ -z "$f" ] && continue
@@ -67,7 +73,7 @@ jobs:
               echo "PARSE ERROR: $f"
               FAILED=1
             fi
-          done < <(git diff --name-only -z "$BASE_SHA...$GITHUB_SHA" -- '*.nix')
+          done < <(git diff --name-only -z "$BASE_SHA...$TARGET_SHA" -- '*.nix')
           exit "$FAILED"
 
   quick-check:
@@ -118,9 +124,15 @@ jobs:
 
       - name: Lint changed Nix files
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "$GITHUB_SHA" ]; then BASE_SHA=HEAD^; fi
-          mapfile -d '' NIX_FILES < <(git diff --name-only -z "$BASE_SHA...$GITHUB_SHA" -- '*.nix')
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            TARGET_SHA="$GITHUB_SHA"
+          fi
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then BASE_SHA=HEAD^; fi
+          mapfile -d '' NIX_FILES < <(git diff --name-only -z "$BASE_SHA...$TARGET_SHA" -- '*.nix')
           if [ "${#NIX_FILES[@]}" -eq 0 ]; then
             echo "No changed Nix files; skip file lint."
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
@@ -262,6 +274,9 @@ jobs:
     timeout-minutes: 30
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -280,7 +295,7 @@ jobs:
           nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif "$PWD"
 
       - name: Upload SARIF
-        if: always() && hashFiles('results.sarif') != ''
+        if: always() && github.event_name != 'pull_request' && hashFiles('results.sarif') != ''
         # pin:github/codeql-action/upload-sarif@v3
         uses: github/codeql-action/upload-sarif@c4dd10e44af883a891fe31ced449bcb4a6728b9b
         with:

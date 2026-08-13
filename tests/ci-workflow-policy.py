@@ -94,10 +94,11 @@ def main() -> None:
     require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
     require(cache.count("timeout-minutes:") >= 1, "cache.yml must bound its publisher job")
     require(
-        ci.count('git diff --name-only -z "$BASE_SHA...$GITHUB_SHA"') >= 2,
+        ci.count('git diff --name-only -z "$BASE_SHA...$TARGET_SHA"') == 2,
         "parse and lint gates must use the PR three-dot changed-file range",
     )
     require("github.event.pull_request.base.sha" in ci, "parse gate must use PR base SHA")
+    require("github.event.pull_request.head.sha" in ci, "PR gates must use the PR head SHA")
     require(
         "      - name: Documentation verification\n        if: github.event_name != 'pull_request'\n" in ci
         and "bash docs/meta/VERIFICATION-SUITE/run.sh" in ci,
@@ -118,6 +119,8 @@ def main() -> None:
         and "modules/services/bonsai.nix" in ci, "lint exceptions must be explicit")
     require("#osv-scanner -c osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
     require("cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" in ci, "security scan must install Nix")
+    require("security-events: write" in ci, "trusted SARIF upload must have security-events permission")
+    require("github.event_name != 'pull_request' && hashFiles('results.sarif') != ''" in ci, "PRs must not upload SARIF with restricted token permissions")
     require("Skipping host-local CI script" in automation and "/etc/nixos" in automation, "host-local CI script must be guarded")
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
