@@ -51,7 +51,8 @@ jobs:
           for host in zephyr nexus forge sentry; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Building $host toplevel..."
-            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/cache-build-$host.log; then
+            if ! timeout --kill-after=30s 60m nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/cache-build-$host.log; then
+
               echo "::warning::Build failed for $host — skipping cache push"
               continue
             fi
