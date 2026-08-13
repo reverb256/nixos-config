@@ -731,13 +731,13 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1786016969,
+        "lastModified": 1,
         "narHash": "sha256-btm5JzQbCZfdjr+GG8YWHuEKiRJ+nWQRPEq/J3B3aek=",
-        "path": "/etc/nixos/pkgs/gitlawb",
+        "path": "./pkgs/gitlawb",
         "type": "path"
       },
       "original": {
-        "path": "/etc/nixos/pkgs/gitlawb",
+        "path": "./pkgs/gitlawb",
         "type": "path"
       }
     },

@@ -163,7 +163,7 @@
 
     # gitlawb - local option-4 flake: packages + overlay + NixOS module
     gitlawb = {
-      url = "path:/etc/nixos/pkgs/gitlawb";
+      url = "path:./pkgs/gitlawb";
     };
 
     # preservation - ephemeral-root persistence (sentry/nexus /persistent symlinks).
