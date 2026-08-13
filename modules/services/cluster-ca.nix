@@ -212,7 +212,12 @@ in {
         # Provide cmp/diffutils so the canonical-CA install check (cmp -s) runs
         # instead of aborting with "cmp: command not found".
         Path = lib.makeBinPath [
-          pkgs.coreutils pkgs.diffutils pkgs.gnugrep pkgs.gnused pkgs.findutils pkgs.openssl
+          pkgs.coreutils
+          pkgs.diffutils
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.findutils
+          pkgs.openssl
         ];
       };
       script = ''
@@ -232,8 +237,8 @@ in {
             cp "$STATIC_CA" ${cfg.caCert}
             chmod 644 ${cfg.caCert}
             ${lib.optionalString cfg.generateLeaf ''
-            rm -f ${cfg.leafCert} ${cfg.leafKey} /etc/ssl/cluster-ca/fullchain.crt "$SAN_FILE"
-            ''}
+          rm -f ${cfg.leafCert} ${cfg.leafKey} /etc/ssl/cluster-ca/fullchain.crt "$SAN_FILE"
+        ''}
           fi
         elif ! ${lib.boolToString cfg.allowGenerateCa}; then
           echo "ERROR: canonical cluster CA certificate is unavailable; refusing to generate a trust-root fork" >&2

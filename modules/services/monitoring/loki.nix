@@ -47,86 +47,88 @@ in {
   config = lib.mkIf cfg.enable {
     services.loki = {
       enable = true;
-      configuration = lib.recursiveUpdate {
-        server.http_listen_port = cfg.port;
-        server.http_listen_address = cfg.listenAddress;
+      configuration =
+        lib.recursiveUpdate {
+          server.http_listen_port = cfg.port;
+          server.http_listen_address = cfg.listenAddress;
 
-        # Common storage configuration
-        common = {
-          path_prefix = cfg.dataDir;
-          storage.filesystem = {
-            chunks_directory = "${cfg.dataDir}/chunks";
-            rules_directory = "${cfg.dataDir}/rules";
+          # Common storage configuration
+          common = {
+            path_prefix = cfg.dataDir;
+            storage.filesystem = {
+              chunks_directory = "${cfg.dataDir}/chunks";
+              rules_directory = "${cfg.dataDir}/rules";
+            };
+            replication_factor = 1;
           };
-          replication_factor = 1;
-        };
 
-        # Schema configuration - use boltdb-shipper for compatibility
-        schema_config = {
-          configs = [
-            {
-              from = "2024-01-01";
-              store = "boltdb-shipper";
-              object_store = "filesystem";
-              schema = "v13";
-              index = {
-                prefix = "index_";
-                period = "24h";
-              };
-            }
-          ];
-        };
-
-        # Storage configuration wrapper (required for boltdb-shipper)
-        storage_config = {
-          boltdb_shipper = {
-            active_index_directory = "${cfg.dataDir}/boltdb-shipper/index";
-            cache_location = "${cfg.dataDir}/boltdb-shipper/cache";
+          # Schema configuration - use boltdb-shipper for compatibility
+          schema_config = {
+            configs = [
+              {
+                from = "2024-01-01";
+                store = "boltdb-shipper";
+                object_store = "filesystem";
+                schema = "v13";
+                index = {
+                  prefix = "index_";
+                  period = "24h";
+                };
+              }
+            ];
           };
-        };
 
-        # Retention policy
-        limits_config = {
-          retention_period = cfg.retentionPeriod;
-          per_stream_rate_limit = "10MB";
-          per_stream_rate_limit_burst = "20MB";
-          # Disable structured metadata for boltdb-shipper compatibility
-          allow_structured_metadata = false;
-        };
+          # Storage configuration wrapper (required for boltdb-shipper)
+          storage_config = {
+            boltdb_shipper = {
+              active_index_directory = "${cfg.dataDir}/boltdb-shipper/index";
+              cache_location = "${cfg.dataDir}/boltdb-shipper/cache";
+            };
+          };
 
-        # Ingester configuration
-        ingester = {
-          chunk_idle_period = "1h";
-          max_chunk_age = "2h";
-          lifecycler = {
-            ring = {
-              kvstore = {
-                store = "inmemory";
+          # Retention policy
+          limits_config = {
+            retention_period = cfg.retentionPeriod;
+            per_stream_rate_limit = "10MB";
+            per_stream_rate_limit_burst = "20MB";
+            # Disable structured metadata for boltdb-shipper compatibility
+            allow_structured_metadata = false;
+          };
+
+          # Ingester configuration
+          ingester = {
+            chunk_idle_period = "1h";
+            max_chunk_age = "2h";
+            lifecycler = {
+              ring = {
+                kvstore = {
+                  store = "inmemory";
+                };
               };
             };
           };
-        };
 
-        # Compactor configuration
-        compactor = {
-          working_directory = "${cfg.dataDir}/compactor";
-          retention_enabled = true;
-          delete_request_cancel_period = "24h";
-          compaction_interval = "10m";
-          delete_request_store = "filesystem";
-        };
+          # Compactor configuration
+          compactor = {
+            working_directory = "${cfg.dataDir}/compactor";
+            retention_enabled = true;
+            delete_request_cancel_period = "24h";
+            compaction_interval = "10m";
+            delete_request_store = "filesystem";
+          };
 
-        # Ruler for alerting on logs
-        ruler = {
-          alertmanager_url = "http://127.0.0.1:9093";
-          storage = {
-            type = "local";
-            local = {
-              directory = "${cfg.dataDir}/rules";
+          # Ruler for alerting on logs
+          ruler = {
+            alertmanager_url = "http://127.0.0.1:9093";
+            storage = {
+              type = "local";
+              local = {
+                directory = "${cfg.dataDir}/rules";
+              };
             };
           };
-        };
-      } cfg.extraConfiguration;
+        }
+        cfg.extraConfiguration;
     };
 
     # Create data directories

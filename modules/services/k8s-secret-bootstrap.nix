@@ -70,6 +70,5 @@ in {
         echo "[k8s-secret-bootstrap] Done."
       '';
     };
-
   };
 }

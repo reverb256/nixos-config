@@ -53,21 +53,13 @@ in {
 
     tailscale.enable = true;
 
-
-
-
     sops-secrets-registry = {
       enable = false;
       kubernetes = true;
       aiServices = true;
       ci = true;
     };
-    sops-secrets-registry = {
-      enable = false;
-      kubernetes = true;
-      aiServices = true;
-      ci = true;
-    };
+  };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   # Create directories for hermes/pi bind mounts on Sentry
@@ -105,7 +97,7 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot.enable = lib.mkOptionDefault false;  # NixOS generations sufficient; hosts can override with plain = true
+  services.btrfs-boot-snapshot.enable = lib.mkOptionDefault false; # NixOS generations sufficient; hosts can override with plain = true
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {

@@ -3,17 +3,8 @@
 # SPOC for all Hermes profile, skill, bundle, cron, and gateway config.
 # Everything that was imperatively set up in ~/.hermes/ is declared here
 # and deployed via `git commit` + `colmena deploy`.
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
-  inherit (lib) mkEnableOption mkIf mkOption types;
-
-  cfg = config.services.hermes;
-  user = "j_kro";
-  hermesHome = "/home/${user}/.hermes";
+{lib, ...}: let
+  inherit (lib) mkEnableOption mkOption types;
 in {
   options.services.hermes = {
     default = mkOption {

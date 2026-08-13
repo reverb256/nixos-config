@@ -109,7 +109,6 @@
   # Mining role disabled — mining module removed with compute-market purge
   profiles.role.mining = lib.mkForce false;
 
-
   # ============================================================================
   # GPU COMPUTE - Vulkan support for AI inference
   # ============================================================================
@@ -249,8 +248,6 @@
       autoDetect = false; # Disabled: sensors-detect path issues
       fanControl = false; # BIOS fan control for now
     };
-
-
   };
 
   # ============================================================================
@@ -334,7 +331,6 @@
     #       wallet = "krxXVNVMM7.sentry-gpu";
     #       password = "x";
 
-
     # TAILSCALE
     tailscale.enable = true;
 
@@ -351,8 +347,6 @@
     garage-cluster.enable = false;
 
     # Hermes Agent module removed (2026-04-06)
-
-
   };
 
   # ============================================================================
@@ -495,8 +489,6 @@
   services.storage-assertions.enable = true;
   services.thermal-monitor.enable = true;
   # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
-
-
 
   # ── 2026-07-28 sentry boot-error fixes ──────────────────────────────────
   # Enable kdump so the next kernel panic leaves a /var/crash/* dmesg trace.

@@ -198,7 +198,7 @@ in {
     };
   };
 
-  imports = [ ./k3s/etcd-clean.nix ];
+  imports = [./k3s/etcd-clean.nix];
 
   config = mkIf cfg.enable {
     services.k3s = {
@@ -268,7 +268,7 @@ in {
             "--etcd-expose-metrics"
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-            "--disable-network-policy"  # Calico-only; disable k3s built-in NP
+            "--disable-network-policy" # Calico-only; disable k3s built-in NP
             # Calico-only: flannel-backend MUST be 'none' — k3s stores critical
             # server config in etcd at bootstrap and rejects joining servers
             # that disagree. nexus initialized the datastore with
@@ -340,8 +340,8 @@ in {
     # (unlike ad-hoc sudo over SSH which hits ENOENT on the interpreter).
     systemd.services.k3s-wipe = lib.mkIf cfg.wipeState {
       description = "Wipe k3s state (clear immutable bit + rm -rf dataDir) before k3s starts";
-      requiredBy = [ "k3s.service" ];
-      before = [ "k3s.service" ];
+      requiredBy = ["k3s.service"];
+      before = ["k3s.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -475,7 +475,6 @@ in {
             2380
           ]
         );
-
       }
       {
         # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
@@ -599,7 +598,6 @@ in {
       };
     };
 
-
     system.activationScripts.k3s-fix-mount = lib.stringAfter ["k3s-dirs"] ''
       for aux in ${cfg.dataDir}/data/*/bin/aux; do
         if [ -L "$aux/mount" ] && readlink "$aux/mount" | grep -q busybox; then
@@ -720,49 +718,50 @@ in {
                       secret: __ENCRYPTION_KEY__
               - identity: {}
       '';
-    in mkIf (isServer && cfg.secretsEncryptionKeyFile != null) {
-      description = "Generate etcd encryption config for K3s secrets encryption at rest";
-      wantedBy = ["k3s.service"];
-      before = ["k3s.service"];
-      serviceConfig.Type = "oneshot";
-      serviceConfig.RemainAfterExit = true;
-      path = with pkgs; [coreutils gnused python3];
-      script = ''
-        KEY_FILE="${cfg.secretsEncryptionKeyFile}"
-        CONFIG_DIR="${cfg.dataDir}/server/cred"
-        CONFIG_FILE="$CONFIG_DIR/encryption-config.yaml"
+    in
+      mkIf (isServer && cfg.secretsEncryptionKeyFile != null) {
+        description = "Generate etcd encryption config for K3s secrets encryption at rest";
+        wantedBy = ["k3s.service"];
+        before = ["k3s.service"];
+        serviceConfig.Type = "oneshot";
+        serviceConfig.RemainAfterExit = true;
+        path = with pkgs; [coreutils gnused python3];
+        script = ''
+            KEY_FILE="${cfg.secretsEncryptionKeyFile}"
+            CONFIG_DIR="${cfg.dataDir}/server/cred"
+            CONFIG_FILE="$CONFIG_DIR/encryption-config.yaml"
 
-        if [ ! -f "$KEY_FILE" ]; then
-          echo "k3s-secrets-encryption: key file $KEY_FILE not found, skipping"
-          exit 0
-        fi
+            if [ ! -f "$KEY_FILE" ]; then
+              echo "k3s-secrets-encryption: key file $KEY_FILE not found, skipping"
+              exit 0
+            fi
 
-        # The sops key file may be a JSON envelope ({"data": "<32 bytes>"}) —
-        # extract the actual key material instead of head -c 32 which grabs
-        # the envelope prefix and produces a corrupted AES key.
-        if head -c 1 "$KEY_FILE" | grep -q '{'; then
-          KEY_B64=$(${pkgs.python3}/bin/python3 -c '
-        import json,sys,base64
-        d = json.load(open(sys.argv[1]))
-        raw = d.get("data")
-        if isinstance(raw, str):
-            raw = raw.encode("latin-1")
-        sys.stdout.write(base64.b64encode(raw[:32]).decode())
-      ' "$KEY_FILE")
-        else
-          KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
-        fi
-        if [ -z "$KEY_B64" ]; then
-          echo "k3s-secrets-encryption: key file is empty, skipping"
-          exit 0
-        fi
+            # The sops key file may be a JSON envelope ({"data": "<32 bytes>"}) —
+            # extract the actual key material instead of head -c 32 which grabs
+            # the envelope prefix and produces a corrupted AES key.
+            if head -c 1 "$KEY_FILE" | grep -q '{'; then
+              KEY_B64=$(${pkgs.python3}/bin/python3 -c '
+            import json,sys,base64
+            d = json.load(open(sys.argv[1]))
+            raw = d.get("data")
+            if isinstance(raw, str):
+                raw = raw.encode("latin-1")
+            sys.stdout.write(base64.b64encode(raw[:32]).decode())
+          ' "$KEY_FILE")
+            else
+              KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+            fi
+            if [ -z "$KEY_B64" ]; then
+              echo "k3s-secrets-encryption: key file is empty, skipping"
+              exit 0
+            fi
 
-        mkdir -p "$CONFIG_DIR"
-        sed "s|__ENCRYPTION_KEY__|''${KEY_B64}|" ${encryptionConfigTemplate} > "$CONFIG_FILE"
-        chmod 600 "$CONFIG_FILE"
-        echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
-      '';
-    };
+            mkdir -p "$CONFIG_DIR"
+            sed "s|__ENCRYPTION_KEY__|''${KEY_B64}|" ${encryptionConfigTemplate} > "$CONFIG_FILE"
+            chmod 600 "$CONFIG_FILE"
+            echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
+        '';
+      };
 
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
     # Must defrag periodically. Runs on all servers.

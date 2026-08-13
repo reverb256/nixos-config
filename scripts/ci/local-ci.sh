@@ -34,6 +34,12 @@ else
     log_warn "deadnix not installed, skipping..."
 fi
 
+if command -v alejandra &>/dev/null; then
+    alejandra --check . || log_warn "Alejandra found formatting issues"
+else
+    log_warn "alejandra not installed, skipping..."
+fi
+
 # Step 3: Security scan
 log_info "Step 3: Security scan..."
 if command -v osv-scanner &>/dev/null; then

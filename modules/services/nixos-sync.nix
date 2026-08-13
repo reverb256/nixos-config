@@ -89,8 +89,7 @@ in {
       # "cannot run ssh: No such file or directory" (observed nexus 2026-08-12).
       path = [pkgs.git pkgs.openssh pkgs.coreutils pkgs.findutils pkgs.gnugrep];
       # Keep a stable HOME for Git's SSH and credential helper environment.
-      environment = { HOME = "/root"; };
-
+      environment = {HOME = "/root";};
     };
 
     systemd.timers.nixos-sync = {

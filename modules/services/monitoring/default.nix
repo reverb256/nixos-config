@@ -3,6 +3,7 @@
 {...}: {
   imports = [
     ./prometheus.nix
+    ./alert-rules.nix # Cluster alert rules (HostDown, GPU ECC, service, temperature)
     ./alertmanager.nix
     ./alert-webhook.nix # Local webhook receiver (no auth required)
     ./grafana-v2.nix # New modular dashboard system

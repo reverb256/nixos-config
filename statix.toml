@@ -1,0 +1,17 @@
+# Statix lint configuration.
+#
+# `repeated_keys` is disabled: in NixOS modules, repeated top-level attribute
+# paths like `systemd.services.X` then `systemd.tmpfiles.rules` are idiomatic —
+# the module system merges them (see hosts/forge/hardware.nix,
+# hosts/zephyr/configuration.nix). Statix's repeated_keys check is designed for
+# plain attrset literals where a duplicate key silently overwrites; it produces
+# noise (not real bugs) on module configs, so it's disabled project-wide.
+#
+# Format verified against statix 0.5.8 (`statix dump`): a top-level `disabled`
+# array of lint names, NOT a `[lints.repeated-keys]` table (older format).
+# The file must be named `statix.toml` (visible) — `.statix.toml` is not picked
+# up by default config discovery.
+#
+# Check: nix run nixpkgs#statix -- check .
+disabled = ["repeated_keys"]
+ignore = [".direnv"]

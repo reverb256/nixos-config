@@ -18,8 +18,12 @@
 #   - memballoon=none (avoids AMD IOMMU / virtio-balloon DMA conflict)
 #   - maxphysaddr cap=39 (stops QEMU mapping GPU BARs to rejected IOVAs)
 # ─────────────────────────────────────────────────────────────────
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nexus-de-vm;
   inherit (lib) mkEnableOption mkOption types mkIf;
 
@@ -28,9 +32,14 @@ let
 
   # 2M hugepages needed for the guest (memory default 24GiB / 2MiB).
   hugepages2M = let
-    gib = let v = builtins.match "([0-9]+)GiB" cfg.memory; in
-      if v == null then 24 else builtins.fromJSON (builtins.elemAt v 0);
-  in gib * 512;
+    gib = let
+      v = builtins.match "([0-9]+)GiB" cfg.memory;
+    in
+      if v == null
+      then 24
+      else builtins.fromJSON (builtins.elemAt v 0);
+  in
+    gib * 512;
 
   # ── GPU handoff + hugepage coordinator script ─────────────────
   handoffScript = pkgs.writeShellScript "nexus-de-handoff" ''

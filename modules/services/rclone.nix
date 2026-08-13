@@ -1,6 +1,9 @@
-
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.rclone-sync;
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -15,86 +18,91 @@ let
   #   2. job.sopsSecretEnvs — maps sops-decrypted /run/secrets/* files to
   #      env vars inline in the sync script
 
-  fieldsForRemote = remote:
-    let
-      f = key: value: if value != null && value != "" then [ "${key} = ${value}" ] else [ "${key} = _" ];
+  fieldsForRemote = remote: let
+    f = key: value:
+      if value != null && value != ""
+      then ["${key} = ${value}"]
+      else ["${key} = _"];
 
-      common = [ "type = ${remote.type}" ];
+    common = ["type = ${remote.type}"];
 
-      s3 =
-        lib.optional (remote.provider != null && remote.provider != "")
-          ("provider = ${remote.provider}") ++
-        lib.optional (remote.endpoint != null && remote.endpoint != "")
-          ("endpoint = ${remote.endpoint}") ++
-        f "access_key_id" remote.accessKeyId ++
-        f "secret_access_key" remote.secretAccessKey ++
-        [ "region = ${remote.region or "us-east-1"}" ] ++
-        lib.optional (remote.forcePathStyle) "force_path_style = true";
+    s3 =
+      lib.optional (remote.provider != null && remote.provider != "")
+      "provider = ${remote.provider}"
+      ++ lib.optional (remote.endpoint != null && remote.endpoint != "")
+      "endpoint = ${remote.endpoint}"
+      ++ f "access_key_id" remote.accessKeyId
+      ++ f "secret_access_key" remote.secretAccessKey
+      ++ ["region = ${remote.region or "us-east-1"}"]
+      ++ lib.optional (remote.forcePathStyle) "force_path_style = true";
 
-      tokenOpt = remote.token;
-      oauthToken =
-        if tokenOpt != null && tokenOpt != "" then [ "token = ${tokenOpt}" ]
-        else [ "token = _" ];
+    tokenOpt = remote.token;
+    oauthToken =
+      if tokenOpt != null && tokenOpt != ""
+      then ["token = ${tokenOpt}"]
+      else ["token = _"];
 
-      b2 =
-        f "account" remote.account ++
-        f "key" remote.key;
+    b2 =
+      f "account" remote.account
+      ++ f "key" remote.key;
 
-      drive =
-        f "client_id" remote.client_id ++
-        f "client_secret" remote.client_secret ++
-        (if remote.scope != null && remote.scope != "" then [ "scope = ${remote.scope}" ] else []);
+    drive =
+      f "client_id" remote.client_id
+      ++ f "client_secret" remote.client_secret
+      ++ (
+        if remote.scope != null && remote.scope != ""
+        then ["scope = ${remote.scope}"]
+        else []
+      );
 
-      mega =
-        f "user" remote.user ++
-        f "pass" remote.pass;
+    mega =
+      f "user" remote.user
+      ++ f "pass" remote.pass;
 
-      ftpSftp =
-        f "user" remote.user ++
-        f "pass" remote.pass;
+    ftpSftp =
+      f "user" remote.user
+      ++ f "pass" remote.pass;
 
-      webdav = lib.optional (remote.endpoint != null && remote.endpoint != "")
-        ("url = ${remote.endpoint}");
+    webdav =
+      lib.optional (remote.endpoint != null && remote.endpoint != "")
+      "url = ${remote.endpoint}";
 
-      box =
-        f "client_id" remote.client_id ++
-        f "client_secret" remote.client_secret;
+    box =
+      f "client_id" remote.client_id
+      ++ f "client_secret" remote.client_secret;
 
-      # Fields per backend (excluding the common `type` line, prepended below).
-      # `http` shares webdav's shape (url = endpoint).
-      perType = {
-        s3 = s3;
-        onedrive = oauthToken;
-        dropbox = oauthToken;
-        b2 = b2;
-        drive = drive;
-        mega = mega;
-        ftp = ftpSftp;
-        sftp = ftpSftp;
-        webdav = webdav;
-        box = box;
-        http = webdav;
-      };
-    in
+    # Fields per backend (excluding the common `type` line, prepended below).
+    # `http` shares webdav's shape (url = endpoint).
+    perType = {
+      s3 = s3;
+      onedrive = oauthToken;
+      dropbox = oauthToken;
+      b2 = b2;
+      drive = drive;
+      mega = mega;
+      ftp = ftpSftp;
+      sftp = ftpSftp;
+      webdav = webdav;
+      box = box;
+      http = webdav;
+    };
+  in
     # rclone requires `type = ...` in every section; previously `common` was
     # dead code and no section ever emitted its type line, so every remote
     # would fail at runtime. Always prepend it.
     builtins.concatStringsSep "\n" (common ++ (perType.${remote.type} or []));
 
-  remoteSection = name:
-    let
-      # fieldsForRemote returns the fully joined INI body string for this
-      # remote (type line + backend fields). (Previously it returned a raw
-      # LIST, which made every rclone-enabled host fail with "cannot coerce a
-      # list to a string" when interpolated.)
-      body = fieldsForRemote cfg.remotes.${name};
-    in
-    "[${name}]\n${body}";
+  remoteSection = name: let
+    # fieldsForRemote returns the fully joined INI body string for this
+    # remote (type line + backend fields). (Previously it returned a raw
+    # LIST, which made every rclone-enabled host fail with "cannot coerce a
+    # list to a string" when interpolated.)
+    body = fieldsForRemote cfg.remotes.${name};
+  in "[${name}]\n${body}";
 
-  rcloneConfigText =
-    builtins.concatStringsSep "\n\n" (
-      builtins.map remoteSection (builtins.attrNames cfg.remotes)
-    );
+  rcloneConfigText = builtins.concatStringsSep "\n\n" (
+    builtins.map remoteSection (builtins.attrNames cfg.remotes)
+  );
 
   # ═══════════════════════════════════════════════════════════════════════════
   # sync script generator
@@ -103,23 +111,22 @@ let
   # entry reads a sops-decrypted file from /run/secrets/ and exports it as an
   # env var inline, before the rclone invocation.
 
-  syncScript = job:
-    let
-      secretExports =
-        lib.concatStringsSep "\n" (
-          map (s:
-            ''
-              if [ -f ${s.secretPath} ]; then
-                export ${s.var}="$(cat ${s.secretPath})"
-              else
-                echo "rclone-${job.name}: missing secret ${s.secretPath}" >&2
-                exit 1
-              fi
-            ''
-          ) job.sopsSecretEnvs
-        );
-    in
-    pkgs.writeShellScriptBin ("rclone-${job.name}") ''
+  syncScript = job: let
+    secretExports = lib.concatStringsSep "\n" (
+      map (
+        s: ''
+          if [ -f ${s.secretPath} ]; then
+            export ${s.var}="$(cat ${s.secretPath})"
+          else
+            echo "rclone-${job.name}: missing secret ${s.secretPath}" >&2
+            exit 1
+          fi
+        ''
+      )
+      job.sopsSecretEnvs
+    );
+  in
+    pkgs.writeShellScriptBin "rclone-${job.name}" ''
       set -euo pipefail
 
       SOURCE=''${SOURCE:-${job.source}}
@@ -150,10 +157,26 @@ let
         --progress \
         --transfers ${toString job.transfers or 4} \
         --checkers ${toString job.checkers or 8} \
-        ${if job.exclude != null then "--exclude=${job.exclude}" else ""} \
-        ${if job.excludeFrom != null then "--exclude-from=${job.excludeFrom}" else ""} \
-        ${if job.include != null then "--include=${job.include}" else ""} \
-        ${if job.includeFrom != null then "--include-from=${job.includeFrom}" else ""} \
+        ${
+        if job.exclude != null
+        then "--exclude=${job.exclude}"
+        else ""
+      } \
+        ${
+        if job.excludeFrom != null
+        then "--exclude-from=${job.excludeFrom}"
+        else ""
+      } \
+        ${
+        if job.include != null
+        then "--include=${job.include}"
+        else ""
+      } \
+        ${
+        if job.includeFrom != null
+        then "--include-from=${job.includeFrom}"
+        else ""
+      } \
         ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
         $OPTIONS; then
         log_success "Job '${job.name}' completed"
@@ -162,7 +185,6 @@ let
         exit 1
       fi
     '';
-
 in {
   options.services.rclone-sync = {
     enable = lib.mkEnableOption "Rclone cloud storage synchronization";
@@ -199,7 +221,17 @@ in {
           options = {
             type = lib.mkOption {
               type = lib.types.enum [
-                "s3" "onedrive" "dropbox" "box" "mega" "b2" "drive" "webdav" "ftp" "sftp" "http"
+                "s3"
+                "onedrive"
+                "dropbox"
+                "box"
+                "mega"
+                "b2"
+                "drive"
+                "webdav"
+                "ftp"
+                "sftp"
+                "http"
               ];
               default = "s3";
               description = "Remote storage type";
@@ -307,7 +339,14 @@ in {
             };
             mode = lib.mkOption {
               type = lib.types.enum [
-                "sync" "copy" "move" "check" "ls" "lsl" "lsd" "lsf"
+                "sync"
+                "copy"
+                "move"
+                "check"
+                "ls"
+                "lsl"
+                "lsd"
+                "lsf"
               ];
               default = "sync";
               description = "Rclone operation mode";
@@ -397,7 +436,10 @@ in {
           startAt = "03:00";
           enableTimer = true;
           sopsSecretEnvs = [
-            { var = "AWS_SECRET_ACCESS_KEY"; secretPath = "/run/secrets/storage/garage-s3-secret-key"; }
+            {
+              var = "AWS_SECRET_ACCESS_KEY";
+              secretPath = "/run/secrets/storage/garage-s3-secret-key";
+            }
           ];
         }
       ];
@@ -427,12 +469,12 @@ in {
             Group = cfg.group;
             ExecStart = "${syncScript job}/bin/rclone-${job.name}";
             Environment =
-              [ "PATH=/run/current-system/sw/bin" "RCLONE_CONFIG=${cfg.configFile}" ]
+              ["PATH=/run/current-system/sw/bin" "RCLONE_CONFIG=${cfg.configFile}"]
               ++ cfg.preRun;
             PrivateTmp = true;
             NoNewPrivileges = true;
-            RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
-            SystemCallFilter = [ "@system-service" "~@privileged" ];
+            RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+            SystemCallFilter = ["@system-service" "~@privileged"];
           };
         };
       })

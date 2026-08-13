@@ -7,7 +7,7 @@
   cfg = config.services.hermes;
   user = "j_kro";
   hermesHome = "/home/${user}/.hermes";
-  inherit (lib) mkIf concatStringsSep optionalString;
+  inherit (lib) concatStringsSep optionalString;
 
   # Build activation script as a derivation
   activationScript = pkgs.writeShellScript "hermes-activation" ''

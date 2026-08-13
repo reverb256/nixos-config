@@ -48,10 +48,10 @@
     # Must come before mitigations to avoid being overridden
     "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
-    "amdgpu.runpm=0"             # Disable GPU runtime power management
+    "amdgpu.runpm=0" # Disable GPU runtime power management
     "amdgpu.ppfeaturemask=0xfffd7fff" # Disable Overdrive for stability
     "amdgpu.lockup_timeout=1000"
-    "pcie_aspm=off"              # Disable PCIe ASPM system-wide (prevents Navi 10 GPU reset failures; trade-off: higher power draw)
+    "pcie_aspm=off" # Disable PCIe ASPM system-wide (prevents Navi 10 GPU reset failures; trade-off: higher power draw)
     "mitigations=auto"
   ];
   boot.extraModprobeConfig = ''

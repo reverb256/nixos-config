@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 # memlawb encrypted-memory server (zero-knowledge, fs blobstore).
 #
 # Runs the memlawb Bun app as a systemd service. The Hermes MCP client
@@ -48,9 +52,9 @@
 
     systemd.services.memlawb-server = {
       description = "memlawb encrypted memory server (fs store)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "simple";
         User = "j_kro";

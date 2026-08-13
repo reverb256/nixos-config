@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; let
   cfg = config.services.switchyard;
 
@@ -11,12 +16,13 @@ with lib; let
     : > "$env_file"
     chmod 600 "$env_file"
     ${concatStringsSep "\n" (mapAttrsToList (name: path: ''
-      if [ -r ${escapeShellArg path} ]; then
-        printf '%s=%s\n' ${escapeShellArg name} "$(cat ${escapeShellArg path})" >> "$env_file"
-      else
-        echo "WARN: switchyard secret ${escapeShellArg path} missing" >&2
-      fi
-    '') cfg.envFiles)}
+        if [ -r ${escapeShellArg path} ]; then
+          printf '%s=%s\n' ${escapeShellArg name} "$(cat ${escapeShellArg path})" >> "$env_file"
+        else
+          echo "WARN: switchyard secret ${escapeShellArg path} missing" >&2
+        fi
+      '')
+      cfg.envFiles)}
   '';
 in {
   options.services.switchyard = {
@@ -62,9 +68,9 @@ in {
     # restarts the unit (root) so the envFileScript sees fresh files.
     systemd.services.switchyard-secrets = {
       description = "Refresh SecretSpec credentials for switchyard";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "secretspec-creds.service" ];
-      wants = [ "secretspec-creds.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["secretspec-creds.service"];
+      wants = ["secretspec-creds.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.systemd}/bin/systemctl restart secretspec-creds.service";
@@ -73,10 +79,10 @@ in {
 
     systemd.services.switchyard = {
       description = "Switchyard LLM routing proxy";
-      after = [ "network-online.target" "switchyard-secrets.service" ];
-      wants = [ "network-online.target" ];
-      requires = [ "switchyard-secrets.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target" "switchyard-secrets.service"];
+      wants = ["network-online.target"];
+      requires = ["switchyard-secrets.service"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -84,7 +90,7 @@ in {
         Group = "switchyard";
         # /run/secrets is drwxr-x--x root:keys — switchyard must traverse it
         # to read api keys at runtime.
-        SupplementaryGroups = [ "keys" ];
+        SupplementaryGroups = ["keys"];
         RuntimeDirectory = "switchyard";
         RuntimeDirectoryMode = "0700";
         ExecStartPre = envFileScript;
@@ -97,7 +103,7 @@ in {
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadOnlyPaths = [ cfg.configFile "/run/secrets" ];
+        ReadOnlyPaths = [cfg.configFile "/run/secrets"];
       };
     };
 
@@ -108,6 +114,6 @@ in {
     users.groups.switchyard = {};
 
     # Localhost-only by default; cluster-firewall.nix handles cross-host access.
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }

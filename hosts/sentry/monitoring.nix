@@ -19,6 +19,8 @@
     monitoring = {
       # Core monitoring services
       prometheus.enable = true;
+      # Cluster alert rules (host, GPU, service, temperature)
+      prometheus.enableAlertRules = true;
       grafana.enable = true;
       alertmanager.enable = true;
       # Local webhook notifications (no password required)
@@ -40,7 +42,7 @@
         memberlist = {
           # Loki's memberlist.bind_addr is a StringSlice -> must be a list,
           # not a bare string (validate-loki-conf rejects !!str into it).
-          bind_addr = [ "127.0.0.1" ];
+          bind_addr = ["127.0.0.1"];
           bind_port = 7946;
         };
       };

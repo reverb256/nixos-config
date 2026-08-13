@@ -10,7 +10,6 @@
     mkIf
     mkOption
     types
-    mkDefault
     ;
 in {
   options.services.container-scanning = {

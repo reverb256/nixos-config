@@ -8,7 +8,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-
     k8s-secret-bootstrap = {
       enable = true;
       secrets = [
@@ -72,10 +71,7 @@ in {
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
-
-
     # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
-
 
     # Caddy — only Tailscale ingress for this host
     # All .lan services moved to nexus (OOM prevention)
@@ -234,12 +230,12 @@ in {
       # those routes, Path A logs WARN and Herme doesn't get those env
       # vars (caller falls through to ~/.hermes/.env defaults / vault).
       secretspecEnvVarMappings = {
-        "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
-        "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
+        "NVIDIA_API_KEY" = "NVIDIA_API_KEY";
+        "OPENCODE_API_KEY" = "OPENCODE_ZEN_API_KEY";
         "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
-        "HUGGINGFACE_TOKEN"   = "HUGGINGFACE_TOKEN";
-        "GITHUB_TOKEN"        = "GITHUB_TOKEN";
-        "MEMLAWB_PASSPHRASE"  = "MEMLAWB_PASSPHRASE";
+        "HUGGINGFACE_TOKEN" = "HUGGINGFACE_TOKEN";
+        "GITHUB_TOKEN" = "GITHUB_TOKEN";
+        "MEMLAWB_PASSPHRASE" = "MEMLAWB_PASSPHRASE";
       };
 
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";

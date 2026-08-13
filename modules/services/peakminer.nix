@@ -106,88 +106,89 @@ in {
     ];
 
     systemd.services = lib.listToAttrs (builtins.map (instance: let
-      serviceName = "peakminer-${instance.name}";
-      powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
-        set -euo pipefail
-        export PATH="/run/current-system/sw/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gnused}/bin:${pkgs.findutils}/bin:${pkgs.systemd}/bin:''${PATH:-}"
-        for attempt in $(seq 1 30); do
-          resolved=$(${resolveGpu} "${instance.gpuName}" || true)
-          if [ -z "$resolved" ]; then
-            echo "PeakMiner: GPU '${instance.gpuName}' not present, skipping power limit" >&2
-            exit 0
-          fi
-          uuid=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $2}')
-          if /run/current-system/sw/bin/nvidia-smi \
-              -i "$uuid" \
-              -pl ${toString instance.powerLimit}; then
-            exit 0
-          fi
-          sleep 1
-        done
-        echo "PeakMiner: power limit failed after 30 seconds" >&2
-        exit 1
-      '';
-      peakminerScript = pkgs.writeShellScript serviceName ''
-        set -euo pipefail
-        export CUDA_DEVICE_ORDER=PCI_BUS_ID
-        export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
-
-        wallet="${cfg.wallet}/${instance.name}"
-        password=${lib.escapeShellArg cfg.password}
-        pools=(${lib.concatStringsSep " " (map (pool: lib.escapeShellArg pool) cfg.pools)})
-
-        # Use the explicit per-instance devices field when set (works for
-        # same-name GPU farms like forge's two RTX 4060s, where name resolution
-        # is ambiguous). Fall back to name->index resolution for unique-name
-        # hosts (zephyr 3090 vs 3060 Ti). The powerLimitScript below still uses
-        # UUID-based resolution so the power limit lands on the right card.
-        if [ -n "${instance.devices}" ]; then
-          cuda_idx="${instance.devices}"
-          echo "PeakMiner ${instance.name}: using configured CUDA devices $cuda_idx" >&2
-        else
-          resolved=$(${resolveGpu} "${instance.gpuName}" || true)
-          if [ -z "$resolved" ]; then
-            echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
-            exit 1
-          fi
-          cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
-          echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
-        fi
-
-        while true; do
-          for pool in "''${pools[@]}"; do
-            echo "PeakMiner ${instance.name}: starting $pool" >&2
-            ${pkgs.peakminer}/bin/peakminer \
-              --url "$pool" \
-              --user "$wallet" \
-              --password "$password" \
-              --coin pearl \
-              --devices "$cuda_idx" \
-              --api-port ${toString instance.apiPort} \
-              ${lib.concatStringsSep " " (map lib.escapeShellArg instance.extraArgs)}
-            echo "PeakMiner ${instance.name}: pool exited; trying next pool" >&2
+        serviceName = "peakminer-${instance.name}";
+        powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
+          set -euo pipefail
+          export PATH="/run/current-system/sw/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gnused}/bin:${pkgs.findutils}/bin:${pkgs.systemd}/bin:''${PATH:-}"
+          for attempt in $(seq 1 30); do
+            resolved=$(${resolveGpu} "${instance.gpuName}" || true)
+            if [ -z "$resolved" ]; then
+              echo "PeakMiner: GPU '${instance.gpuName}' not present, skipping power limit" >&2
+              exit 0
+            fi
+            uuid=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $2}')
+            if /run/current-system/sw/bin/nvidia-smi \
+                -i "$uuid" \
+                -pl ${toString instance.powerLimit}; then
+              exit 0
+            fi
+            sleep 1
           done
-          sleep 5
-        done
-      '';
-    in {
-      name = serviceName;
-      value = {
-        description = "PeakMiner GPU miner - ${instance.name}";
-        wantedBy = ["multi-user.target"];
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-        serviceConfig = {
-          Type = "simple";
-          User = "root";
-          ExecStartPre = mkIf (instance.powerLimit != null && cfg.setPowerLimit) (
-            mkBefore "+${powerLimitScript}"
-          );
-          ExecStart = peakminerScript;
-          Restart = "always";
-          RestartSec = 10;
+          echo "PeakMiner: power limit failed after 30 seconds" >&2
+          exit 1
+        '';
+        peakminerScript = pkgs.writeShellScript serviceName ''
+          set -euo pipefail
+          export CUDA_DEVICE_ORDER=PCI_BUS_ID
+          export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
+
+          wallet="${cfg.wallet}/${instance.name}"
+          password=${lib.escapeShellArg cfg.password}
+          pools=(${lib.concatStringsSep " " (map (pool: lib.escapeShellArg pool) cfg.pools)})
+
+          # Use the explicit per-instance devices field when set (works for
+          # same-name GPU farms like forge's two RTX 4060s, where name resolution
+          # is ambiguous). Fall back to name->index resolution for unique-name
+          # hosts (zephyr 3090 vs 3060 Ti). The powerLimitScript below still uses
+          # UUID-based resolution so the power limit lands on the right card.
+          if [ -n "${instance.devices}" ]; then
+            cuda_idx="${instance.devices}"
+            echo "PeakMiner ${instance.name}: using configured CUDA devices $cuda_idx" >&2
+          else
+            resolved=$(${resolveGpu} "${instance.gpuName}" || true)
+            if [ -z "$resolved" ]; then
+              echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
+              exit 1
+            fi
+            cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
+            echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
+          fi
+
+          while true; do
+            for pool in "''${pools[@]}"; do
+              echo "PeakMiner ${instance.name}: starting $pool" >&2
+              ${pkgs.peakminer}/bin/peakminer \
+                --url "$pool" \
+                --user "$wallet" \
+                --password "$password" \
+                --coin pearl \
+                --devices "$cuda_idx" \
+                --api-port ${toString instance.apiPort} \
+                ${lib.concatStringsSep " " (map lib.escapeShellArg instance.extraArgs)}
+              echo "PeakMiner ${instance.name}: pool exited; trying next pool" >&2
+            done
+            sleep 5
+          done
+        '';
+      in {
+        name = serviceName;
+        value = {
+          description = "PeakMiner GPU miner - ${instance.name}";
+          wantedBy = ["multi-user.target"];
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          serviceConfig = {
+            Type = "simple";
+            User = "root";
+            ExecStartPre = mkIf (instance.powerLimit != null && cfg.setPowerLimit) (
+              mkBefore "+${powerLimitScript}"
+            );
+            ExecStart = peakminerScript;
+            Restart = "always";
+            RestartSec = 10;
+          };
         };
-      };
-    }) cfg.instances);
+      })
+      cfg.instances);
   };
 }

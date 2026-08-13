@@ -1,7 +1,4 @@
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # 2026-08-02: NixOS-side `services.ai-inference` config REMOVED — the gateway
   # runs in Kubernetes (kubernetes/modules/ai-inference.nix) from a prebuilt
   # image. The old NixOS module pulled the torch/sentence-transformers stack

@@ -173,7 +173,6 @@
       WorkingDir = "/app";
     };
   };
-
 in {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Expose the gateway Python environment for use by MCP servers
