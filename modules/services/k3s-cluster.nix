@@ -686,7 +686,10 @@ in {
       wantedBy = ["k3s.service"];
       before = ["k3s.service"];
       serviceConfig.Type = "oneshot";
-      serviceConfig.RemainAfterExit = true;
+      # No RemainAfterExit: the unit must re-run before every k3s start.
+      # RemainAfterExit made systemd treat the Aug-10 run (temp-cluster era)
+      # as done forever, so after sentry's k3s state was discarded the fresh
+      # server dir never got audit-policy.yaml -> apiserver failed to start.
       path = with pkgs; [coreutils];
       script = ''
         mkdir -p "${auditLogDir}"
