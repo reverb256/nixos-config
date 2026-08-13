@@ -225,7 +225,7 @@ spec:
               mountPath: /registration
           resources:
             requests:
-              memory: "10Mi"
+              memory: "32Mi"
               cpu: "10m"
         - name: livenessprobe
           image: registry.k8s.io/sig-storage/livenessprobe:v2.17.0
@@ -238,7 +238,7 @@ spec:
               mountPath: /registration
           resources:
             requests:
-              memory: "10Mi"
+              memory: "32Mi"
               cpu: "10m"
       volumes:
         - name: nix-config
