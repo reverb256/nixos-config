@@ -18,12 +18,10 @@ concurrency:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
   stale-check:
-    runs-on: [self-hosted, nixos]
+    runs-on: ubuntu-latest
     steps:
       # pin:actions/checkout@v4
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
@@ -34,16 +32,6 @@ jobs:
       - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Cache Nix store
-        # pin:cachix/cachix-action@v17
-        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
-        with:
-          name: reverb-os
-          cachixBin: /run/current-system/sw/bin/cachix
-          skipAddingSubstituter: true
-          skipPush: true
-          useDaemon: false
 
       - name: Run documentation verification suite
         run: |
