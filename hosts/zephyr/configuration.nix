@@ -561,6 +561,21 @@
   # the cluster. The shared distributed-builds module provides the fleet
   # defaults, so these host-level values intentionally use mkForce.
   nix.distributedBuilds = lib.mkForce false;
+
+  # Zephyr build protection (issue #453): keep Nix builds inside delegated
+  # cgroups and run the daemon at idle CPU/I/O priority so desktop, AI, and
+  # gaming workloads remain responsive under build pressure.
+  nix.settings = {
+    use-cgroups = true;
+    extra-experimental-features = [ "cgroups" ];
+  };
+  nix.daemonCPUSchedPolicy = "idle";
+  nix.daemonIOSchedClass = "idle";
+  systemd.services.nix-daemon.serviceConfig = {
+    Delegate = true;
+    DelegateSubgroup = "supervisor";
+  };
+
   # mkOverride 40 is stronger than the shared module's mkForce (priority 50)
   # and nix-safety's ordinary assignment, avoiding an equal-priority conflict.
   nix.settings.builders = lib.mkOverride 40 "";
