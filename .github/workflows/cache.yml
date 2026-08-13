@@ -9,18 +9,21 @@ name: Cache
 # the PR build still succeeds locally, we just miss the cache hit.
 
 on:
-  pull_request:
   push:
-    branches: [main, master, develop]
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: nixos-cache-main
+  cancel-in-progress: false
 
 jobs:
   populate-cache:
     name: Build & push to nexus cache
     runs-on: [self-hosted, nixos]
+    timeout-minutes: 360
     steps:
       - name: Checkout
         # pin:actions/checkout@v5

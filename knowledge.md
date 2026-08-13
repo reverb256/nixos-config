@@ -80,6 +80,29 @@ just hm-switch          # Activate current host's standalone HM (home-manager sw
 just hm-build <host>    # Dry-build an HM configuration (default zephyr)
 ```
 
+### CI required checks and trust boundary
+
+PR validation runs on ephemeral GitHub-hosted runners with `contents: read`
+and read-only pull-request metadata. The persistent Nexus runner is reserved
+for trusted `main` pushes, deployment, and cache population. PR workflows do
+not write to the Nexus cache or receive cluster secrets.
+
+Required PR checks:
+
+- `Parse Check`
+- `Quick Check`
+- `Lint Nix`
+- `Test Suite`
+- `Security Scan`
+- `Build Configs`
+- `Home Path Guard (#309)`
+- `PR checks`
+
+Required checks fail closed. Treat `continue-on-error`, `|| true`, and
+warning-only handling as CI defects unless the job is explicitly advisory and
+not required. See `tests/ci-workflow-policy.py` for the enforced repository
+contract.
+
 ### Validation primitives
 
 ```bash
