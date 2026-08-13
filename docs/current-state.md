@@ -1,7 +1,7 @@
 # NixOS Cluster Current State
 
 > **Status:** Active reference
-> **Last Verified:** 2026-08-09 (repository structure and checked-in configuration)
+> **Last Verified:** 2026-08-13 (repository structure and checked-in configuration)
 > **Owner:** j_kro
 > **Live-state rule:** This document describes the checked-in architecture. Verify host health and deployed generations with the commands below before making claims about runtime state.
 
@@ -132,6 +132,29 @@ flake lock state, active generation, and health-probe result.
   health dashboard.
 - The 2026-07-27 multi-area audit is the latest broad audit currently indexed, but its
   findings still require live verification before operator action.
+
+## 2026-08-13 cluster state changes
+
+Session-verified changes (commits on `origin/main`):
+
+- **nix-csi removed entirely** (`ad405b34`) — driver never registered (csinode lacked
+  `nix.csi.store`), build inputs GC'd from all stores, no production consumers. 6 manifests
+  moved to `kubernetes-manifests/archive/nix-csi/`; live DS/STS/jobs/SC/CSIDriver deleted.
+  Closes #213. #191/#205 superseded.
+- **nvidia-device-plugin fixed** (`7119ff89`, `88606d98`) — nodeSelector aligned to real
+  k3s label (`accelerator=nvidia-gpu`), driver lib path refreshed (had GC'd 595.45.04),
+  NVML lib dir corrected (610.43.03 main lib, not lib32). `nvidia.com/gpu: 1` advertised
+  on nexus. GPU workloads schedulable again.
+- **k8s-secret-sync namespace-ensure** (`cac6b4e4`) — unit now creates target namespaces
+  (`automation`, `orchestration`) before syncing; unblocked nexus deploys (was exit 4).
+- **nixos-sync openssh in PATH** (`5dbd999f`) — git fetch over SSH needed `pkgs.openssh`;
+  also `HOME=/root` env + FLAKE ordering (documented in `modules/services/nixos-sync.nix`).
+- **dcgm RuntimeDirectory** (`9d53c2ce`) — podman cidfile dir exists at start.
+- **bonsai sentry DSpark removal** (`e91d8133`) — mainline Vulkan cannot load `dspark` arch.
+
+Open follow-ups filed 2026-08-13: #463 qdrant admission-policy block, #464 gateway
+placeholder keys, #465 orphaned HPAs, #466 maplespike secrets re-wiring (cross-linked
+with quill PR #826).
 
 See [`../DOCS-MAINTENANCE.md`](../DOCS-MAINTENANCE.md) for the classification and
 freshness policy. The documentation cleanup manifest records completed and planned
