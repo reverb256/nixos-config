@@ -28,6 +28,12 @@
   # Earlier pins fail with "unknown model architecture" or
   # "wrong number of tensors" on the Nemotron 3.5 Lightning GGUF.
   version ? "0-unstable-2026-08-12",
+  # PrismML bonsai-ml fork: Q1_0/Q2_0 AVX512-VNNI CPU repack, CUDA __byte_perm
+  # extraction, DSpark drafter fixes, CPU-MoE flags (--n-cpu-moe). Fleet runs
+  # the fork for bonsai already (560rfa8pm); mainline lacks these. Fork base
+  # is 07-31 mainline: has nemotron_h_moe (Lightning) but NOT muse-glimmer
+  # (NIM-cloud only — fine to lose locally).
+  useFork ? false,
   # Feature flags
   native ? false,
   sharedLibs ? false,
@@ -40,13 +46,24 @@
   ...
 }: let
   # Default source: pinned git checkout (tag tarballs lag; we need the
-  # muse-glimmer commit specifically).
-  defaultSrc = fetchgit {
-    url = "https://github.com/ggml-org/llama.cpp";
-    rev = "8e7f22b67ef4667b4ddd50230771287f328cfb3f";
-    hash = "sha256-jK1D2x7Yc8nkaKeXPK2DjcyQAFgmXrqc+s2ZFMlZCR8=";
-    leaveDotGit = false;
-  };
+  # muse-glimmer commit specifically). With useFork, the PrismML bonsai-ml
+  # fork (prism branch) is used instead — it has the Q1_0/Q2_0 repack +
+  # DSpark + CPU-MoE specializations the fleet's bonsai deployments need.
+  defaultSrc =
+    if useFork then
+      fetchgit {
+        url = "https://github.com/PrismML-Eng/llama.cpp";
+        rev = "9ca265a57f85f2117942490f421f64a226dd9847"; # prism branch 2026-07-31
+        hash = "sha256-AATH4Bg0nhbuftEA1xcwAX0geVNmuBY5UWK5u2vgEYI=";
+        leaveDotGit = false;
+      }
+    else
+      fetchgit {
+        url = "https://github.com/ggml-org/llama.cpp";
+        rev = "8e7f22b67ef4667b4ddd50230771287f328cfb3f";
+        hash = "sha256-jK1D2x7Yc8nkaKeXPK2DjcyQAFgmXrqc+s2ZFMlZCR8=";
+        leaveDotGit = false;
+      };
   # src defined as let binding above
 
   # Determine which backend stdenv to use
@@ -162,10 +179,14 @@ in
     meta = {
       description =
         "Inference of Meta's LLaMA model (and others) in pure C/C++"
+        + lib.optionalString useFork " (PrismML bonsai-ml fork: Q1_0/Q2_0 repack, DSpark, CPU-MoE)"
         + lib.optionalString cudaSupport " with CUDA support"
         + lib.optionalString vulkanSupport " with Vulkan support"
         + lib.optionalString rocmSupport " with ROCm support";
-      homepage = "https://github.com/ggml-org/llama.cpp";
+      homepage =
+        if useFork
+        then "https://github.com/PrismML-Eng/llama.cpp"
+        else "https://github.com/ggml-org/llama.cpp";
       license = lib.licenses.mit;
       platforms = lib.platforms.linux;
       mainProgram = "llama-cli";
