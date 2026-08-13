@@ -9,9 +9,9 @@ Learns the actual rate limits by observing real API behavior:
 Also implements circuit breaker, exponential backoff, and a /metrics endpoint.
 """
 
-import json, logging, os, random, time, urllib.request
+import json, logging, os, random, threading, time, urllib.request
 from dataclasses import dataclass, field
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 
 log = logging.getLogger("nim-proxy")
@@ -32,6 +32,8 @@ HOST = os.environ.get("PROXY_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PROXY_PORT", "8787"))
 NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "")
 NVIDIA_BASE = "https://integrate.api.nvidia.com"
+MAX_CONCURRENCY = int(os.environ.get("MAX_CONCURRENCY", "4"))
+NIM_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENCY)
 
 @dataclass
 class AIMDController:
@@ -101,15 +103,17 @@ class AIMDController:
     def _save(self) -> None:
         try:
             os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-            json.dump({"rpm_target": self.rpm_target, "tpm_target": self.tpm_target,
-                       "consecutive_429": self.consecutive_429}, open(STATE_FILE, "w"))
+            with open(STATE_FILE, "w", encoding="utf-8") as state:
+                json.dump({"rpm_target": self.rpm_target, "tpm_target": self.tpm_target,
+                           "consecutive_429": self.consecutive_429}, state)
         except Exception:
             pass
 
     @classmethod
     def load(cls) -> "AIMDController":
         try:
-            d = json.load(open(STATE_FILE))
+            with open(STATE_FILE, encoding="utf-8") as state:
+                d = json.load(state)
             log.info("Loaded: rpm=%.1f tpm=%.0f", d["rpm_target"], d["tpm_target"])
             return cls(rpm_target=d["rpm_target"], tpm_target=d["tpm_target"],
                        consecutive_429=d.get("consecutive_429", 0))
@@ -160,38 +164,45 @@ class Handler(BaseHTTPRequestHandler):
     def _proxy(self, body: bytes):
         if not self._ok_or_429():
             return
-        req = urllib.request.Request(f"{NVIDIA_BASE}{self.path}", data=body,
-            headers={"Authorization": f"Bearer {NVIDIA_KEY}", "Content-Type": "application/json"},
-            method=self.command)
+        if not NIM_SLOTS.acquire(blocking=False):
+            self._json(429, {"error": {"message": "NIM proxy concurrency limit reached", "type": "rate_limit_error"}})
+            return
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
-                rb = r.read()
-                t = 0
-                try:
-                    u = json.loads(rb).get("usage", {}); t = u.get("total_tokens", 0) if u else 0
-                except Exception: pass
-                ctl.record_success(t)
-                self.send_response(r.status)
-                for k, v in r.headers.items():
-                    if k.lower() not in ("transfer-encoding", "content-encoding", "content-length"):
-                        self.send_header(k, v)
-                self.send_header("Content-Length", str(len(rb))); self.end_headers(); self.wfile.write(rb)
-        except urllib.error.HTTPError as e:
-            rb = e.read()
-            if e.code == 429: ctl.record_429(); log.warning("429 — rpm=%.1f fails=%d", ctl.rpm_target, ctl.consecutive_429)
-            else: log.error("NIM %d: %s", e.code, rb[:200])
-            self.send_response(e.code); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(rb)
-        except urllib.error.URLError as e:
-            log.error("NIM down: %s", e.reason); self._json(502, {"error": {"message": f"NIM unreachable: {e.reason}"}})
-        except Exception as e:
-            log.error("Proxy: %s", e); self._json(500, {"error": {"message": str(e)}})
+            req = urllib.request.Request(f"{NVIDIA_BASE}{self.path}", data=body,
+                headers={"Authorization": f"Bearer {NVIDIA_KEY}", "Content-Type": "application/json"},
+                method=self.command)
+            try:
+                with urllib.request.urlopen(req, timeout=120) as r:
+                    rb = r.read()
+                    t = 0
+                    try:
+                        u = json.loads(rb).get("usage", {}); t = u.get("total_tokens", 0) if u else 0
+                    except Exception: pass
+                    ctl.record_success(t)
+                    self.send_response(r.status)
+                    for k, v in r.headers.items():
+                        if k.lower() not in ("transfer-encoding", "content-encoding", "content-length"):
+                            self.send_header(k, v)
+                    self.send_header("Content-Length", str(len(rb))); self.end_headers(); self.wfile.write(rb)
+            except urllib.error.HTTPError as e:
+                rb = e.read()
+                if e.code == 429: ctl.record_429(); log.warning("429 — rpm=%.1f fails=%d", ctl.rpm_target, ctl.consecutive_429)
+                else: log.error("NIM %d: %s", e.code, rb[:200])
+                self.send_response(e.code); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(rb)
+            except urllib.error.URLError as e:
+                log.error("NIM down: %s", e.reason); self._json(502, {"error": {"message": f"NIM unreachable: {e.reason}"}})
+            except Exception as e:
+                log.error("Proxy: %s", e); self._json(500, {"error": {"message": str(e)}})
+
+        finally:
+            NIM_SLOTS.release()
 
 def main():
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper(),
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     log.info("nim-proxy on %s:%s — rpm_start=%.0f tpm_start=%.0f state=%s",
              HOST, PORT, ctl.rpm_target, ctl.tpm_target, STATE_FILE)
-    HTTPServer((HOST, PORT), Handler).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 if __name__ == "__main__":
     main()
