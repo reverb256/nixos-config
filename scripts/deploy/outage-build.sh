@@ -107,7 +107,6 @@ echo "outage-build: building '${HOST}' on ${BUILDER} (jobs=${JOBS} cores=${CORES
 # nexus first (speedFactor 10) and stalls on an unreachable host.
 OUT="$(
   nix build \
-    --option pure-eval false \
     --builders '' \
     --max-jobs "$JOBS" \
     --cores "$CORES" \

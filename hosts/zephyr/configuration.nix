@@ -84,20 +84,24 @@
   # SECRETSPEC FORK SUPPORT — See modules/system/secretspec-cluster-mode.nix.
   # Zephyr carries ~/Projects/secretspec-core (cachix-fork with sops
   # subprocess provider) and ~/Projects/secretspec/provider-rust (NDJSON
-  # dispatcher fork). `cluster.localSealSupport` is now auto-coupled to
-  # `services.sops-secrets-registry.enable` (= true below), so the impure-eval
-  # relax + local-fork probe fire together on this host. No explicit
-  # declaration needed; see .plans/2026-07-25-cluster-localSealSupport-scope.md
-  # for the cluster-wide semantic.
+  # dispatcher fork). `cluster.localSealSupport` was REMOVED 2026-07-25
+  # (vestigial after Phase 1a), and the old "impure-eval relax + local-fork
+  # probe" coupling is DISPROVEN: pure-eval is now enabled cluster-wide
+  # (`nix.settings.pure-eval = true`, modules/system/nix-config.nix) and all
+  # four hosts' toplevels + home-manager eval cleanly under
+  # `nix eval --pure-eval` (verified 2026-08-13). No explicit declaration
+  # needed; see .plans/2026-07-25-cluster-localSealSupport-scope.md for the
+  # cluster-wide semantic.
   # ============================================================================
 
   # Validator is auto-coupled to services.sops-secrets-registry.enable (set below in
   # the services block) — no explicit services.secretspec-validator block needed.
   # → enable defaults to true (coupled) + production defaults to true.
-  # See modules/system/secretspec-validator.nix header for the impure-eval
-  # coupling requirement (cluster.localSealSupport must be true on this host).
-  # See .plans/2026-07-25-cluster-localSealSupport-scope.md for the cluster-wide
-  # toggle decision (currently zephyr-only — open architectural question).
+  # Eval-mode note (2026-08-13): pure-eval is enabled cluster-wide and verified
+  # working — see the modules/system/secretspec-validator.nix header. There is
+  # NO impure-eval coupling requirement; cluster.localSealSupport was removed
+  # and no host needs it. See .plans/2026-07-25-cluster-localSealSupport-scope.md
+  # for the historical cluster-wide toggle decision.
 
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};

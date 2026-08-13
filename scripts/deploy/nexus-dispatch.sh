@@ -96,7 +96,7 @@ executor() {
   echo "Nexus deployment executor at origin/main: $CANONICAL"
 
   NIX_CMD=(
-    nix --option pure-eval false run
+    nix run
     .#apps.x86_64-linux.colmena
     --
   )
@@ -107,6 +107,8 @@ executor() {
     # targetHost when the goal requires a target host — so the local node must
     # be deployed with `apply-local` (gated by deployment.allowLocalDeployment).
     echo "Deploying local node: nexus (apply-local)"
+    # NOTE: apply-local does NOT accept --evaluator (verified); only the
+    # remote `apply` path below gets the streaming evaluator.
     exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
   fi
 
@@ -126,6 +128,8 @@ executor() {
   # executor host converges with the rest of the fleet.
   if [[ "$TARGET" == "all" ]]; then
     echo "Deploying local node: nexus (apply-local)"
+    # NOTE: apply-local does NOT accept --evaluator (verified); only the
+    # remote `apply` path below gets the streaming evaluator.
     exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
   fi
 }
