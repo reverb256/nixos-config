@@ -292,7 +292,28 @@ jobs:
 
       - name: Run osv-scanner
         run: |
-          nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif "$PWD"
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
+            SCAN_FILES=()
+            while IFS= read -r -d '' file; do
+              [ -f "$file" ] || continue
+              case "$file" in
+                *.go.mod|*.go.sum|*requirements*.txt|*Pipfile.lock|*poetry.lock|*pyproject.toml|*package-lock.json|*pnpm-lock.yaml|*yarn.lock|*Cargo.toml|*Cargo.lock|*composer.lock|*Gemfile.lock|*pubspec.lock|*.csproj|*.fsproj|*.gradle|*.gradle.kts|*pom.xml)
+                  SCAN_FILES+=("$file")
+                  ;;
+              esac
+            done < <(git diff --name-only -z "$BASE_SHA...$TARGET_SHA")
+            if [ "${#SCAN_FILES[@]}" -eq 0 ]; then
+              echo "::notice::No dependency manifests changed; full OSV scan runs on trusted pushes."
+              exit 0
+            fi
+            printf 'Scanning changed manifests:\n- %s\n' "${SCAN_FILES[@]}"
+            nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --format=sarif --output=results.sarif "${SCAN_FILES[@]}"
+          else
+            nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif "$PWD"
+          fi
 
       - name: Upload SARIF
         if: always() && github.event_name != 'pull_request' && hashFiles('results.sarif') != ''

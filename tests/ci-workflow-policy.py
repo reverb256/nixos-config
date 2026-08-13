@@ -94,11 +94,15 @@ def main() -> None:
     require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
     require(cache.count("timeout-minutes:") >= 1, "cache.yml must bound its publisher job")
     require(
-        ci.count('git diff --name-only -z "$BASE_SHA...$TARGET_SHA"') == 2,
-        "parse and lint gates must use the PR three-dot changed-file range",
+        ci.count('git diff --name-only -z "$BASE_SHA...$TARGET_SHA"') == 3,
+        "parse, lint, and security gates must use the PR three-dot changed-file range",
     )
     require("github.event.pull_request.base.sha" in ci, "parse gate must use PR base SHA")
     require("github.event.pull_request.head.sha" in ci, "PR gates must use the PR head SHA")
+    require(
+        "SCAN_FILES=()" in ci and "No dependency manifests changed" in ci,
+        "PR security scans must be limited to changed dependency manifests",
+    )
     require(
         "      - name: Documentation verification\n        if: github.event_name != 'pull_request'\n" in ci
         and "bash docs/meta/VERIFICATION-SUITE/run.sh" in ci,
