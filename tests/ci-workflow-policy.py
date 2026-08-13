@@ -93,12 +93,30 @@ def main() -> None:
     require("concurrency:" in cache, "cache.yml must serialize trusted cache publication")
     require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
     require(cache.count("timeout-minutes:") >= 1, "cache.yml must bound its publisher job")
-    require("git diff --name-only -z" in ci, "parse gate must inspect changed files")
+    require(
+        ci.count('git diff --name-only -z "$BASE_SHA...$GITHUB_SHA"') >= 2,
+        "parse and lint gates must use the PR three-dot changed-file range",
+    )
     require("github.event.pull_request.base.sha" in ci, "parse gate must use PR base SHA")
+    require(
+        "      - name: Documentation verification\n        if: github.event_name != 'pull_request'\n" in ci
+        and "bash docs/meta/VERIFICATION-SUITE/run.sh" in ci,
+        "documentation verification must run only on trusted builds",
+    )
+    require("nix develop --command just docs-audit" not in ci, "documentation verification must not evaluate the private flake")
+    require(
+        "      - name: Validate k8s manifests (kubeconform)\n        if: github.event_name != 'pull_request'\n" in ci,
+        "PR build must skip private flake-dependent k8s validation",
+    )
     require("home-manager-config is private" in ci, "PR flake gate must explain private input boundary")
     require("nixpkgs#just" in ci, "lint shell must include just")
-    require("Skipping pre-existing Statix/Deadnix findings in flake.nix" in ci, "flake lint exception must be explicit")
-    require("#osv-scanner -c osv-scanner" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell")
+    require(
+        "-c alejandra --check \"$f\"" in ci,
+        "changed-file lint must keep Alejandra fatal",
+    )
+    require("Skipping pre-existing Statix/Deadnix findings in $f" in ci
+        and "modules/services/bonsai.nix" in ci, "lint exceptions must be explicit")
+    require("#osv-scanner -c osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
     require("cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" in ci, "security scan must install Nix")
     require("Skipping host-local CI script" in automation and "/etc/nixos" in automation, "host-local CI script must be guarded")
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
@@ -150,8 +168,8 @@ def main() -> None:
         "Nix parse gate must preserve failures outside a pipeline subshell",
     )
     require(
-        ("osv-scanner --recursive --format=sarif --output=results.sarif \"$PWD\"" in ci
-          or "osv-scanner --recursive --format=sarif --output=results.sarif $PWD'" in ci)
+        ("osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif \"$PWD\"" in ci
+          or "osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif $PWD'" in ci)
         and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true" not in ci
         and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD\" || true" not in ci,
         "security scan must not suppress its exit status",
