@@ -82,17 +82,13 @@ in {
       description = "Fast-forward clean /etc/nixos checkouts to origin/main";
       script = "${syncScript}";
       serviceConfig.Type = "oneshot";
-      # The sync script calls `git`, which is absent from systemd's minimal PATH.
-      # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
+      # The sync script calls Git and SSH, which are absent from systemd's
+      # minimal PATH. Provide both explicitly (the old unit failed with exit 127).
       # openssh is REQUIRED for git fetch over SSH (origin is
       # git@github.com/...): without it, git fetch dies with
       # "cannot run ssh: No such file or directory" (observed nexus 2026-08-12).
       path = [pkgs.git pkgs.openssh pkgs.coreutils pkgs.findutils pkgs.gnugrep];
-      # 2026-08-11: HOME was NOT in the unit env, so `git config --global
-      # --add safe.directory` (the dubious-ownership mitigation above) wrote to
-      # no effective location and every sync died with exit 128 / 0B I/O under
-      # systemd, while the same script ran fine manually with HOME=/root.
-      # Pin HOME so git's global config lands in /root/.gitconfig.
+      # Keep a stable HOME for Git's SSH and credential helper environment.
       environment = { HOME = "/root"; };
 
     };
