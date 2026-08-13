@@ -13,7 +13,7 @@ permissions:
 jobs:
   wait-for-checks:
     name: Wait for CI Checks
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     outputs:
       all_passed: ${{ steps.check-status.outputs.all_passed }}
     steps:
@@ -59,7 +59,7 @@ jobs:
 
   merge-to-prod:
     name: Merge to Prod
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     needs: wait-for-checks
     if: needs.wait-for-checks.outputs.all_passed == 'true'
     steps:
@@ -89,7 +89,7 @@ jobs:
 
   notify-failure:
     name: Notify on Merge Failure
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     needs: merge-to-prod
     if: failure()
     steps:
