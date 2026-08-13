@@ -20,9 +20,9 @@ in
         ];
       }
     ];
-
-    services.prometheus.rules = let
+    services.prometheus.ruleFiles = let
       # writeText each rule group to a separate file so Prometheus reloads cleanly
+      # (services.prometheus.ruleFiles is listOf path; rules is listOf str)
       ruleGroup = name: alertList:
         pkgs.writeText "prom-${name}.yml" (builtins.toJSON {
           groups = [

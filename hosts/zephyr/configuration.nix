@@ -465,6 +465,9 @@
     monitoring = {
       autoDetect = false; # Skip auto-detect, we know the hardware
       fanControl = true; # Custom fan curve control
+      # Board-specific curve script; required when fanControl is on
+      # (monitoring.nix asserts this and coerces it into ExecStart).
+      fanScript = "/etc/nixos/scripts/simple-fancontrol.py";
     };
 
     # Corsair extras (not covered by profile)

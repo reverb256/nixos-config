@@ -65,6 +65,10 @@ in {
               && cfg.kernelModules == ["it87" "k10temp" "jc42"]);
           message = "hardware.monitoring: sub-options customized but enable = false. Add `enable = true` or remove the sub-options.";
         }
+        {
+          assertion = !cfg.fanControl || cfg.fanScript != null;
+          message = "hardware.monitoring: fanControl = true requires fanScript to be set (the board-specific curve script the fancontrol service runs). Set hardware.monitoring.fanScript.";
+        }
       ];
     }
     (lib.mkIf cfg.enable {
@@ -79,9 +83,11 @@ in {
       # MMIO + ignore_resource_conflict for Gigabyte EC-controlled channels.
       boot.extraModulePackages = lib.mkIf cfg.useIt87Fork [
         (config.boot.kernelPackages.it87.overrideAttrs (super: {
-          postInstall = (super.postInstall or "") + ''
-            find $out -name '*.ko' -exec xz {} \;
-          '';
+          postInstall =
+            (super.postInstall or "")
+            + ''
+              find $out -name '*.ko' -exec xz {} \;
+            '';
         }))
       ];
       # Disable the IN-TREE it87 so it doesn't collide with the fork's module
