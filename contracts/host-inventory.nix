@@ -35,13 +35,10 @@
       capabilities = ["storage" "builder" "deployment-dispatcher" "nvidia" "k3s-server"];
       ipAddress = "10.1.1.120";
       interfaceName = "eth0";
-      extraModules = [
-        # Per-repo GitHub Actions runner (quill). NOT in commonModules:
-        # this module declares+consumes services.ci-runners and breaks the
-        # dendritic colmena eval when composed for every host (infinite
-        # recursion on config.deployment, 2026-08-13). Host-local import only.
-        ../modules/services/ci-runners.nix
-      ];
+      # ci-runners (quill runner) is NOT in extraModules: it is a function-based
+      # generator called from hosts/nexus/services.nix (modules/services/ci-runners.nix),
+      # which avoids the colmena config.deployment extraction recursion (2026-08-13).
+      extraModules = [];
     };
 
     forge = {
