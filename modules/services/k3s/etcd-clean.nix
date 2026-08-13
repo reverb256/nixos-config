@@ -1,5 +1,8 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  ...
+}: let
   cfg = config.services.k3s-cluster;
   sentinelFile = "/var/lib/rancher/k3s/server/.etcd-cleaned";
   etcdDataDir = "/var/lib/rancher/k3s/server/db/etcd";

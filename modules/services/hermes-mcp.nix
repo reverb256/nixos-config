@@ -7,8 +7,12 @@
 #   config.lib.mcp-registry.hermesMcpYaml (single source of truth
 #   from modules/services/mcp-server-registry.nix),
 #   python3-with-ruamel-yaml.
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.hermes-cli;
   useRegistry = config.services.mcp-registry.enable or false;
 
@@ -61,55 +65,56 @@ let
     with open(config_path, "w") as f:
         yaml.dump(data, f)
   '';
-in lib.mkIf (cfg.enable && useRegistry) {
-  systemd.services.hermes-mcp-servers = {
-    restartIfChanged = true;
-    description = "Inject declarative MCP servers into Hermes config (from mcp-server-registry)";
-    after = ["network.target" "hermes-config-secrets.service"];
-    wantedBy = ["multi-user.target"];
+in
+  lib.mkIf (cfg.enable && useRegistry) {
+    systemd.services.hermes-mcp-servers = {
+      restartIfChanged = true;
+      description = "Inject declarative MCP servers into Hermes config (from mcp-server-registry)";
+      after = ["network.target" "hermes-config-secrets.service"];
+      wantedBy = ["multi-user.target"];
 
-    path = with pkgs; [(python3.withPackages (p: [p.ruamel-yaml])) coreutils gnused];
+      path = with pkgs; [(python3.withPackages (p: [p.ruamel-yaml])) coreutils gnused];
 
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-      Group = "root";
-      RemainAfterExit = true;
-      NoNewPrivileges = true;
-      PrivateTmp = true;
-      ProtectSystem = "strict";
-      ProtectHome = "read-only";
-      ReadWritePaths = ["/home/${cfg.user}/.hermes"];
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        RemainAfterExit = true;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = ["/home/${cfg.user}/.hermes"];
 
-      ExecStart = pkgs.writeShellScript "hermes-mcp-servers" ''
-        set -euo pipefail
+        ExecStart = pkgs.writeShellScript "hermes-mcp-servers" ''
+          set -euo pipefail
 
-        for profile in "" analyst backend-eng frontend-eng maplespike-eng-1 maplespike-eng-2 maplespike-eng-3 ops researcher writer; do
-          if [ -z "$profile" ]; then
-            HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
-          else
-            HERMES_CONFIG="/home/${cfg.user}/.hermes/profiles/$profile/config.yaml"
-          fi
+          for profile in "" analyst backend-eng frontend-eng maplespike-eng-1 maplespike-eng-2 maplespike-eng-3 ops researcher writer; do
+            if [ -z "$profile" ]; then
+              HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+            else
+              HERMES_CONFIG="/home/${cfg.user}/.hermes/profiles/$profile/config.yaml"
+            fi
 
-          if [ ! -f "$HERMES_CONFIG" ]; then
-            echo "[hermes-mcp] No config.yaml for profile '$profile', skipping"
-            continue
-          fi
+            if [ ! -f "$HERMES_CONFIG" ]; then
+              echo "[hermes-mcp] No config.yaml for profile '$profile', skipping"
+              continue
+            fi
 
-          echo "[hermes-mcp] Processing profile: $profile"
+            echo "[hermes-mcp] Processing profile: $profile"
 
-          MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
-          cp ${config.lib.mcp-registry.hermesMcpYaml} "$MCP_TMP"
+            MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
+            cp ${config.lib.mcp-registry.hermesMcpYaml} "$MCP_TMP"
 
-          python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
-          rm -f "$MCP_TMP"
+            python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
+            rm -f "$MCP_TMP"
 
-          chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
-          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+            chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
+            chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
 
-          echo "[hermes-mcp] ✓ MCP servers configured for profile: $profile"
-        done
-      '';
+            echo "[hermes-mcp] ✓ MCP servers configured for profile: $profile"
+          done
+        '';
+      };
     };
-  };
-}
+  }

@@ -400,8 +400,14 @@
           startAt = "03:00";
           enableTimer = true;
           sopsSecretEnvs = [
-            { var = "AWS_ACCESS_KEY_ID"; secretPath = "/run/secrets/storage/garage-s3-access-key-id"; }
-            { var = "AWS_SECRET_ACCESS_KEY"; secretPath = "/run/secrets/storage/garage-s3-secret-key"; }
+            {
+              var = "AWS_ACCESS_KEY_ID";
+              secretPath = "/run/secrets/storage/garage-s3-access-key-id";
+            }
+            {
+              var = "AWS_SECRET_ACCESS_KEY";
+              secretPath = "/run/secrets/storage/garage-s3-secret-key";
+            }
           ];
         }
       ];

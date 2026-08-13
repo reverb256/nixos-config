@@ -110,8 +110,8 @@
     ];
 
     extraModprobeConfig = ''
-      options nvidia NVreg_EnableBacklightHandler=1
-options nvidia_uvm uvm_disable_hmm=1
+            options nvidia NVreg_EnableBacklightHandler=1
+      options nvidia_uvm uvm_disable_hmm=1
     '';
 
     blacklistedKernelModules = [

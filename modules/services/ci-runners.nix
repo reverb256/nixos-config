@@ -12,9 +12,7 @@
 {
   lib,
   pkgs,
-}: {
-  instances ? {},
-}: let
+}: {instances ? {}}: let
   mkRunner = name: inst: let
     user = inst.user or "runner";
     repo = inst.repo;

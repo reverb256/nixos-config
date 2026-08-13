@@ -405,6 +405,7 @@
           };
           # ── FORMATTING GATE ───────────────────────────────────────
           # `nix fmt` -> alejandra (format) across the tree.
+          formatter = pkgs.alejandra;
         };
       }
     );

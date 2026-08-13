@@ -1,7 +1,4 @@
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   services.peakminer = {
     enable = true;
     wallet = "krxXVNVMM7";

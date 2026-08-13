@@ -138,7 +138,6 @@
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};
 
-
   # Windows gaming VM removed from nexus — zephyr only (OOB direction 2026-08-08).
   # GPU now stays on the nvidia driver for the gamescope session + miner.
 
@@ -669,8 +668,8 @@
   # rotates after every nixos-rebuild.
   systemd.services.comfyui = {
     description = "ComfyUI — FLUX image generation server";
-    after = [ "network.target" ];
-    wantedBy = [ "multi-user.target" ];
+    after = ["network.target"];
+    wantedBy = ["multi-user.target"];
     environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib";
     serviceConfig = {
       WorkingDirectory = "/home/j_kro/ComfyUI";

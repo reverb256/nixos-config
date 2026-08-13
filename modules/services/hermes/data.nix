@@ -2,11 +2,7 @@
 # Generated from ~/.hermes/ state on 2026-07-23.
 # EDIT THE NIX SOURCE, not the runtime ~/.hermes/ files.
 # Then `colmena deploy` overwrites ~/.hermes/ to match.
-{
-  lib,
-  pkgs,
-  ...
-}: let
+{...}: let
   readSkill = name: builtins.readFile ./skills/${name}.skill.md;
   readSoul = name: builtins.readFile ./profiles/${name}.soul.md;
 in {

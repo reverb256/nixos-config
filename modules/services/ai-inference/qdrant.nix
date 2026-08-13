@@ -6,7 +6,7 @@
   ...
 }: let
   cfg = config.services.ai-inference.rag;
-  inherit (lib) mkIf optional;
+  inherit (lib) mkIf;
 
   # Qdrant configuration file
   qdrantConfig = pkgs.writeText "qdrant-config.yaml" ''

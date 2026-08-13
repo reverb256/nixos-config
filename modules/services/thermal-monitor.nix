@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 # ============================================================================
 # thermal-monitor.nix — read-only CPU thermal watchdog (SPOC, cross-fleet)
 #
@@ -12,7 +16,6 @@
 # Register in modules/default.nix, then flip `services.thermal-monitor.enable`
 # on the hosts you want covered.
 # ============================================================================
-
 let
   cfg = config.services.thermal-monitor;
   inherit (lib) mkEnableOption mkOption types mkIf;
@@ -63,11 +66,11 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.lm_sensors ];
+    environment.systemPackages = [pkgs.lm_sensors];
 
     systemd.services.thermal-watchdog = {
       description = "CPU thermal watchdog (k10temp/coretemp read-only monitor)";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         ExecStart = watchdog;
         Restart = "always";
