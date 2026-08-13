@@ -50,12 +50,12 @@ jobs:
       - name: Parse all Nix files
         run: |
           FAILED=0
-          find . -name "*.nix" -not -path "./.git/*" | while read -r f; do
+          while IFS= read -r -d '' f; do
             if ! nix-instantiate --parse "$f" > /dev/null 2>&1; then
               echo "PARSE ERROR: $f"
               FAILED=1
             fi
-          done
+          done < <(find . -name "*.nix" -not -path "./.git/*" -print0)
           exit $FAILED
 
   quick-check:
