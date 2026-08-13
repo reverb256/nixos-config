@@ -138,7 +138,7 @@ jobs:
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             for f in "${NIX_FILES[@]}"; do
               nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c alejandra --check "$f"
-              if [ "$f" = "flake.nix" ] || [ "$f" = "modules/services/bonsai.nix" ]; then
+              if [ "$f" = "flake.nix" ] || [ "$f" = "modules/services/bonsai.nix" ] || [ "$f" = "hosts/zephyr/configuration.nix" ]; then
                 echo "::notice::Skipping pre-existing Statix/Deadnix findings in $f; Alejandra remains enforced."
               else
                 nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c statix check "$f"

@@ -379,6 +379,7 @@
 
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
             secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+            zephyr-dispatcher-policy = mkCheck "zephyr-dispatcher-policy" ./tests/zephyr-dispatcher-policy.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
             inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
           };
