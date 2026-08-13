@@ -51,6 +51,14 @@ in {
       nvidiaSettings = true;
     };
 
+    # Expose the NVIDIA Vulkan ICD to the loader's default XDG search path.
+    # The nixpkgs nvidia module links the driver into /run/opengl-driver (tmpfiles),
+    # but the Vulkan loader only searches its own prefix (/run/current-system/sw)
+    # and XDG dirs, so without this link Vulkan apps (Handy STT, Vulkan llama.cpp)
+    # silently fall back to CPU. /etc/xdg is first in XDG_CONFIG_DIRS.
+    environment.etc."xdg/vulkan/icd.d/nvidia_icd.json".source =
+      "${config.hardware.nvidia.package}/share/vulkan/icd.d/nvidia_icd.json";
+
     # NVIDIA kernel module options via modprobe
     boot.extraModprobeConfig = ''
       # Enable GSP firmware (required for Ampere/RTX 30 series)
