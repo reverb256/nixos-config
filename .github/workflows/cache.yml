@@ -9,10 +9,8 @@ name: Cache
 # the PR build still succeeds locally, we just miss the cache hit.
 
 on:
-  pull_request:
   push:
-    branches: [main, master, develop]
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read

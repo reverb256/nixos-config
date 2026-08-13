@@ -4,10 +4,13 @@ on:
   pull_request:
     types: [closed]
 
+permissions:
+  contents: write
+
 jobs:
   delete-head:
     if: github.event.pull_request.merged == true
-    runs-on: [self-hosted, nixos]
+    runs-on: ubuntu-latest
     steps:
       - name: Delete head branch
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
@@ -17,7 +20,7 @@ jobs:
             await github.rest.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: pr.head.sha
+              ref: `heads/${pr.head.ref}`
             });
       - name: Cleanup stale branches
         run: |

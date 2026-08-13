@@ -6,13 +6,12 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  checks: write
+  pull-requests: read
 
 jobs:
   validate:
     name: "PR checks"
-    runs-on: [self-hosted, nixos]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -23,11 +22,12 @@ jobs:
           PR_HEAD_REF: ${{ github.head_ref }}
         run: |
           BRANCH="$PR_HEAD_REF"
-          if [[ "$BRANCH" =~ ^(issue|feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
+          if [[ "$BRANCH" =~ ^issue-[0-9]+-[a-z0-9._-]+$ || "$BRANCH" =~ ^(feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
             echo "✅ Branch name: $BRANCH"
           else
-            echo "::warning::Branch '$BRANCH' doesn't follow convention"
+            echo "::error::Branch '$BRANCH' doesn't follow convention"
             echo "Expected: issue-NNN-desc, feat/NNN-desc, fix/NNN-desc"
+            exit 1
           fi
 
       - name: "Linked issue check"
@@ -38,10 +38,13 @@ jobs:
           if echo "$BODY" | grep -qiE "(Closes|Fixes|Resolves|Related to) #[0-9]+"; then
             echo "✅ PR references an issue"
           else
-            echo "::warning::PR body should contain 'Closes #NNN' or 'Related to #NNN'"
+            echo "::error::PR body must contain 'Closes #NNN' or 'Related to #NNN'"
+            exit 1
           fi
 
       - name: "Commit message check"
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline')
           FAILED=0
@@ -55,6 +58,9 @@ jobs:
               FAILED=$((FAILED + 1))
             fi
           done <<< "$COMMITS"
+          if [ "$FAILED" -ne 0 ]; then
+            exit "$FAILED"
+          fi
 
       - name: "Conventional commit title"
         env:
@@ -64,7 +70,8 @@ jobs:
           if echo "$TITLE" | grep -qiE "^(feat|fix|chore|refactor|docs|test|ci)(\([a-z]+\))?:"; then
             echo "✅ Title follows conventional commits"
           else
-            echo "::warning::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
+            echo "::error::PR title must start with type: e.g. 'fix(caddy): desc (#NNN)'"
+            exit 1
           fi
 
       - name: "Target branch check"
@@ -73,7 +80,8 @@ jobs:
           if [ "$BASE" = "main" ] || [ "$BASE" = "prod" ]; then
             echo "✅ PR targets $BASE"
           else
-            echo "::warning::PR targets '$BASE' — should be main or prod"
+            echo "::error::PR targets '$BASE' — should be main or prod"
+            exit 1
           fi
 
       - name: "PR validation summary"
@@ -88,14 +96,3 @@ jobs:
           echo "| Commit refs | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
           echo "| Conventional title | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
           echo "| Target branch | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
-
-      - name: "Documentation freshness check"
-        if: >-
-          contains(github.event.pull_request.files.*.filename, 'docs/') ||
-          contains(github.event.pull_request.files.*.filename, 'modules/') ||
-          contains(github.event.pull_request.files.*.filename, 'hosts/') ||
-          contains(github.event.pull_request.files.*.filename, 'kubernetes/') ||
-          contains(github.event.pull_request.files.*.filename, 'kubernetes-manifests/') ||
-          contains(github.event.pull_request.files.*.filename, 'justfile')
-        run: |
-          just docs-audit
