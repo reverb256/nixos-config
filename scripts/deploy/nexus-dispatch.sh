@@ -81,12 +81,13 @@ executor() {
   # root-owned objects in .git, which then breaks the NEXT deploy's fetch
   # (git unpack-objects: insufficient permission). Normalize before fetching.
   # colmena apply-local --sudo evaluates the flake as root and can create
-  # root-owned objects in .git, which then breaks the NEXT deploy's fetch
-  # (git unpack-objects: insufficient permission). Normalize before fetching.
+  # root-owned files in the flake dir (e.g. .git objects, flake.lock), which
+  # breaks the NEXT deploy's fetch/eval (insufficient permission). Normalize
+  # the whole flake dir before fetching.
   REPO_OWNER="$(stat -c %U "$FLAKE")"
   REPO_GROUP="$(stat -c %G "$FLAKE")"
-  if [[ -n "$REPO_OWNER" ]] && [[ "$(find "$FLAKE/.git" -not -user "$REPO_OWNER" 2>/dev/null | head -1)" ]]; then
-    sudo chown -R "$REPO_OWNER":"$REPO_GROUP" "$FLAKE/.git" 2>/dev/null || true
+  if [[ -n "$REPO_OWNER" ]] && [[ "$(find "$FLAKE" -not -user "$REPO_OWNER" 2>/dev/null | head -1)" ]]; then
+    sudo chown -R "$REPO_OWNER":"$REPO_GROUP" "$FLAKE" 2>/dev/null || true
   fi
   git fetch origin main
   git reset --hard origin/main
