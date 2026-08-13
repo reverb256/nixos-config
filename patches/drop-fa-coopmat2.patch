@@ -1,0 +1,50 @@
+From: j_kro homelab <infra@homelab.local>
+Subject: [PATCH] vulkan: drop broken flash-attn FA_COOPMAT2 block
+
+The retroheim prism fork (176bc4f) registers per-type flash-attention
+pipelines for NV cooperative matrix v2 (VK_NV_cooperative_matrix2):
+
+    CREATE_FA(GGML_TYPE_F32,  f32,     FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_F16,  f16,     FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_Q4_0, q4_0,    FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_Q4_1, q4_1,    FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_Q5_0, q5_0,    FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_Q5_1, q5_1,    FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_Q8_0, q8_0,    FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_IQ4_NL, iq4_nl, FA_COOPMAT2, _cm2)
+    CREATE_FA(GGML_TYPE_TURBO3_0, turbo3_0, FA_COOPMAT2, _cm2)
+
+but its shader generator only emits a single generic flash_attn_cm2.comp
+plus per-type mul_mm_cm2 (matmul) variants. The CREATE_FA macro expands
+to references like flash_attn_f32_f16_iq4_nl_f16acc_cm2_len / _data that
+are never generated, so any build where VK_NV_cooperative_matrix2 is
+exposed by the Vulkan headers fails to compile (verified twice:
+first at the turbo3_0 registration, then at iq4_nl once turbo3_0 was
+removed - the whole block is broken).
+
+Upstream TheTom/llama-cpp-turboquant reached the same conclusion:
+"cm2 NV-coopmat skipped, fp32-only for turbo3" (a09bafe). No hardware
+in this fleet uses NV cooperative matrix v2 on the Vulkan backend
+(NVIDIA hosts run CUDA; AMD Navi 10 has no coopmat2), so the flash-attn
+coopmat2 registrations are dead code that breaks the build. Drop the
+flash-attn block; keep the matmul coopmat2 block (its mul_mm_cm2 shader
+variants DO exist).
+
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan.cpp b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -3576,14 +3576,5 @@ static void ggml_vk_create_pipelines(ggml_backend_vk_context * ctx) {
+ #if defined(VK_NV_cooperative_matrix2) && defined(GGML_VULKAN_COOPMAT2_GLSLC_SUPPORT)
+     if (device->coopmat2) {
+-        CREATE_FA(GGML_TYPE_F32, f32, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_F16, f16, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_Q4_0, q4_0, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_Q4_1, q4_1, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_Q5_0, q5_0, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_Q5_1, q5_1, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_Q8_0, q8_0, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_IQ4_NL, iq4_nl, FA_COOPMAT2, _cm2)
+-        CREATE_FA(GGML_TYPE_TURBO3_0, turbo3_0, FA_COOPMAT2, _cm2)
+     }
+ #endif
+ #undef CREATE_FA

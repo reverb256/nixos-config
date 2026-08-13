@@ -27,7 +27,7 @@ let
   cfg = config.services.llama-swap-cluster;
   host = config.networking.hostName;
 
-  unifiedLlama = pkgs.llama-cpp-unified;
+  unifiedLlama = if host == "sentry" then pkgs.llama-cpp-unified-vulkan else pkgs.llama-cpp-unified;
   llamaSwap = pkgs.llama-swap;
 
   # Write a llama-swap catalog yaml for one host (system-level, /etc/llama-swap).
