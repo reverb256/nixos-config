@@ -56,11 +56,18 @@ let
   lockHasHmInput = lib.strings.hasInfix "home-manager-config" lockContent;
   lockHasRev = lockHasHmInput && lib.strings.hasInfix "\"rev\"" lockContent;
 
+  deployWorkflow = builtins.readFile ../.github/workflows/deploy.yml;
+  hasDeploy = needle: lib.strings.hasInfix needle deployWorkflow;
+
   checks = {
     localCopyRemoved = localCopyRemoved;
     usesFlakeInput = usesFlakeInput;
     noLocalPath = !usesLocalPath;
     inherit usesGlobalPkgs noHmNixpkgsScope lockHasHmInput lockHasRev;
+    deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
+    deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
+    deployStopsOnConfirmedDrift = hasDeploy "exit 1";
+    deployDocumentsOfflineSkip = hasDeploy "skipping lock-sync guard";
   } // fontChecks;
 in
 rec {
