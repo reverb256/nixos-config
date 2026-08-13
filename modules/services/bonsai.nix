@@ -214,7 +214,7 @@ with lib; let
   });
 
   # 1-bit on forge 4060 GPU 1 (8 GB)
-  bit1Forge1 = mkIf (host == "forge" && true) (mk1bitService {
+  bit1Forge1 = mkIf (host == "forge" && cfg.enableForge1) (mk1bitService {
     name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006) q4_0 KV 128K";
     port = 8006; gpu = "1";
   });
@@ -311,6 +311,12 @@ in {
       default = null;
       description = "Path to turboQuant llama-server-turbo binary (retroheim fork)";
       example = "/home/j_kro/.local/share/bonsai/bin/llama-server-turbo";
+    };
+
+    enableForge1 = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Run the second forge bonsai service (GPU 1). Disable when the GPU 1 miner holds most VRAM — the 3.5GB 1-bit model SIGSEGVs on allocation (libnvidia-eglcore) with <1GB free.";
     };
   };
 

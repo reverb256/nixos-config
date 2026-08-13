@@ -751,6 +751,9 @@
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {
     enable = true;
+    # GPU 1 is fully miner-committed (7408/7834 MiB, 327 MiB free): the 3.5GB
+    # 1-bit model SIGSEGVs on CUDA allocation. forge-0 serves bonsai already.
+    enableForge1 = false;
   };
 
   # SOPS age key for secretspec (persistent across generations)
