@@ -146,7 +146,5 @@ in {
     };
   };
 
-  config = lib.mkIf (config.services.ci-runners.instances != {}) (
-    lib.mkMerge (lib.mapAttrsToList mkRunner config.services.ci-runners.instances)
-  );
+  config = lib.mkMerge (lib.mapAttrsToList mkRunner config.services.ci-runners.instances);
 }
