@@ -269,6 +269,15 @@ in {
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
             "--disable-network-policy"  # Calico-only; disable k3s built-in NP
+            # Calico-only: flannel-backend MUST be 'none' — k3s stores critical
+            # server config in etcd at bootstrap and rejects joining servers
+            # that disagree. nexus initialized the datastore with
+            # flannel-backend=none (its Jul-24 hand-placed /etc/rancher config
+            # supplied it after the Calico migration); sentry without the flag
+            # defaulted to vxlan and got 'critical configuration mismatched'.
+            # Restored as a module flag so no host depends on a stale
+            # hand-placed config.yaml (drift).
+            "--flannel-backend=none"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
         )
