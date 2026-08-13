@@ -1124,8 +1124,7 @@
   environment.sessionVariables = {
     VK_DRIVER_FILES = "/etc/xdg/vulkan/icd.d/nvidia_icd.json";
   };
-    # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+  # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
 
   # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
   # Local DNS records are in modules/services/unbound-common.nix (shared
