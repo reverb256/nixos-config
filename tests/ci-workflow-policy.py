@@ -92,19 +92,24 @@ def main() -> None:
     require("pull_request:" not in cache, "cache.yml must not build PR code")
     require("concurrency:" in cache, "cache.yml must serialize trusted cache publication")
     require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
+    require(cache.count("timeout-minutes:") >= 1, "cache.yml must bound its publisher job")
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
     require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")
     require("concurrency:" in automation, "ci-test-automation.yml must define workflow concurrency")
     require("cancel-in-progress:" in automation, "test automation must define cancellation behavior")
     require("github.event_name == 'pull_request'" in automation, "test automation must cancel obsolete PR runs")
+    require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")
     require("pull_request:" in secretspec, "secretspec-build.yml must validate PR structure")
     require("${{ secrets." not in secretspec, "secretspec PR validation must not contain secrets")
+    require("cachix/install-nix-action@" in secretspec, "secretspec PR validation must install Nix")
     require("runs-on: [self-hosted, nixos]" not in secretspec, "secretspec PR validation must not use self-hosted")
     require(trusted_secretspec, "trusted secretspec workflow must exist")
     require("pull_request:" not in trusted_secretspec, "trusted secretspec workflow must not run on PRs")
     require("runs-on: [self-hosted, nixos]" in trusted_secretspec, "trusted secretspec workflow must use trusted runner")
     require("${{ secrets." in trusted_secretspec, "trusted secretspec workflow must own secret use")
+    require("continue-on-error: true" not in trusted_secretspec, "trusted secretspec build must fail closed")
+    require(trusted_secretspec.count("timeout-minutes:") >= 2, "trusted secretspec jobs must be bounded")
 
     deploy = read("deploy.yml")
     require("concurrency:" in deploy, "deploy.yml must serialize deployments")
@@ -113,6 +118,8 @@ def main() -> None:
     require("contents: read" in deploy, "deploy.yml must use read-only contents permission")
     require("contents: write" not in deploy, "deploy.yml must not request contents write")
     require("id-token: write" not in deploy, "deploy.yml must not request unused OIDC access")
+    require("if: github.ref == 'refs/heads/main'" in deploy, "deploy.yml must reject non-main refs")
+    require(deploy.count("timeout-minutes:") >= 1, "deploy.yml must bound activation")
 
     # Required gates must fail closed.
     require(

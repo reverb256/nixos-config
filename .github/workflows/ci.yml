@@ -53,6 +53,9 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - name: Validate workflow syntax
+        run: nix shell nixpkgs#actionlint -c actionlint
+
       - name: Parse all Nix files
         run: |
           FAILED=0
@@ -289,6 +292,7 @@ jobs:
           nix develop --command just docs-audit
 
       - name: Build all hosts
+        if: github.event_name != 'pull_request'
         run: |
           for host in zephyr nexus forge sentry; do
             echo "Building $host..."
