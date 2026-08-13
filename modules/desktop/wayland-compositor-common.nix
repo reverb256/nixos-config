@@ -33,7 +33,7 @@ in {
     }
     // lib.optionalAttrs noctaliaEnabled {
       # 2026-07-07 refactor: moved off the hand-rolled
-      # `systemd.user.services.noctalia` block in modules/home-manager/niri-config.nix
+      # `systemd.user.services.noctalia` block in home-manager-config/modules/niri-config.nix
       # to upstream's first-class option. The noctalia NixOS module
       # (`nix/nixos-module.nix` in the flake) ships
       # `programs.noctalia.systemd.enable` which registers
@@ -57,7 +57,7 @@ in {
       # is not "in" any logind session, so logind returns `NoSessionForPID`
       # and noctalia bails out of brightness probing entirely — every slider
       # grays out (DDC + SDR alike). Launching noctalia as a niri
-      # `spawn-at-startup` child (see modules/home-manager/niri-config.nix)
+      # `spawn-at-startup` child (see home-manager-config/modules/niri-config.nix)
       # makes it a descendant of niri, which lives in `session-*.scope`, so
       # the logind lookup resolves and BrightnessService actually probes
       # ddcutil and the SDR backend.

@@ -17,7 +17,6 @@
   # This includes Home Manager modules, library helpers, media assets, etc.
   skipDirs = {
     "lib" = true; # Library helpers (e.g. spotify-common.nix)
-    "home-manager" = true; # Home Manager modules (imported via system/home-manager.nix)
     "__pycache__" = true; # Python bytecode cache
     "wallpapers" = true; # Desktop wallpaper images
     "patches" = true; # Patch files
@@ -44,7 +43,6 @@
     "development/ai-coding-tools/opencode.nix" = true; # Submodule: imported by parent
     "development/ai-coding-tools/pi.nix" = true; # Submodule: imported by parent
 
-    "system/home-manager.nix" = true; # Home Manager integration — imported explicitly in commonModules
     "system/sops-secrets-registry.nix" = true; # SOPS secrets — imported explicitly in commonModules
     "profiles/networking.nix" = true; # Library: returns mkNetworkingConfig function
     "system/network.nix" = true; # Dead code: references missing config.cluster.config

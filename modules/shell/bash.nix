@@ -103,11 +103,11 @@
 
       # Quick config editing
       alias nconf="nvim /etc/nixos/flake.nix"
-      # starship config is HM/stylix-managed (modules/home-manager/starship.nix);
+      # starship config is HM/stylix-managed (home-manager-config/modules/starship.nix);
       # editing the live ~/.config/starship.toml shadows the managed symlink and
       # re-triggers the "Could not find color palette: noctalia" WARN. Point sconf
       # at the SOURCE OF TRUTH so edits go through the NixOS module + switch.
-      alias sconf="nvim /etc/nixos/modules/home-manager/starship.nix"
+      alias sconf="nvim ~/Projects/home-manager-config/modules/starship.nix"
       alias bconf="nvim ~/.bashrc"
 
       # System information

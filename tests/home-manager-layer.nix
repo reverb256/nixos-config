@@ -3,7 +3,7 @@ let
   inherit (pkgs) lib;
 
   hmDir = ../modules/home-manager;
-  hmNix = ../modules/system/home-manager.nix;
+  legacyShim = ../modules/system/home-manager.nix;
   stylixNix = ../modules/desktop/stylix.nix;
 
   # Invariant 1: the local HM module copy must be deleted. If this directory
@@ -11,15 +11,12 @@ let
   # maintaining independent copies.
   localCopyRemoved = !(builtins.pathExists hmDir);
 
-  # Invariant 2: the NixOS HM bridge must import shared-leaf-modules from the
-  # flake input, not from a local relative path.
-  hmNixContent = builtins.readFile hmNix;
-  usesFlakeInput = lib.strings.hasInfix "home-manager-config" hmNixContent;
-  usesLocalPath = lib.strings.hasInfix "../home-manager/shared-leaf-modules.nix" hmNixContent;
-  usesGlobalPkgs = lib.strings.hasInfix "useGlobalPkgs = true" hmNixContent;
-  noHmNixpkgsScope =
-    !(lib.strings.hasInfix "nixpkgs.config.allowUnfree" hmNixContent)
-    && !(lib.strings.hasInfix "nixpkgs.config.permittedInsecurePackages" hmNixContent);
+  # Invariant 2: the legacy NixOS-module HM bridge must be fully retired. The
+  # active Home Manager configuration lives in the standalone Layer-2 flake
+  # (reverb256/home-manager-config); the old modules/system/home-manager.nix
+  # shim was removed once it no longer fed any real host or USB ISO. Assert it
+  # stays gone so the two composition paths cannot drift again.
+  shimRemoved = !(builtins.pathExists legacyShim);
 
   # Invariant 3: the NixOS stylix font table is the source of truth for the
   # standalone HM path (tests/stylix-font-contract.nix on the HM repo asserts
@@ -61,9 +58,8 @@ let
 
   checks = {
     localCopyRemoved = localCopyRemoved;
-    usesFlakeInput = usesFlakeInput;
-    noLocalPath = !usesLocalPath;
-    inherit usesGlobalPkgs noHmNixpkgsScope lockHasHmInput lockHasRev;
+    shimRemoved = shimRemoved;
+    inherit lockHasHmInput lockHasRev;
     deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
     deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
     deployStopsOnConfirmedDrift = hasDeploy "exit 1";
