@@ -77,7 +77,6 @@ in {
       # (frankcrawford fork). Compress the module to .ko.xz so it overrides
       # the in-tree copy (fork builds .ko; modprobe picks .ko.xz first).
       # MMIO + ignore_resource_conflict for Gigabyte EC-controlled channels.
-      # Computed inline (not in a let) to avoid the colmena config-read cycle.
       boot.extraModulePackages = lib.mkIf cfg.useIt87Fork [
         (config.boot.kernelPackages.it87.overrideAttrs (super: {
           postInstall = (super.postInstall or "") + ''
@@ -88,15 +87,17 @@ in {
       # The fork's it87.ko.xz collides with the in-tree it87.ko.xz at the
       # same path; buildEnv rejects the duplicate. Rebuild the modules tree
       # with ignoreCollisions so the fork (listed first in extraModulePackages)
-      # overrides the in-tree module — the documented pattern for replacing an
-      # in-tree module with an out-of-tree one.
+      # overrides the in-tree module. system.modulesTree is a LIST of paths,
+      # so wrap the aggregate in a singleton list.
       system.modulesTree = lib.mkIf cfg.useIt87Fork (
         lib.mkForce
-        ((pkgs.aggregateModules (
-          config.boot.extraModulePackages ++ [config.boot.kernelPackages.kernel]
-        )).overrideAttrs {
-          ignoreCollisions = true;
-        })
+        [(
+          (pkgs.aggregateModules (
+            config.boot.extraModulePackages ++ [config.boot.kernelPackages.kernel]
+          )).overrideAttrs {
+            ignoreCollisions = true;
+          }
+        )]
       );
       boot.kernelModules = cfg.kernelModules;
       boot.extraModprobeConfig = lib.mkIf cfg.useIt87Fork ''
