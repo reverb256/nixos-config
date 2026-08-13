@@ -194,14 +194,20 @@ with lib; let
   # NOTE: llama.cpp enumerates CUDA0 = RTX 3090, CUDA1 = RTX 3060 Ti — the
   # REVERSE of nvidia-smi (GPU0 = 3060 Ti, GPU1 = 3090). GPU pinning uses
   # CUDA_VISIBLE_DEVICES, so ternary (24 GB card) = "0", 1-bit (8 GB) = "1".
-  ternaryZephyr = mkIf (host == "zephyr" && true) (mkTernaryService {
+  # DISABLED on zephyr: home-manager owns zephyr bonsai (user units). The
+  # system unit uses User=bonsai, which does not exist on zephyr -> status=217
+  # crash-loop that fails the colmena post-activation health check on EVERY
+  # zephyr deploy (2026-08-13). Re-enable only if zephyr bonsai moves back to
+  # systemd-system management AND the bonsai user is created.
+  ternaryZephyr = mkIf (host == "zephyr" && false) (mkTernaryService {
     name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) q8_0 KV + DSpark";
     port = 8005; gpu = "0"; memoryMax = "20G";
     extraEnv = { GGML_CUDA_GRAPH_OPT = "1"; LLAMA_ATTN_ROT_DISABLE = "1"; CUDA_SCALE_LAUNCH_QUEUES = "4"; LD_LIBRARY_PATH = "/usr/local/lib/bonsai-turbo:/run/opengl-driver/lib"; };
   });
 
   # 1-bit on zephyr 3060 Ti (CUDA1 = 8 GB) — explicit 128K + q4_0 KV
-  bit1Zephyr = mkIf (host == "zephyr" && true) (mk1bitService {
+  # DISABLED on zephyr: HM owns zephyr bonsai (see ternaryZephyr note).
+  bit1Zephyr = mkIf (host == "zephyr" && false) (mk1bitService {
     name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236) q4_0 KV 128K";
     port = 1236; gpu = "1";
   });
