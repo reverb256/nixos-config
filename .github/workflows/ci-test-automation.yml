@@ -114,7 +114,9 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Running local CI validation..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          if [ -f scripts/ci/local-ci.sh ]; then
+          if [ ! -d /etc/nixos ]; then
+            echo "::notice::Skipping host-local CI script; /etc/nixos is not present on this runner."
+          elif [ -f scripts/ci/local-ci.sh ]; then
             bash scripts/ci/local-ci.sh
           else
             echo "⊘ local-ci.sh not found, skipping"

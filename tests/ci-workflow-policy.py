@@ -99,6 +99,8 @@ def main() -> None:
     require("nixpkgs#just" in ci, "lint shell must include just")
     require("Skipping pre-existing Statix/Deadnix findings in flake.nix" in ci, "flake lint exception must be explicit")
     require("#osv-scanner -c osv-scanner" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell")
+    require("cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" in ci, "security scan must install Nix")
+    require("Skipping host-local CI script" in automation and "/etc/nixos" in automation, "host-local CI script must be guarded")
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
     require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")

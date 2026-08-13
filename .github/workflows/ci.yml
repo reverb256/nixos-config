@@ -67,7 +67,7 @@ jobs:
               echo "PARSE ERROR: $f"
               FAILED=1
             fi
-          done < <(git diff --name-only -z "$BASE_SHA" "$GITHUB_SHA" -- '*.nix')
+          done < <(git diff --name-only -z "$BASE_SHA...$GITHUB_SHA" -- '*.nix')
           exit "$FAILED"
 
   quick-check:
@@ -120,7 +120,7 @@ jobs:
         run: |
           BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "$GITHUB_SHA" ]; then BASE_SHA=HEAD^; fi
-          mapfile -d '' NIX_FILES < <(git diff --name-only -z "$BASE_SHA" "$GITHUB_SHA" -- '*.nix')
+          mapfile -d '' NIX_FILES < <(git diff --name-only -z "$BASE_SHA...$GITHUB_SHA" -- '*.nix')
           if [ "${#NIX_FILES[@]}" -eq 0 ]; then
             echo "No changed Nix files; skip file lint."
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
@@ -268,6 +268,12 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
+
+      - name: Install Nix
+        # pin:cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Run osv-scanner
         run: |
