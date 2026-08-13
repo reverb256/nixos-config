@@ -751,7 +751,6 @@
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {
     enable = true;
-    binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";
   };
 
   # SOPS age key for secretspec (persistent across generations)
