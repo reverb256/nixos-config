@@ -15,8 +15,15 @@ with lib; let
     in {
       options = {
         src = mkOption {
-          description = "Should be either a derivation or URL for builtins.fetchTree";
-          type = types.either types.package types.str;
+          description = ''
+            Should be either a derivation, a URL string, or an attrset passed
+            to builtins.fetchTree. Under pure-eval (enabled cluster-wide),
+            `builtins.fetchTree` without a hash is rejected, so a bare URL
+            string is an error — supply the hash via the attrset form:
+            `src = { url = "..."; hash = "<sri-hash>"; };` (or better, a
+            pkgs.runCommand derivation).
+          '';
+          type = types.either types.package (types.either types.str types.attrs);
         };
         overrides = mkOption {
           description = "Overrides to apply to all chart objects, don't do namespace here";
@@ -45,15 +52,31 @@ with lib; let
         );
 
         objects = let
-          # TODO: This is bugged if you input a fetchTree
+          # Pure-eval guard (see the `src` option description): derivations are
+          # already pure-safe; hashed attrset form passes straight through to
+          # fetchTree; a bare URL string has no hash and would be rejected by
+          # pure-eval with a confusing error — fail loudly here instead with
+          # instructions.
           src =
             if isDerivation yamlConfig.src
             then yamlConfig.src
+            else if isString yamlConfig.src
+            then
+              throw ''
+                importyaml: URL source "${yamlConfig.src}" has no hash, and
+                pure-eval (enabled cluster-wide) forbids hash-less fetches.
+                Use `src = { url = "..."; hash = "<sri-hash>"; };` or a
+                pkgs.runCommand derivation instead of a bare URL string.
+              ''
+            else if (yamlConfig.src ? hash) || (yamlConfig.src ? narHash)
+            then
+              builtins.fetchTree (yamlConfig.src // { type = "file"; })
             else
-              builtins.fetchTree {
-                type = "file";
-                url = yamlConfig.src;
-              };
+              throw ''
+                importyaml: attrset source has no `hash`/`narHash`, and pure-eval
+                (enabled cluster-wide) forbids hash-less fetches. Add
+                `hash = "<sri-hash>";` (or `narHash`) to the src attrset.
+              '';
 
           list = lib.importJSON (
             pkgs.runCommand "yaml2json" {} # bash

@@ -99,14 +99,19 @@ if [[ "$SKIP_OS" -eq 0 ]]; then
   log "Phase 2/4: Deploying OS configuration..."
   case "$TARGET" in
     all)
-      nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose
+      # --evaluator streaming = parallel eval via nix-eval-jobs (colmena
+      # 0.5.0-pre, experimental). Speeds up multi-host eval of the 30-input
+      # flake. Revert to `chunked` (default) if it misbehaves.
+      # NOTE: only `apply`/`build` accept --evaluator; `apply-local` does NOT
+      # (verified against `colmena apply-local --help`), so it's omitted there.
+      nix run .#apps.x86_64-linux.colmena -- apply --evaluator streaming --on nexus,forge,sentry --verbose
       nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose
       ;;
     zephyr)
       nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose
       ;;
     *)
-      nix run .#apps.x86_64-linux.colmena -- apply --on "$TARGET" --verbose
+      nix run .#apps.x86_64-linux.colmena -- apply --evaluator streaming --on "$TARGET" --verbose
       ;;
   esac
   log "OS deployment complete."

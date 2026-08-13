@@ -44,7 +44,7 @@ fi
 
 # Step 4: Build
 log_info "Step 4: Building all hosts..."
-nix run .#apps.x86_64-linux.colmena -- build || die "Build failed"
+nix run .#apps.x86_64-linux.colmena -- build --evaluator streaming || die "Build failed"
 
 # Step 5: Service tests
 log_info "Step 5: Checking services..."

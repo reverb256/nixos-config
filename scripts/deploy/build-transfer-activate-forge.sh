@@ -72,7 +72,6 @@ cd /etc/nixos
 output_file=/tmp/nixos-forge-output.path
 rm -f "$output_file"
 nix build -L \
-  --option pure-eval false \
   --max-jobs 3 \
   --cores 3 \
   --builders "" \

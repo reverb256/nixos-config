@@ -59,20 +59,34 @@ let
       box =
         f "client_id" remote.client_id ++
         f "client_secret" remote.client_secret;
+
+      # Fields per backend (excluding the common `type` line, prepended below).
+      # `http` shares webdav's shape (url = endpoint).
+      perType = {
+        s3 = s3;
+        onedrive = oauthToken;
+        dropbox = oauthToken;
+        b2 = b2;
+        drive = drive;
+        mega = mega;
+        ftp = ftpSftp;
+        sftp = ftpSftp;
+        webdav = webdav;
+        box = box;
+        http = webdav;
+      };
     in
-    lib.optional (remote.type == "s3") (builtins.concatStringsSep "\n" s3) ++
-    lib.optional (remote.type == "onedrive") (builtins.concatStringsSep "\n" oauthToken) ++
-    lib.optional (remote.type == "dropbox") (builtins.concatStringsSep "\n" oauthToken) ++
-    lib.optional (remote.type == "b2") (builtins.concatStringsSep "\n" b2) ++
-    lib.optional (remote.type == "drive") (builtins.concatStringsSep "\n" drive) ++
-    lib.optional (remote.type == "mega") (builtins.concatStringsSep "\n" mega) ++
-    lib.optional (remote.type == "ftp" || remote.type == "sftp")
-      (builtins.concatStringsSep "\n" ftpSftp) ++
-    lib.optional (remote.type == "webdav") (builtins.concatStringsSep "\n" webdav) ++
-    lib.optional (remote.type == "box") (builtins.concatStringsSep "\n" box);
+    # rclone requires `type = ...` in every section; previously `common` was
+    # dead code and no section ever emitted its type line, so every remote
+    # would fail at runtime. Always prepend it.
+    builtins.concatStringsSep "\n" (common ++ (perType.${remote.type} or []));
 
   remoteSection = name:
     let
+      # fieldsForRemote returns the fully joined INI body string for this
+      # remote (type line + backend fields). (Previously it returned a raw
+      # LIST, which made every rclone-enabled host fail with "cannot coerce a
+      # list to a string" when interpolated.)
       body = fieldsForRemote cfg.remotes.${name};
     in
     "[${name}]\n${body}";
@@ -429,10 +443,13 @@ in {
       map (job: {
         name = "rclone-${job.name}";
         value =
-          {
-            inherit (job) enableTimer;
-          }
-          // lib.optionalAttrs job.enableTimer {
+          # NOTE: previously had `inherit (job) enableTimer;` here, which
+          # pushed an `enableTimer` key into the systemd.timers.<name> value.
+          # systemd.timers has NO such option — it made every enabled job
+          # fail evaluation with "option `systemd.timers.rclone-*.enableTimer'
+          # does not exist". The enable wiring lives in the optionalAttrs
+          # branch below (wantedBy + timerConfig), so this was dead weight.
+          lib.optionalAttrs job.enableTimer {
             wantedBy = ["timers.target"];
             timerConfig = {
               OnCalendar = job.startAt;

@@ -56,7 +56,8 @@ fi
 # ── 3. Colmena eval ──────────────────────────────────────────────────────────
 if [[ "$QUICK" -eq 0 ]]; then
   log "Validating colmena configuration (remote hosts)..."
-  if nix run .#apps.x86_64-linux.colmena -- build --on nexus,forge,sentry 2>&1; then
+  # --evaluator streaming: parallel eval via nix-eval-jobs (experimental).
+  if nix run .#apps.x86_64-linux.colmena -- build --evaluator streaming --on nexus,forge,sentry 2>&1; then
     pass "Colmena build (remote hosts) succeeded"
   else
     fail "Colmena build FAILED"
