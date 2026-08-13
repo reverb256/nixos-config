@@ -53,7 +53,6 @@
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
     ./system/status-auto-update.nix
-    ./system/deployment-provenance.nix
 
     # Security
     ./security/caddy-ca.nix
