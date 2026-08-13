@@ -23,10 +23,12 @@ in {
     # Auto-enable OCI container backend for DCGM
     virtualisation.oci-containers.backend = "podman";
     virtualisation.oci-containers.containers.dcgm-exporter = {
-      # Pinned to a valid docker.io tag (verified 2026-08-10: 4.2.0-3.7.3-ubuntu24.04
-      # returned "manifest unknown" — ubuntu24.04 platform suffix was never
-      # published; only short-form + -ubuntu22.04 long-form tags exist).
-      image = "docker.io/nvidia/dcgm-exporter:4.8.3";
+      # Pinned to the ubuntu-based tag — the short-form distroless images
+      # (4.8.3) crash with "Starting dcgm-exporter ... exit status 1" and no
+      # useful log (NVIDIA/dcgm-exporter#612: distroless missing a library).
+      # 4.5.2-4.8.1-ubuntu22.04 verified serving DCGM_FI_* metrics on forge
+      # (both 4060s, driver 610.43.03) 2026-08-13.
+      image = "docker.io/nvidia/dcgm-exporter:4.5.2-4.8.1-ubuntu22.04";
       ports = ["${cfg.listenAddress}:${toString port}:9400"];
       environment = {
         NVIDIA_VISIBLE_DEVICES = "all";
