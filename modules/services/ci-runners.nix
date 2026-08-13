@@ -19,6 +19,9 @@
     tokenFile = inst.tokenFile or null;
     patFile = inst.patFile or null;
     autoStart = inst.autoStart or false;
+    # Use the node20-compatible runner package from the overlay so legacy
+    # node20-based actions (e.g. codeql-action v3) can start on this host.
+    runnerPkg = pkgs.github-runner-with-node20 or pkgs.github-runner;
     labels = inst.labels or ["nixos"];
     extraLabels = inst.extraLabels or [];
     memoryHigh = inst.memoryHigh or "16G";
@@ -74,7 +77,9 @@
         Type = "simple";
         User = user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${pkgs.github-runner}/bin/Runner.Listener run";
+        # github-runner-with-node20 (overlay): ships node20 -> node24 symlink so
+        # legacy node20 actions (codeql upload-sarif v3 etc.) resolve their runtime.
+        ExecStart = "${runnerPkg}/bin/Runner.Listener run";
         ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
@@ -103,7 +108,7 @@
       description = "GitHub Actions Runner Setup (${name})";
       before = ["${svcName}.service"];
       requiredBy = ["${svcName}.service"];
-      path = [pkgs.curl pkgs.jq pkgs.github-runner];
+      path = [pkgs.curl pkgs.jq runnerPkg];
       script = ''
         rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
               "${runnerHome}/.credentials_rsaparams" \
@@ -111,7 +116,7 @@
               "${runnerHome}/.github-runner/.credentials" \
               "${runnerHome}/.github-runner/.credentials_rsaparams"
         ${getTokenCmd}
-        ${pkgs.github-runner}/bin/config.sh \
+        ${runnerPkg}/bin/config.sh \
           --url "https://github.com/${repo}" \
           --token "$TOKEN" \
           --name "${displayName}" \
