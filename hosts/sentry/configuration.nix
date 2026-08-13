@@ -139,6 +139,10 @@
       serverAddr = "https://10.1.1.120:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
+      # At-rest encryption key MUST match the cluster (nexus/forge share it).
+      # The same field in services.nix is dead code — that file is not
+      # imported by configuration.nix; only comments reference it.
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
       calico.enable = true;
       # wipeState=false: never persist a wipe flag in config (one-shot only,
       # removed immediately after use; a persisted wipe destroys the cluster
