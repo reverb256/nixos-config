@@ -144,9 +144,15 @@
       # imported by configuration.nix; only comments reference it.
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
       calico.enable = true;
-      # wipeState=false: never persist a wipe flag in config (one-shot only,
-      # removed immediately after use; a persisted wipe destroys the cluster
-      # on every subsequent boot).
+      # 2026-08-13 recovery: sentry was pivot-bootstrapped as a standalone
+      # k3s cluster during the 2026-08-11 nexus outage, then re-pointed at
+      # nexus as a joiner WITHOUT wiping its stale local etcd. k3s refuses the
+      # join (critical config mismatch: flannel-backend) because the local
+      # member data carries a different CA. Set true ONE time to clear the
+      # immutable-bit + rm -rf dataDir on next deploy, letting sentry rejoin
+      # nexus's etcd as a fresh member. MUST be reverted to false after the
+      # join succeeds, or every subsequent boot wipes the node's state.
+      wipeState = true;
       # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
       # file or directory" on activation is fixed at a different layer:
       # the etcdClean=true previously in hosts/sentry/services.nix wiped the
