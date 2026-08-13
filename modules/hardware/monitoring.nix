@@ -85,6 +85,19 @@ in {
           '';
         }))
       ];
+      # The fork's it87.ko.xz collides with the in-tree it87.ko.xz at the
+      # same path; buildEnv rejects the duplicate. Rebuild the modules tree
+      # with ignoreCollisions so the fork (listed first in extraModulePackages)
+      # overrides the in-tree module — the documented pattern for replacing an
+      # in-tree module with an out-of-tree one.
+      system.modulesTree = lib.mkIf cfg.useIt87Fork (
+        lib.mkForce
+        ((pkgs.aggregateModules (
+          config.boot.extraModulePackages ++ [config.boot.kernelPackages.kernel]
+        )).overrideAttrs {
+          ignoreCollisions = true;
+        })
+      );
       boot.kernelModules = cfg.kernelModules;
       boot.extraModprobeConfig = lib.mkIf cfg.useIt87Fork ''
         options it87 mmio=on ignore_resource_conflict=1
