@@ -69,4 +69,19 @@
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };
   hermes-chat = prev.callPackage ../packages/hermes-chat.nix {};
+  # nixpkgs dropped node20 externals (EOL) — only node24 ships in
+  # github-runner's lib/externals. GitHub Actions built pre-2025 (e.g.
+  # codeql-action/upload-sarif@v3) resolve their interpreter as
+  # externals/node20/bin/node and crash with "No such file or directory"
+  # on the self-hosted runner. node24 is a drop-in superset for the
+  # action host, so symlink node20 -> node24.
+  github-runner-with-node20 = prev.github-runner.overrideAttrs (old: {
+    postInstall =
+      (old.postInstall or "")
+      + ''
+        if [ -d "$out/lib/externals/node24" ] && [ ! -e "$out/lib/externals/node20" ]; then
+          ln -s node24 "$out/lib/externals/node20"
+        fi
+      '';
+  });
 }

@@ -107,7 +107,7 @@ in {
       # on NixOS, where the runner does not inherit a user login profile.
       pkgs.cachix
       pkgs.gh
-      pkgs.github-runner
+      (pkgs.github-runner-with-node20 or pkgs.github-runner)
     ];
 
     systemd.services.github-actions-runner = lib.mkIf cfg.autoStart {
@@ -119,7 +119,7 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${pkgs.github-runner}/bin/Runner.Listener run";
+        ExecStart = "${(pkgs.github-runner-with-node20 or pkgs.github-runner)}/bin/Runner.Listener run";
         ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
@@ -158,7 +158,7 @@ in {
       description = "GitHub Actions Runner Setup";
       before = ["github-actions-runner.service"];
       requiredBy = ["github-actions-runner.service"];
-      path = [pkgs.curl pkgs.jq pkgs.github-runner];
+      path = [pkgs.curl pkgs.jq (pkgs.github-runner-with-node20 or pkgs.github-runner)];
       script = let
         allLabels = lib.concatStringsSep "," (cfg.labels ++ cfg.extraLabels);
       in ''
@@ -169,7 +169,7 @@ in {
               "${runnerHome}/.github-runner/.credentials" \
               "${runnerHome}/.github-runner/.credentials_rsaparams"
         ${getTokenCmd}
-        ${pkgs.github-runner}/bin/config.sh \
+        ${(pkgs.github-runner-with-node20 or pkgs.github-runner)}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
           --token "$TOKEN" \
           --name "${config.networking.hostName}-runner" \
