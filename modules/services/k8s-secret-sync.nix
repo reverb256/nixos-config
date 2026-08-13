@@ -148,6 +148,15 @@ in {
         done
         echo "[k8s-secret-sync] K8s API ready"
 
+        # Ensure every target namespace exists (create if missing). Without
+        # this, `kubectl create secret -n <ns>` fails with
+        # 'namespaces "<ns>" not found' and the unit crash-loops, blocking
+        # every nexus activation (2026-08-12: orchestration/automation were
+        # absent -> exit 4 on every colmena switch).
+        ${lib.concatStringsSep "\n" (map (ns: ''
+          kubectl get namespace "${ns}" >/dev/null 2>&1 || kubectl create namespace "${ns}"
+        '') (lib.unique (map (m: m.namespace) allMappings)))}
+
         # Build JSON patch for each secret (batch all keys per secret)
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList (ns_secret: mappings: ''
             namespace="${lib.head (builtins.split "/" ns_secret)}"
