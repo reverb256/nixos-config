@@ -93,6 +93,12 @@ def main() -> None:
     require("concurrency:" in cache, "cache.yml must serialize trusted cache publication")
     require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
     require(cache.count("timeout-minutes:") >= 1, "cache.yml must bound its publisher job")
+    require("git diff --name-only -z" in ci, "parse gate must inspect changed files")
+    require("github.event.pull_request.base.sha" in ci, "parse gate must use PR base SHA")
+    require("home-manager-config is private" in ci, "PR flake gate must explain private input boundary")
+    require("nixpkgs#just" in ci, "lint shell must include just")
+    require("Skipping pre-existing Statix/Deadnix findings in flake.nix" in ci, "flake lint exception must be explicit")
+    require("#osv-scanner -c osv-scanner" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell")
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
     require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")
@@ -110,6 +116,8 @@ def main() -> None:
         and "grep -oE 'passed = true|all_pass = true'" in automation,
         "test automation must use the pinned flake nixpkgs input",
     )
+    require("home-manager-config is private" in automation, "test automation must explain private flake boundary")
+    require("if [ \"$GITHUB_EVENT_NAME\" = \"pull_request\" ]" in automation, "test automation must gate private flake evaluation")
     require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")
     require("pull_request:" in secretspec, "secretspec-build.yml must validate PR structure")
     require("${{ secrets." not in secretspec, "secretspec PR validation must not contain secrets")
@@ -135,12 +143,12 @@ def main() -> None:
     # Required gates must fail closed.
     require(
         "while IFS= read -r -d '' f; do" in ci
-        and '-print0)' in ci
+        and 'git diff --name-only -z' in ci
         and 'exit "$FAILED"' in ci,
         "Nix parse gate must preserve failures outside a pipeline subshell",
     )
     require(
-        ("osv-scanner --recursive --format=sarif --output=results.sarif $PWD\"" in ci
+        ("osv-scanner --recursive --format=sarif --output=results.sarif \"$PWD\"" in ci
           or "osv-scanner --recursive --format=sarif --output=results.sarif $PWD'" in ci)
         and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true" not in ci
         and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD\" || true" not in ci,
