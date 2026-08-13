@@ -103,6 +103,11 @@ def main() -> None:
     require("concurrency:" in automation, "ci-test-automation.yml must define workflow concurrency")
     require("cancel-in-progress:" in automation, "test automation must define cancellation behavior")
     require("github.event_name == 'pull_request'" in automation, "test automation must cancel obsolete PR runs")
+    require(
+        "--arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}'" in automation
+        and "import <nixpkgs> {}" not in automation,
+        "test automation must use the pinned flake nixpkgs input",
+    )
     require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")
     require("pull_request:" in secretspec, "secretspec-build.yml must validate PR structure")
     require("${{ secrets." not in secretspec, "secretspec PR validation must not contain secrets")

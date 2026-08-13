@@ -58,10 +58,10 @@ jobs:
             fi
 
             if nix-instantiate --eval \
-              --arg pkgs 'import <nixpkgs> {}' \
+              --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
               "$test" 2>&1; then
               result=$(nix-instantiate --eval \
-                --arg pkgs 'import <nixpkgs> {}' \
+                --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
                 "$test" 2>/dev/null | grep -o 'passed = true' || true)
 
               if [ -n "$result" ]; then
