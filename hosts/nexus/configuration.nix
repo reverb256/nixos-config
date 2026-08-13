@@ -687,8 +687,5 @@
   };
 
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
-  # TEMPORARILY DISABLED (2026-08-13): the WIP snapshot's flake.lock bump broke
-  # the llama-swap-240 build (500s timeout); the service is inactive on the
-  # current generation anyway. Re-enable once the llama-swap WIP lands.
-  services.llama-swap-cluster.enable = false;
+  services.llama-swap-cluster.enable = true;
 }
