@@ -36,10 +36,7 @@
   #   modules = commonModules ++ [ ./hosts/nexus/configuration.nix ] ++ extraModules
   # specialArgs carries inputs + vfioPkgs (classic shim parity; nexus itself
   # does not consume vfioPkgs, keep it for identical evaluation semantics).
-  flake.nixosConfigurations.nexus = withSystem "x86_64-linux" ({
-    system,
-    ...
-  }: let
+  flake.nixosConfigurations.nexus = withSystem "x86_64-linux" ({system, ...}: let
     # vfioPkgs == pkgs (nixpkgs is now unstable); keep the classic shim's
     # allowUnfree-configured instance for parity.
     pkgs = import inputs.nixpkgs {
