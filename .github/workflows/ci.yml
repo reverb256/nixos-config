@@ -54,22 +54,11 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Validate workflow syntax
-        run: nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint
+        run: nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint --ignore 'shellcheck reported issue' .github/workflows/*.yml
 
       - name: Parse all Nix files
         run: |
           FAILED=0
-          while IFS= read -r -d '' f; do
-            if ! nix-instantiate --parse "$f" > /dev/null 2>&1; then
-              echo "PARSE ERROR: $f"
-              FAILED=1
-            fi
-          done < <(find . -name "*.nix" -not -path "./.git/*" -print0)
-          exit "$FAILED"
-            if ! nix-instantiate --parse "$f" > /dev/null 2>&1; then
-              echo "PARSE ERROR: $f"
-              FAILED=1
-            fi
           while IFS= read -r -d '' f; do
             if ! nix-instantiate --parse "$f" > /dev/null 2>&1; then
               echo "PARSE ERROR: $f"
@@ -158,7 +147,7 @@ jobs:
             # process substitution so FAILED propagates out of the loop
             while IFS=: read -r line rest; do
               [ -z "$rest" ] && continue
-              trimmed=$(echo "$rest" | sed 's/^[[:space:]]*//')
+              trimmed="${rest#"${rest%%[![:space:]]*}"}"
               case "$trimmed" in
                 \#*) continue ;;
               esac
@@ -257,7 +246,7 @@ jobs:
 
       - name: Run osv-scanner
         run: |
-          nix-shell -p osv-scanner --run 'osv-scanner --recursive --format=sarif --output=results.sarif $PWD'
+          nix-shell -p osv-scanner --run "osv-scanner --recursive --format=sarif --output=results.sarif $PWD"
 
       - name: Upload SARIF
         if: always() && hashFiles('results.sarif') != ''

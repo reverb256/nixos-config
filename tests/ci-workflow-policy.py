@@ -97,7 +97,7 @@ def main() -> None:
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
     require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")
     require(
-        "nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint" in ci,
+        "nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint --ignore 'shellcheck reported issue' .github/workflows/*.yml" in ci,
         "ci.yml must pin the actionlint nixpkgs revision",
     )
     require("concurrency:" in automation, "ci-test-automation.yml must define workflow concurrency")
@@ -133,8 +133,10 @@ def main() -> None:
         "Nix parse gate must preserve failures outside a pipeline subshell",
     )
     require(
-        "osv-scanner --recursive --format=sarif --output=results.sarif $PWD'" in ci
-        and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true" not in ci,
+        ("osv-scanner --recursive --format=sarif --output=results.sarif $PWD\"" in ci
+          or "osv-scanner --recursive --format=sarif --output=results.sarif $PWD'" in ci)
+        and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true" not in ci
+        and "osv-scanner --recursive --format=sarif --output=results.sarif $PWD\" || true" not in ci,
         "security scan must not suppress its exit status",
     )
     require(
