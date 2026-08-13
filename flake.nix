@@ -406,6 +406,15 @@
             vulkanSupport = true;
             cudaArchitectures = "86;89"; # GA102/GA104 (3090/3060Ti) + AD107 (4060)
           };
+          # AMD-only variant: same PrismML fork, Vulkan backend without CUDA.
+          # The CUDA build hard-links libcuda.so.1 (DT_NEEDED) and cannot load
+          # on AMD hosts (no libcuda); the loader dies before Vulkan starts.
+          # Fork lineage kept so Q1_0/Q2_0 repack + CPU-MoE + DSpark stay in.
+          packages.llama-cpp-unified-vulkan = pkgs.llama-cpp.override {
+            useFork = true;
+            cudaSupport = false;
+            vulkanSupport = true;
+          };
           packages.secretspec = pkgs.secretspec;
           # CONTAINER IMAGES (for Kubernetes deployment)
 

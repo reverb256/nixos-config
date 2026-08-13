@@ -52,6 +52,13 @@
     cudaArchitectures = "86;89";
     inherit (prev) cudaPackages;
   };
+  # AMD-only variant of the unified fork: Vulkan backend, CUDA disabled
+  # (libcuda DT_NEEDED hard-link crashes the loader on AMD-only hosts).
+  llama-cpp-unified-vulkan = prev.callPackage ../packages/llama-cpp.nix {
+    useFork = true;
+    cudaSupport = false;
+    vulkanSupport = true;
+  };
   llama-cpp-ik = prev.callPackage ../packages/llama-cpp-ik.nix {};
   llama-cpp-rocm = prev.callPackage ../packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ../packages/llama-cpp-vulkan.nix {};
