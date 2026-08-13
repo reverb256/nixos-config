@@ -9,7 +9,7 @@ Learns the actual rate limits by observing real API behavior:
 Also implements circuit breaker, exponential backoff, and a /metrics endpoint.
 """
 
-import json, logging, os, random, threading, time, urllib.request
+import json, logging, os, random, tempfile, threading, time, urllib.request
 from dataclasses import dataclass, field
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from typing import Optional
@@ -32,7 +32,20 @@ HOST = os.environ.get("PROXY_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PROXY_PORT", "8787"))
 NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "")
 NVIDIA_BASE = "https://integrate.api.nvidia.com"
-MAX_CONCURRENCY = int(os.environ.get("MAX_CONCURRENCY", "4"))
+
+
+def positive_int_env(name: str, default: str) -> int:
+    raw = os.environ.get(name, default)
+    try:
+        value = int(raw)
+    except ValueError as e:
+        raise ValueError(f"{name} must be a positive integer, got {raw!r}") from e
+    if value < 1:
+        raise ValueError(f"{name} must be a positive integer, got {value}")
+    return value
+
+
+MAX_CONCURRENCY = positive_int_env("MAX_CONCURRENCY", "4")
 NIM_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENCY)
 
 @dataclass
@@ -45,69 +58,105 @@ class AIMDController:
     consecutive_429: int = 0
     circuit_opened_at: Optional[float] = None
     window_ms: int = WINDOW_MS
+    _lock: threading.RLock = field(default_factory=threading.RLock, init=False,
+                                   repr=False)
 
     def prune(self, entries: list, now: int) -> None:
-        cutoff = now - self.window_ms
-        while entries and entries[0][0] < cutoff:
-            entries.pop(0)
+        with self._lock:
+            cutoff = now - self.window_ms
+            while entries and entries[0][0] < cutoff:
+                entries.pop(0)
 
     @property
     def rpm_window_count(self) -> int:
-        self.prune(self.rpm_entries, int(time.time() * 1000))
-        return len(self.rpm_entries)
+        with self._lock:
+            self.prune(self.rpm_entries, int(time.time() * 1000))
+            return len(self.rpm_entries)
 
     def record_success(self, tokens: int = 0) -> None:
-        now = int(time.time() * 1000)
-        self.rpm_entries.append((now, 1))
-        if tokens:
-            self.tpm_entries.append((now, tokens))
-        self.last_request_ms = now
-        self.consecutive_429 = 0
-        self.circuit_opened_at = None
-        self.rpm_target = min(self.rpm_target + AI_STEP, self.rpm_target * 1.02)
-        self.tpm_target = min(self.tpm_target + 100, self.tpm_target * 1.01)
-        self._save()
+        with self._lock:
+            now = int(time.time() * 1000)
+            self.rpm_entries.append((now, 1))
+            if tokens:
+                self.tpm_entries.append((now, tokens))
+            self.last_request_ms = now
+            self.consecutive_429 = 0
+            self.circuit_opened_at = None
+            self.rpm_target = min(self.rpm_target + AI_STEP, self.rpm_target * 1.02)
+            self.tpm_target = min(self.tpm_target + 100, self.tpm_target * 1.01)
+            self._save()
 
     def record_429(self) -> None:
-        self.consecutive_429 += 1
-        self.rpm_target = max(self.rpm_target * MD_FACTOR, MIN_RPM)
-        self.tpm_target = max(self.tpm_target * MD_FACTOR, MIN_TPM)
-        if self.consecutive_429 >= CB_THRESHOLD and self.circuit_opened_at is None:
-            self.circuit_opened_at = time.monotonic()
-            log.warning("CIRCUIT OPEN — %d consecutive 429s", self.consecutive_429)
-        self._save()
+        with self._lock:
+            self.consecutive_429 += 1
+            self.rpm_target = max(self.rpm_target * MD_FACTOR, MIN_RPM)
+            self.tpm_target = max(self.tpm_target * MD_FACTOR, MIN_TPM)
+            if self.consecutive_429 >= CB_THRESHOLD and self.circuit_opened_at is None:
+                self.circuit_opened_at = time.monotonic()
+                log.warning("CIRCUIT OPEN — %d consecutive 429s", self.consecutive_429)
+            self._save()
 
     @property
     def circuit_remaining(self) -> int:
-        if self.circuit_opened_at is None:
-            return 0
-        e = time.monotonic() - self.circuit_opened_at
-        if e >= CB_COOLDOWN:
-            self.circuit_opened_at = None
-            self.consecutive_429 = 0
-            return 0
-        return int(CB_COOLDOWN - e)
+        with self._lock:
+            if self.circuit_opened_at is None:
+                return 0
+            e = time.monotonic() - self.circuit_opened_at
+            if e >= CB_COOLDOWN:
+                self.circuit_opened_at = None
+                self.consecutive_429 = 0
+                return 0
+            return int(CB_COOLDOWN - e)
 
     def can_send(self, now: int) -> Optional[str]:
-        if self.circuit_remaining > 0:
-            return f"circuit_breaker:{self.circuit_remaining}s"
-        self.prune(self.rpm_entries, now)
-        if self.rpm_window_count >= int(self.rpm_target):
-            return f"rpm_limit:{int(self.rpm_target)}/min"
-        d = int(WINDOW_MS / max(self.rpm_target, MIN_RPM))
-        e = now - self.last_request_ms
-        if e < d and self.last_request_ms > 0:
-            return f"inter_request_delay:{d - e}ms"
-        return None
+        with self._lock:
+            if self.circuit_opened_at is not None:
+                e = time.monotonic() - self.circuit_opened_at
+                if e < CB_COOLDOWN:
+                    return f"circuit_breaker:{int(CB_COOLDOWN - e)}s"
+                self.circuit_opened_at = None
+                self.consecutive_429 = 0
+            self.prune(self.rpm_entries, now)
+            if len(self.rpm_entries) >= int(self.rpm_target):
+                return f"rpm_limit:{int(self.rpm_target)}/min"
+            d = int(WINDOW_MS / max(self.rpm_target, MIN_RPM))
+            e = now - self.last_request_ms
+            if e < d and self.last_request_ms > 0:
+                return f"inter_request_delay:{d - e}ms"
+            return None
 
     def _save(self) -> None:
-        try:
-            os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-            with open(STATE_FILE, "w", encoding="utf-8") as state:
-                json.dump({"rpm_target": self.rpm_target, "tpm_target": self.tpm_target,
-                           "consecutive_429": self.consecutive_429}, state)
-        except Exception:
-            pass
+        with self._lock:
+            directory = os.path.dirname(STATE_FILE) or "."
+            temporary = None
+            fd = None
+            try:
+                os.makedirs(directory, exist_ok=True)
+                fd, temporary = tempfile.mkstemp(prefix=".nim-proxy-",
+                                                 dir=directory, text=True)
+                state = os.fdopen(fd, "w", encoding="utf-8")
+                fd = None
+                with state:
+                    json.dump({"rpm_target": self.rpm_target,
+                               "tpm_target": self.tpm_target,
+                               "consecutive_429": self.consecutive_429}, state)
+                    state.flush()
+                    os.fsync(state.fileno())
+                os.replace(temporary, STATE_FILE)
+                temporary = None
+            except Exception as e:
+                log.warning("Could not persist NIM proxy state: %s", e)
+            finally:
+                if fd is not None:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass
+                if temporary is not None:
+                    try:
+                        os.unlink(temporary)
+                    except OSError:
+                        pass
 
     @classmethod
     def load(cls) -> "AIMDController":
