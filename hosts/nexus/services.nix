@@ -8,7 +8,27 @@
   inherit (portHelpers) ports;
 
   cluster = config.networking.cluster;
-in {
+
+  # Per-repo GitHub Actions runners (quill). Function-based generator:
+  # returns a plain config fragment merged below with // — no module reads
+  # config.services.ci-runners in its config output (colmena recursion, 2026-08-13).
+  ciRunners = import ../../modules/services/ci-runners.nix { inherit lib pkgs; };
+  runnerFragments = ciRunners {
+    instances = {
+      quill = {
+        user = "runner-quill";
+        repo = "reverb256/quill";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["nexus" "quill"];
+        runnerName = "nexus-quill-runner";
+        memoryHigh = "16G";
+        memoryMax = "24G";
+      };
+    };
+  };
+in runnerFragments // {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
     "d /data/hermes 0775 j_kro j_kro -"
@@ -246,25 +266,6 @@ in {
     # Heavy workflows require [self-hosted, nixos, nexus, builder]; a job
     # never lands on an unlabelled runner by accident.
     extraLabels = ["nexus" "builder"];
-  };
-
-  # Second runner for the quill repo (2026-08-13): GitHub Actions runners are
-  # per-repo — the nixos-config runner above can NEVER pick up quill CI jobs
-  # (runs-on: [self-hosted, nixos] queued forever). Module loaded via nexus
-  # extraModules (host-inventory.nix), NOT commonModules (recursion trap).
-  services.ci-runners = {
-    instances = {
-      quill = {
-        user = "runner-quill";
-        repo = "reverb256/quill";
-        patFile = "/run/secrets/github-runner-pat";
-        autoStart = true;
-        labels = ["self-hosted" "nixos"];
-        extraLabels = ["nexus" "quill"];
-        memoryHigh = "16G";
-        memoryMax = "24G";
-      };
-    };
   };
 
   services.k8s-secret-sync = {
