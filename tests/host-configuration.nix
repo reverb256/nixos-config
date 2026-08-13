@@ -35,12 +35,27 @@
       builtins.filter (f: !(hostFileExists host f)) requiredFiles
   ) (lib.genAttrs existingHosts (_: {}));
 
-  # Cross-contamination: host references another host's path
+  # Cross-contamination: inspect only code before the first `#` on each line.
+  # Host comments often mention another host's path for documentation and must
+  # not turn into a false positive; this still catches imports and bare paths
+  # in `imports = [ ... ]` lists.
   hostCrossContamination = let
+    codeLines = src:
+      builtins.filter (
+        line: let
+          trimmed = lib.strings.trim line;
+        in
+          !(lib.strings.hasPrefix "#" trimmed)
+      ) (lib.splitString "
+" src);
     check = host: let
-      src = builtins.readFile ./../hosts/${host}/configuration.nix;
+      src = codeLines (builtins.readFile ./../hosts/${host}/configuration.nix);
       others = builtins.filter (h: h != host) allHosts;
-      contaminated = builtins.filter (o: lib.strings.hasInfix "hosts/${o}/" src) others;
+      contaminated =
+        builtins.filter (
+          o: builtins.any (line: lib.strings.hasInfix "hosts/${o}/" line) src
+        )
+        others;
     in
       if contaminated != []
       then {${host} = contaminated;}
