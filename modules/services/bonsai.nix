@@ -85,6 +85,18 @@ with lib; let
       ''
     else null;
 
+  # Fork (PrismML) Vulkan binary — the unified fork's Vulkan-only variant for
+  # AMD-only hosts (sentry). Same fork source as llama-cpp-unified (Q1_0/Q2_0
+  # repack, CPU-MoE, DSpark) minus the CUDA backend, which hard-links
+  # libcuda.so.1 (DT_NEEDED) and cannot load on AMD hosts. RADV ICD forced for
+  # the same reason as mainlineVulkanBinary.
+  forkVulkanBinary =
+    pkgs.writeShellScriptBin "llama-server-bonsai-fork-vulkan" ''
+      export VK_ICD_FILENAMES="${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json"
+      export LD_LIBRARY_PATH="${pkgs.llama-cpp-unified-vulkan}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      exec ${pkgs.llama-cpp-unified-vulkan}/bin/llama-server "$@"
+    '';
+
   # turboQuant binary wrapper — wraps the retroheim turbo build.
   turboPackage = if cfg.turboBinaryStorePath != null then
     pkgs.writeShellScriptBin "llama-server-turbo-asym" ''
@@ -234,7 +246,7 @@ with lib; let
   # restarts). Plain 1-bit Vulkan is the stable config.
   bit1Sentry = mkIf (host == "sentry") (mk1bitService {
     name = "sentry"; desc = "Bonsai 27B 1-bit — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
-    port = 8003; binary = mainlineVulkanBinary;
+    port = 8003; binary = forkVulkanBinary;
     extraEnv = { GGML_VULKAN_DEVICE = "0"; VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json"; };
     contextSize = "8192"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
   });
