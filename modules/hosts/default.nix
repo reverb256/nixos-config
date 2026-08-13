@@ -9,7 +9,8 @@
 #
 # Migration complete (2026-08-13): ALL four hosts are dendritic.
 # Rollout order: zephyr (#398) → forge (#411/#413) → nexus → sentry.
-# No host remains on the classic shim (common-modules-list.nix + mkNixosSystem);
-# the shim in flake.nix now has an empty classicHosts set and is a
-# legacy carve-out pending dissolution.
+# The classic shim (common-modules-list.nix + mkNixosSystem) is fully
+# dissolved: no classicHosts, classicNixosConfigurations, or oracle remain.
+# Hosts compose the shared lib/dendritic-host.nix evaluator — the same
+# module-list + specialArgs contract colmena.nix uses.
 {imports = [./zephyr ./forge ./nexus ./sentry];}
