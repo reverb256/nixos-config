@@ -84,21 +84,19 @@ in {
           '';
         }))
       ];
-      # The fork's it87.ko.xz collides with the in-tree it87.ko.xz at the
-      # same path; buildEnv rejects the duplicate. Rebuild the modules tree
-      # with ignoreCollisions so the fork (listed first in extraModulePackages)
-      # overrides the in-tree module. system.modulesTree is a LIST of paths,
-      # so wrap the aggregate in a singleton list.
-      system.modulesTree = lib.mkIf cfg.useIt87Fork (
-        lib.mkForce
-        [(
-          (pkgs.aggregateModules (
-            config.boot.extraModulePackages ++ [config.boot.kernelPackages.kernel]
-          )).overrideAttrs {
-            ignoreCollisions = true;
-          }
-        )]
-      );
+      # Disable the IN-TREE it87 so it doesn't collide with the fork's module
+      # at the same path (buildEnv/modules-shrunk would otherwise reject or
+      # shadow it). Rebuilding the kernel with SENSORS_IT87=no is the
+      # documented way to let the out-of-tree fork own the module name.
+      boot.kernelPatches = lib.mkIf cfg.useIt87Fork [
+        {
+          name = "disable-in-tree-it87";
+          patch = null;
+          extraStructuredConfig = with lib.kernel; {
+            SENSORS_IT87 = lib.mkForce no;
+          };
+        }
+      ];
       boot.kernelModules = cfg.kernelModules;
       boot.extraModprobeConfig = lib.mkIf cfg.useIt87Fork ''
         options it87 mmio=on ignore_resource_conflict=1
