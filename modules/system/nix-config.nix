@@ -211,6 +211,12 @@ in {
       # Don't abort the build if a local cache is temporarily unreachable.
       fallback = true;
 
+      # Cache "narinfo not found" responses so a briefly-down cache doesn't
+      # trigger a re-query storm on every operation (pairs with fallback=true).
+      # 300s = 5 min; trade-off is up to 5 min staleness if a cache recovers
+      # faster than that.
+      narinfo-cache-negative-ttl = 300;
+
       trusted-users = lib.mkOptionDefault ["root" "@wheel"];
 
       # Cache provenance is meaningful only when Nix verifies signatures.
@@ -220,7 +226,21 @@ in {
 
       accept-flake-config = true;
 
+      # Disable the global flake-registry network fetch. Every input is a
+      # fully-qualified git+https URL, so the registry is pure latency plus a
+      # whole failure class (github: implicit-registry 401s, curl-42 aborts).
+      flake-registry = "";
+
       auto-optimise-store = true;
+
+      # Keep outputs of non-garbage derivations so the weekly GC can't delete
+      # store paths that are still referenced by a live profile (avoids
+      # surprise re-download/re-build). Bounded by max-free/min-free below.
+      keep-outputs = true;
+
+      # Retain failed build directories + logs for crash-loop debugging
+      # (sentry kernel panics, vesktop SEGV, activation-unit failures).
+      keep-failed = true;
     };
 
     gc = {
