@@ -63,6 +63,31 @@ in {
       http-connections = 16;
       connect-timeout = 10;
       download-attempts = 10;
+
+      # ── Performance tuning (homelab fork, 2026-08-13) ──
+      # Eval/fetch + store-DB latency knobs. Docs in Lix source:
+      # lix/libstore/settings/*.md.
+      #
+      # Many flake inputs are unpinned git refs (home-manager, NUR, sops-nix,
+      # colmena, stylix, ...). tarball-ttl (default 3600s) is how long a
+      # fetched git tree is trusted before re-fetching; 24h cuts re-fetch
+      # churn on repeated rebuilds. Pinned revs in flake.lock are unaffected.
+      tarball-ttl = 86400;
+
+      # NOTE: narinfo-cache-negative-ttl deliberately NOT set here —
+      # nix-config.nix already sets it to 300s (5 min) because the cluster's
+      # caches are flaky (curl-92, proxy timeouts): a short negative TTL lets
+      # operations re-query soon after a cache recovers instead of trusting a
+      # stale miss. Overriding it longer would fight that tuned behavior.
+      # max-substitution-jobs also left at its default 16 — raising it
+      # without also raising http-connections (tuned down for the curl-92
+      # issue above) buys nothing.
+
+      # Store-DB metadata fsync (default true) adds a sync-to-disk on every
+      # build-output registration. Trade crash-robustness of /nix/var/nix/db
+      # for registration throughput — only on the builder host (nexus);
+      # consumers keep the safe default.
+      fsync-metadata = lib.mkIf (currentHost == "nexus") false;
       max-silent-time = 3600;
       keep-build-log = true;
       log-lines = 2000;
@@ -77,6 +102,12 @@ in {
       extra-sandbox-paths = [
         "/var/cache/ccache"
       ];
+      # Builder OOM protection (nix.dev "Optimise the remote builder
+      # configuration"): cap nix-daemon memory at 90% and give its build
+      # children an OOMScoreAdjust of 500 so a runaway compile (CUDA/llvm
+      # are the classic case) dies BEFORE nexus's k3s/AI-gateway/monitoring.
+      min-free = 10 * 1024 * 1024;
+      max-free = 200 * 1024 * 1024;
     };
 
     gc = {
@@ -84,6 +115,18 @@ in {
       dates = "weekly";
       options = "--delete-older-than 30d";
     };
+
+    nrBuildUsers = 64;
+  };
+
+  # nix-daemon memory guard — protect builder host services from builds.
+  # MemoryMax=90% + OOMScoreAdjust=500 (nix.dev "Optimise the remote builder
+  # configuration"): builds are killed first, nexus (46 GB, k3s + AI gateway
+  # + monitoring) survives a runaway CUDA/llvm compile.
+  systemd.services.nix-daemon.serviceConfig = lib.mkIf (currentHost == "nexus" || currentHost == "sentry") {
+    MemoryAccounting = true;
+    MemoryMax = "90%";
+    OOMScoreAdjust = 500;
   };
 
   # ── Post-build hook: auto-push completed builds ──
