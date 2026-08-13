@@ -136,16 +136,23 @@ in {
         password=${lib.escapeShellArg cfg.password}
         pools=(${lib.concatStringsSep " " (map (pool: lib.escapeShellArg pool) cfg.pools)})
 
-        # Resolve the real CUDA index for this GPU by NAME (not hardcoded index),
-        # so a VFIO-blacklist / reboot that reorders GPUs can't put the wrong
-        # card into this miner instance.
-        resolved=$(${resolveGpu} "${instance.gpuName}" || true)
-        if [ -z "$resolved" ]; then
-          echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
-          exit 1
+        # Use the explicit per-instance devices field when set (works for
+        # same-name GPU farms like forge's two RTX 4060s, where name resolution
+        # is ambiguous). Fall back to name->index resolution for unique-name
+        # hosts (zephyr 3090 vs 3060 Ti). The powerLimitScript below still uses
+        # UUID-based resolution so the power limit lands on the right card.
+        if [ -n "${instance.devices}" ]; then
+          cuda_idx="${instance.devices}"
+          echo "PeakMiner ${instance.name}: using configured CUDA devices $cuda_idx" >&2
+        else
+          resolved=$(${resolveGpu} "${instance.gpuName}" || true)
+          if [ -z "$resolved" ]; then
+            echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
+            exit 1
+          fi
+          cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
+          echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
         fi
-        cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
-        echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
 
         while true; do
           for pool in "''${pools[@]}"; do

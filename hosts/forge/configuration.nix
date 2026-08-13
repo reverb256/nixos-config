@@ -751,9 +751,10 @@
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {
     enable = true;
-    # GPU 1 is fully miner-committed (7408/7834 MiB, 327 MiB free): the 3.5GB
-    # 1-bit model SIGSEGVs on CUDA allocation. forge-0 serves bonsai already.
-    enableForge1 = false;
+    # 1-bit model fits: miners hold ~1.1GB each, 4 miners = ~4.3GB across both
+    # GPUs, leaving ~5.5GB per 8GB GPU for the 3.5GB model. Earlier SIGSEGV was
+    # a loading-race artifact (both services starting on a busy GPU), not OOM.
+    enableForge1 = true;
   };
 
   # SOPS age key for secretspec (persistent across generations)
