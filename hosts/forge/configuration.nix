@@ -357,7 +357,13 @@
         };
       };
       nvidia-compute-mode = {
-        description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
+        # 2026-08-13: DEFAULT (-c 0), NOT EXCLUSIVE_PROCESS (-c 3). Exclusive
+        # mode lets only ONE compute process per GPU — the peakminer held it,
+        # so bonsai-1bit-forge-0/1 ABRT'd on cudaMemGetInfo ("device busy or
+        # unavailable", core-dumped). DEFAULT lets miner (1.1GB) + bonsai
+        # 1-bit (3.5GB) share each 8GB 4060; verified live 2026-08-13: miner
+        # stayed 100% util, bonsai loaded CUDA0 with 4.4GB free.
+        description = "NVIDIA GPU Compute Mode (DEFAULT — miner + bonsai share)";
         wantedBy = ["multi-user.target"];
         after = ["basic.target"];
         serviceConfig = {
@@ -379,8 +385,8 @@
               sleep 2
             done
             # Set compute mode for all NVIDIA GPUs
-            # EXCLUSIVE_PROCESS (3): Only one compute process can use each GPU
-            /run/current-system/sw/bin/nvidia-smi -c 3
+            # DEFAULT (0): multiple compute processes may share each GPU
+            /run/current-system/sw/bin/nvidia-smi -c 0
             # Verify the setting
             /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
               log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
