@@ -54,7 +54,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Validate workflow syntax
-        run: nix shell nixpkgs#actionlint -c actionlint
+        run: nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint
 
       - name: Parse all Nix files
         run: |

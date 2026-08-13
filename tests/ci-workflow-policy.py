@@ -96,6 +96,10 @@ def main() -> None:
     require("concurrency:" in ci, "ci.yml must define workflow concurrency")
     require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
     require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")
+    require(
+        "nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint" in ci,
+        "ci.yml must pin the actionlint nixpkgs revision",
+    )
     require("concurrency:" in automation, "ci-test-automation.yml must define workflow concurrency")
     require("cancel-in-progress:" in automation, "test automation must define cancellation behavior")
     require("github.event_name == 'pull_request'" in automation, "test automation must cancel obsolete PR runs")
