@@ -22,7 +22,7 @@ concurrency:
 jobs:
   populate-cache:
     name: Build & push to nexus cache
-    runs-on: [self-hosted, nixos]
+    runs-on: ${{ fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
     timeout-minutes: 360
     steps:
       - name: Checkout
