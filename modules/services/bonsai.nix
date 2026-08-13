@@ -44,13 +44,20 @@ with lib; let
   # so colmena copies it to targets and GC keeps it — no string-path hazard.
   # Hosts may still pin a specific fork store path via binaryStorePath (e.g.
   # the old 560rfa8pm build) but should migrate to the unified package.
+  # Always a wrapper script named llama-server-bonsai so getExe resolves the
+  # server binary (the raw package's mainProgram is llama-cli, which takes no
+  # --host/--port). The unified package is interpolated as "${...}" so Nix
+  # records a REAL dependency: colmena copies it, GC keeps it.
   prismBinary = if cfg.binaryStorePath != null then
     pkgs.writeShellScriptBin "llama-server-bonsai" ''
       export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       exec ${cfg.binaryStorePath}/bin/llama-server "$@"
     ''
   else
-    pkgs.llama-cpp-unified;
+    pkgs.writeShellScriptBin "llama-server-bonsai" ''
+      export LD_LIBRARY_PATH="${pkgs.llama-cpp-unified}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      exec ${pkgs.llama-cpp-unified}/bin/llama-server "$@"
+    '';
 
   # Optional PrismML fork Vulkan binary (NVIDIA/AMD fork build).
   prismVulkanBinary =
