@@ -55,7 +55,7 @@
 in {
   # Legacy combined manifest (for backwards compatibility)
   combined =
-    mkManifest "combined" [
+    mkManifest "combined" ([
       ./modules/infrastructure.nix
     ]
     ++ lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules
@@ -81,7 +81,7 @@ in {
       ./modules/hermes-workspace.nix
       ./modules/maplespike.nix
       ./modules/tailscale.nix
-    ];
+    ]);
 
   # Separate manifests for large modules (to avoid eval bottleneck)
   monitoring = mkManifest "monitoring" [
