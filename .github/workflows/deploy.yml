@@ -27,7 +27,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     name: Deploy to Cluster
-    runs-on: [self-hosted, nixos]
+    runs-on: ${{ fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
     environment: homelab-production
     timeout-minutes: 360
     steps:

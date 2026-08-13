@@ -144,6 +144,13 @@ in {
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
+        # Issue #474: soft cgroup guard against runaway trusted jobs. Heavy
+        # compilation itself runs inside nix-daemon's cgroup, so this is a
+        # protective ceiling for the runner's own eval/shell steps, not a
+        # throttle on the build farm. Keep one runner and measure Nexus peak
+        # RAM before raising max-jobs or adding a second runner.
+        MemoryHigh = "32G";
+        MemoryMax = "40G";
       };
     };
 

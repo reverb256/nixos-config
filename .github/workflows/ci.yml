@@ -330,7 +330,11 @@ jobs:
     timeout-minutes: 360
     name: Build Configs
     needs: [quick-check, lint, tests]
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+    # Issue #474: PRs build on GitHub-hosted runners; trusted pushes run on
+    # the pinned Nexus builder only. runs-on expressions cannot yield label
+    # arrays directly, so fromJSON() builds the [self-hosted, nixos, nexus,
+    # builder] array at runtime (actionlint-verified, GitHub-documented).
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
     steps:
       - name: Checkout
         # pin:actions/checkout@v5

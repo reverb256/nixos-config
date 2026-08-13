@@ -2,13 +2,11 @@
   config,
   pkgs,
   lib,
-  inputs,
   ...
 }: let
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
-  ports = portHelpers.ports;
+  inherit (portHelpers) ports;
 
-  k8s = config.networking.cluster.kubernetes.services;
   cluster = config.networking.cluster;
 in {
   systemd.tmpfiles.rules = [
@@ -28,9 +26,6 @@ in {
     };
 
     nexus-exec.enable = true;
-
-
-
   };
 
   environment.systemPackages = with pkgs; [
@@ -218,7 +213,8 @@ in {
     user = "j_kro";
     zaiApiKeyFile = "/run/secrets/zai-api-key";
     context7ApiKeyFile = "/run/secrets/context7-api-key";
-    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";      tools = {
+    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
+    tools = {
       claude = {enable = true;};
       opencode = {enable = true;};
       droid = {enable = true;};
@@ -247,7 +243,10 @@ in {
     # (verified: HTTP 201 + "√ Successfully replaced the runner").
     patFile = "/run/secrets/github-runner-pat";
     autoStart = true;
-    extraLabels = ["nexus"];
+    # Issue #474: pin trusted CI jobs to the Nexus builder explicitly.
+    # Heavy workflows require [self-hosted, nixos, nexus, builder]; a job
+    # never lands on an unlabelled runner by accident.
+    extraLabels = ["nexus" "builder"];
   };
 
   services.k8s-secret-sync = {
