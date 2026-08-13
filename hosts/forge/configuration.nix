@@ -104,6 +104,8 @@
     ../../modules/services/k3s-cluster.nix
     # Bonsai 27B: ternary (when GPU idle, port 8005), 1-bit (port 8002)
     ../../modules/services/bonsai.nix
+    # llama-swap cluster: llama-swap across the board (unified turboquant binary)
+    ../../modules/services/llama-swap-cluster.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -755,6 +757,9 @@
     # a loading-race artifact (both services starting on a busy GPU), not OOM.
     enableForge1 = true;
   };
+
+  # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
+  services.llama-swap-cluster.enable = true;
 
   # SOPS age key for secretspec (persistent across generations)
   # Must contain BOTH cluster_age and zephyr_age_v2 private keys (like zephyr's

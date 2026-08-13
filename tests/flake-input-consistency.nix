@@ -8,7 +8,6 @@
     "nixpkgs"
     "zen-browser"
     "firefox-addons"
-    "freebuff-flake"
     "aagl"
     "nur"
     "claude-native"

@@ -21,6 +21,17 @@ with lib; let
 in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
+    gpuFilter = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = ''
+        GPU name to pin DXVK/DXVK-NVAPI to and target with the GameMode
+        overclock hook (DXVK_FILTER_DEVICE_NAME). Set this to the
+        display-attached GPU name on multi-GPU hosts — e.g.
+        "NVIDIA GeForce RTX 3090" on zephyr — and leave it null on
+        single-GPU hosts (nexus) for normal loader discovery.
+      '';
+    };
     vr = {
       enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
       encoder = mkOption {

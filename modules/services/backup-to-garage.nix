@@ -154,7 +154,7 @@ in {
 
     endpoint = lib.mkOption {
       type = lib.types.str;
-      default = "http://${cluster.hosts.zephyr.ip}:3900"; # zephyr cluster host
+      default = "http://${cluster.hosts.nexus.ip}:3900"; # Garage S3 server on nexus
       description = "Garage S3 endpoint URL";
     };
 

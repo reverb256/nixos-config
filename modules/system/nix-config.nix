@@ -1,9 +1,25 @@
 {
   lib,
   pkgs,
+  config,
   ...
 }: let
   cachePolicy = import ../../contracts/cache-policy.nix;
+
+  # Per-host CPU microarchitecture for a tuned -march build of Lix.
+  # Builds happen on nexus (Znver2) but each host's own `nix.package` is
+  # compiled with -march for *its* CPU, so the flag is explicit per host
+  # (never -march=native, which would target the build machine).
+  # clang 21 (what Lix asserts, stdenv.cc.isClang) accepts: znver1/2/3, skylake.
+  # NOTE: Coffee Lake (forge, i5-9500) has NO 'coffeelake' -march; use 'skylake'.
+  microarch =
+    {
+      zephyr = "znver3"; # Ryzen 9 5950X, Zen 3
+      nexus = "znver2"; # Ryzen 9 3900X, Zen 2
+      forge = "skylake"; # i5-9500, Coffee Lake
+      sentry = "znver1"; # Ryzen 7 1700, Zen 1
+    }
+    .${config.networking.hostName} or "x86-64-v3";
 in {
   nixpkgs.overlays = [
     (_final: prev: {
@@ -150,6 +166,39 @@ in {
       # https://github.com/lix-project/lix/blob/main/meson.options).
       # This disables the test() calls in lix's meson.build entirely.
       mesonFlags = (old.mesonFlags or []) ++ [ "-Denable-tests=false" ];
+
+      # --- Performance tuning (homelab fork) ---
+      # Tag the fork so `nix --version` and store paths are distinguishable
+      # from pristine upstream 2.95.2 AND from each other host's -march build
+      # (all four share the post-build cache, so per-host naming matters).
+      # Lix's meson.build composes the version as `version.json + $VERSION_SUFFIX`;
+      # nixpkgs' common-lix.nix already plumbed env.VERSION_SUFFIX = suffix.
+      version = "${old.version}-homelab-${microarch}";
+
+      # 1. Raise the Boehm GC initial-heap cap from 384 MiB to 8 GiB so
+      #    large flake evals don't repeatedly collect. This is the single
+      #    biggest evaluator win (upstream bench: ~30% on nixpkgs/nixos eval).
+      # 2. Linear-scan small attrsets in Bindings::get() before falling back
+      #    to std::lower_bound. Most attrsets are tiny (let bindings, function
+      #    args), where binary search's branch mispredictions dominate.
+      patches = (old.patches or []) ++ [
+        ../../patches/lix-gc-heap-cap.patch
+        ../../patches/lix-attr-linear-scan.patch
+      ];
+
+      # 3. Tune Lix to this host's CPU. This nixpkgs rev's cc-wrapper has a
+      #    SINGLE compile-flag channel: NIX_CFLAGS_COMPILE is injected into both
+      #    C and C++ invocations (the C++ stdlib flags are even appended into
+      #    it, see cc-wrapper.sh/add-flags.sh). NIX_CXXFLAGS_COMPILE no longer
+      #    exists, so don't bother setting it. -march tunes the C++ evaluator /
+      #    store (the hot path). -O3 is safe here because Lix is built with
+      #    clangStdenv (the upstream "-O3 angers a gcc bug" note is gcc-only);
+      #    LTO is already enabled upstream via -Db_lto=true. Drop -O3 if it
+      #    ever regresses a build.
+      env = (old.env or {}) // {
+        VERSION_SUFFIX = "-homelab-${microarch}";
+        NIX_CFLAGS_COMPILE = "${old.env.NIX_CFLAGS_COMPILE or ""} -march=${microarch} -O3";
+      };
     }));
 
     settings = {

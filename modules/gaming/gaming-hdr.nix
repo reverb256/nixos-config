@@ -27,5 +27,12 @@ in {
   config = mkIf cfg.hdr.enable {
     # Override gamescope args to add HDR support and SDL backend
     programs.gamescope.args = hdrArgs ++ baseArgs;
+
+    # HDR env vars live here (gated by hdr.enable) so single-GPU SDR hosts
+    # like nexus keep a clean baseline without DXVK_HDR / WSI forced on.
+    programs.gamescope.env = {
+      ENABLE_GAMESCOPE_WSI = "1";
+      DXVK_HDR = "1";
+    };
   };
 }

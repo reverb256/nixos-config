@@ -9,10 +9,12 @@ let
   systemOverlay = import ./system.nix { inherit inputs _final prev; };
   pythonOverlay = import ./python.nix { inherit inputs _final prev; };
   hardwareOverlay = import ./hardware.nix { inherit inputs _final prev; };
+  llamaOverlay = import ./llama.nix { inherit inputs _final prev; };
 in
 foldl' (acc: overlay: acc // overlay) {} [
   bugfixOverlay
   systemOverlay
   pythonOverlay
   hardwareOverlay
+  llamaOverlay
 ]

@@ -19,6 +19,7 @@
   protectedDesktopProcesses = [
     "niri"
     "noctalia"
+    "alacritty"
     "spotify"
     "zen-twilight"
     "zen"

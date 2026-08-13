@@ -41,11 +41,24 @@ in runnerFragments // {
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth0";
+      interface = "enp7s0";
       priority = 110;
     };
 
     nexus-exec.enable = true;
+
+    # Garage S3-compatible object storage — primary storage node.
+    # Data lives on the LARGE bcache0 storage (/data/shared subvol,
+    # 3.6TB + 465GB cache) — NOT zephyr, NOT the root nvme.
+    # Secrets: garage-rpc-secret + garage-metrics-token via secretspec-creds
+    # (secretspec-creds-wiring.nix); S3 access/secret keys via sops-nix.
+    # Single node → replicationFactor 1 (must equal node count).
+    garage-cluster = {
+      enable = true;
+      dataDir = "/data/shared/garage";
+      replicationFactor = 1;
+      consistencyMode = "consistent";
+    };
   };
 
   environment.systemPackages = with pkgs; [
@@ -222,7 +235,7 @@ in runnerFragments // {
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true; # Fixed: key generated at build time
-    interface = "eth0";
+    interface = "enp7s0";
     networkDriver = "r8169";
     port = 2222;
   };

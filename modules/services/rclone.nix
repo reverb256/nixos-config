@@ -1,20 +1,117 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
-  cluster = config.networking.cluster;
+
+{ config, lib, pkgs, ... }:
+let
   cfg = config.services.rclone-sync;
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # rclone.conf generator
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Converts cfg.remotes (attrset of remote name → remote options) into an
+  # INI-style rclone.conf. Credential fields left as "" in the Nix declaration
+  # are emitted as "_" so rclone falls back to environment variables.
+  #
+  # Environment variables are supplied at runtime via:
+  #   1. cfg.preRun  — extra env vars per job (VAR=value)
+  #   2. job.sopsSecretEnvs — maps sops-decrypted /run/secrets/* files to
+  #      env vars inline in the sync script
+
+  fieldsForRemote = remote:
+    let
+      f = key: value: if value != null && value != "" then [ "${key} = ${value}" ] else [ "${key} = _" ];
+
+      common = [ "type = ${remote.type}" ];
+
+      s3 =
+        lib.optional (remote.provider != null && remote.provider != "")
+          ("provider = ${remote.provider}") ++
+        lib.optional (remote.endpoint != null && remote.endpoint != "")
+          ("endpoint = ${remote.endpoint}") ++
+        f "access_key_id" remote.accessKeyId ++
+        f "secret_access_key" remote.secretAccessKey ++
+        [ "region = ${remote.region or "us-east-1"}" ] ++
+        lib.optional (remote.forcePathStyle) "force_path_style = true";
+
+      tokenOpt = remote.token;
+      oauthToken =
+        if tokenOpt != null && tokenOpt != "" then [ "token = ${tokenOpt}" ]
+        else [ "token = _" ];
+
+      b2 =
+        f "account" remote.account ++
+        f "key" remote.key;
+
+      drive =
+        f "client_id" remote.client_id ++
+        f "client_secret" remote.client_secret ++
+        (if remote.scope != null && remote.scope != "" then [ "scope = ${remote.scope}" ] else []);
+
+      mega =
+        f "user" remote.user ++
+        f "pass" remote.pass;
+
+      ftpSftp =
+        f "user" remote.user ++
+        f "pass" remote.pass;
+
+      webdav = lib.optional (remote.endpoint != null && remote.endpoint != "")
+        ("url = ${remote.endpoint}");
+
+      box =
+        f "client_id" remote.client_id ++
+        f "client_secret" remote.client_secret;
+    in
+    lib.optional (remote.type == "s3") (builtins.concatStringsSep "\n" s3) ++
+    lib.optional (remote.type == "onedrive") (builtins.concatStringsSep "\n" oauthToken) ++
+    lib.optional (remote.type == "dropbox") (builtins.concatStringsSep "\n" oauthToken) ++
+    lib.optional (remote.type == "b2") (builtins.concatStringsSep "\n" b2) ++
+    lib.optional (remote.type == "drive") (builtins.concatStringsSep "\n" drive) ++
+    lib.optional (remote.type == "mega") (builtins.concatStringsSep "\n" mega) ++
+    lib.optional (remote.type == "ftp" || remote.type == "sftp")
+      (builtins.concatStringsSep "\n" ftpSftp) ++
+    lib.optional (remote.type == "webdav") (builtins.concatStringsSep "\n" webdav) ++
+    lib.optional (remote.type == "box") (builtins.concatStringsSep "\n" box);
+
+  remoteSection = name:
+    let
+      body = fieldsForRemote cfg.remotes.${name};
+    in
+    "[${name}]\n${body}";
+
+  rcloneConfigText =
+    builtins.concatStringsSep "\n\n" (
+      builtins.map remoteSection (builtins.attrNames cfg.remotes)
+    );
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # sync script generator
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Wraps the rclone invocation. If the job declares sopsSecretEnvs, each
+  # entry reads a sops-decrypted file from /run/secrets/ and exports it as an
+  # env var inline, before the rclone invocation.
+
   syncScript = job:
-    pkgs.writeShellScriptBin "rclone-${job.name}" ''
+    let
+      secretExports =
+        lib.concatStringsSep "\n" (
+          map (s:
+            ''
+              if [ -f ${s.secretPath} ]; then
+                export ${s.var}="$(cat ${s.secretPath})"
+              else
+                echo "rclone-${job.name}: missing secret ${s.secretPath}" >&2
+                exit 1
+              fi
+            ''
+          ) job.sopsSecretEnvs
+        );
+    in
+    pkgs.writeShellScriptBin ("rclone-${job.name}") ''
       set -euo pipefail
 
-      SOURCE="''${SOURCE:-${job.source}}"
-      DEST="''${DEST:-${job.destination}}"
-      SYNC_MODE="''${SYNC_MODE:-${job.mode or "sync"}}"
-      OPTIONS="''${OPTIONS:-${toString job.options or ""}}"
+      SOURCE=''${SOURCE:-${job.source}}
+      DEST=''${DEST:-${job.destination}}
+      SYNC_MODE=''${SYNC_MODE:-${job.mode or "sync"}}
+      OPTIONS=''${OPTIONS:-${toString job.options or ""}}
 
       RED='\033[0;31m'
       GREEN='\033[0;32m'
@@ -22,41 +119,27 @@
       BLUE='\033[0;34m'
       NC='\033[0m'
 
-      log_info() { echo -e "''${BLUE}[INFO]''${NC} $1"; }
-      log_success() { echo -e "''${GREEN}[SUCCESS]''${NC} $1"; }
-      log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-      log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
+      log_info() { echo -e ''${BLUE}[INFO]''${NC} $1; }
+      log_success() { echo -e ''${GREEN}[SUCCESS]''${NC} $1; }
+      log_warn() { echo -e ''${YELLOW}[WARN]''${NC} $1; }
+      log_error() { echo -e ''${RED}[ERROR]''${NC} $1; }
+
+      ${secretExports}
 
       log_info "Starting rclone job: ${job.name}"
       log_info "Source: $SOURCE"
       log_info "Destination: $DEST"
       log_info "Mode: $SYNC_MODE"
 
-      if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
+      ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
         --config "${cfg.configFile}" \
         --progress \
         --transfers ${toString job.transfers or 4} \
         --checkers ${toString job.checkers or 8} \
-        ${
-        if job.exclude != null
-        then "--exclude=${job.exclude}"
-        else ""
-      } \
-        ${
-        if job.excludeFrom != null
-        then "--exclude-from=${job.excludeFrom}"
-        else ""
-      } \
-        ${
-        if job.include != null
-        then "--include=${job.include}"
-        else ""
-      } \
-        ${
-        if job.includeFrom != null
-        then "--include-from=${job.includeFrom}"
-        else ""
-      } \
+        ${if job.exclude != null then "--exclude=${job.exclude}" else ""} \
+        ${if job.excludeFrom != null then "--exclude-from=${job.excludeFrom}" else ""} \
+        ${if job.include != null then "--include=${job.include}" else ""} \
+        ${if job.includeFrom != null then "--include-from=${job.includeFrom}" else ""} \
         ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
         $OPTIONS; then
         log_success "Job '${job.name}' completed"
@@ -65,6 +148,7 @@
         exit 1
       fi
     '';
+
 in {
   options.services.rclone-sync = {
     enable = lib.mkEnableOption "Rclone cloud storage synchronization";
@@ -87,23 +171,21 @@ in {
       description = "Group to run rclone services as";
     };
 
+    # Environment variables set before each rclone job (VAR=value form).
+    # For non-sops env vars. sops secrets go through sopsSecretEnvs below.
+    preRun = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "Extra environment variables per rclone job (VAR=value)";
+    };
+
     remotes = lib.mkOption {
       type = lib.types.attrsOf (
         lib.types.submodule {
           options = {
             type = lib.mkOption {
               type = lib.types.enum [
-                "s3"
-                "onedrive"
-                "dropbox"
-                "box"
-                "mega"
-                "b2"
-                "drive"
-                "webdav"
-                "ftp"
-                "sftp"
-                "http"
+                "s3" "onedrive" "dropbox" "box" "mega" "b2" "drive" "webdav" "ftp" "sftp" "http"
               ];
               default = "s3";
               description = "Remote storage type";
@@ -116,7 +198,7 @@ in {
             endpoint = lib.mkOption {
               type = lib.types.str;
               default = "";
-              description = "S3 endpoint URL";
+              description = "S3 endpoint URL / webdav base URL";
             };
             accessKeyId = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
@@ -126,7 +208,7 @@ in {
             secretAccessKey = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Secret access key (use sops-nix!)";
+              description = "Secret access key for S3 — leave empty, supply via sopsSecretEnvs";
             };
             region = lib.mkOption {
               type = lib.types.str;
@@ -141,42 +223,42 @@ in {
             token = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "OAuth token (for onedrive, dropbox, etc.)";
+              description = "OAuth token (onedrive, dropbox, etc.)";
             };
             user = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Username (for mega, ftp, sftp)";
+              description = "Username (mega, ftp, sftp)";
             };
             pass = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Password (use sops-nix!)";
+              description = "Password (mega, ftp, sftp)";
             };
             account = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Account ID (for B2)";
+              description = "Account ID (B2)";
             };
             key = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Application key (for B2)";
+              description = "Application key (B2)";
             };
             client_id = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "OAuth client ID";
+              description = "OAuth client ID (drive, box)";
             };
             client_secret = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "OAuth client secret";
+              description = "OAuth client secret (drive, box)";
             };
             scope = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "OAuth scope (for Google Drive)";
+              description = "OAuth scope (drive)";
             };
           };
         }
@@ -187,12 +269,8 @@ in {
         garage = {
           type = "s3";
           provider = "Other";
-          endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
+          endpoint = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
           region = "garage";
-        };
-        onedrive = {
-          type = "onedrive";
-          token = "";
         };
       };
     };
@@ -215,14 +293,7 @@ in {
             };
             mode = lib.mkOption {
               type = lib.types.enum [
-                "sync"
-                "copy"
-                "move"
-                "check"
-                "ls"
-                "lsl"
-                "lsd"
-                "lsf"
+                "sync" "copy" "move" "check" "ls" "lsl" "lsd" "lsf"
               ];
               default = "sync";
               description = "Rclone operation mode";
@@ -277,6 +348,27 @@ in {
               default = "02:00";
               description = "When to run (systemd timer calendar format)";
             };
+            # sopsSecretEnvs: map sops-decrypted secret files to env vars.
+            # Each entry reads the file at secretPath and exports it as var.
+            # Files are under /run/secrets/ (populated by sops-nix at activation).
+            sopsSecretEnvs = lib.mkOption {
+              type = lib.types.listOf (
+                lib.types.submodule {
+                  options = {
+                    var = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Environment variable name to export";
+                    };
+                    secretPath = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Absolute path to sops-decrypted secret file (e.g. /run/secrets/storage/garage-s3-secret-key)";
+                    };
+                  };
+                }
+              );
+              default = [];
+              description = "Sops secret → environment variable mappings for this job";
+            };
           };
         }
       );
@@ -284,11 +376,15 @@ in {
       description = "Sync job definitions";
       example = [
         {
-          name = "garage-to-onedrive";
-          source = "garage:backups";
-          destination = "onedrive:garage-backups";
-          mode = "sync";
+          name = "garage-backup-verify";
+          source = "garage:";
+          destination = "garage:";
+          mode = "ls";
           startAt = "03:00";
+          enableTimer = true;
+          sopsSecretEnvs = [
+            { var = "AWS_SECRET_ACCESS_KEY"; secretPath = "/run/secrets/storage/garage-s3-secret-key"; }
+          ];
         }
       ];
     };
@@ -297,10 +393,8 @@ in {
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [pkgs.rclone];
 
-    # The rclone config should contain all remote definitions with credentials.
-    # Remove individual remote credential options when migrating fully to sops-nix.
     environment.etc."rclone/rclone.conf" = {
-      source = "/run/secrets/rclone-config";
+      text = rcloneConfigText;
       mode = "0400";
       user = "root";
       group = "root";
@@ -318,21 +412,13 @@ in {
             User = cfg.user;
             Group = cfg.group;
             ExecStart = "${syncScript job}/bin/rclone-${job.name}";
-            Environment = [
-              "PATH=/run/current-system/sw/bin"
-              "RCLONE_CONFIG=${cfg.configFile}"
-            ];
+            Environment =
+              [ "PATH=/run/current-system/sw/bin" "RCLONE_CONFIG=${cfg.configFile}" ]
+              ++ cfg.preRun;
             PrivateTmp = true;
             NoNewPrivileges = true;
-            RestrictAddressFamilies = [
-              "AF_INET"
-              "AF_INET6"
-              "AF_UNIX"
-            ];
-            SystemCallFilter = [
-              "@system-service"
-              "~@privileged"
-            ];
+            RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+            SystemCallFilter = [ "@system-service" "~@privileged" ];
           };
         };
       })

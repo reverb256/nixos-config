@@ -16,7 +16,7 @@ in {
     };
     k3s-cluster = {
       enable = true;
-      role = "server";
+      role = "agent";
       # 2026-07-28: mkForce false. The `true` here was a stale leftover from
       # initial bootstrap; on a healthy control-plane node the etcd state at
       # /var/lib/rancher/k3s/server/db is the canonical cluster truth and must
@@ -33,7 +33,7 @@ in {
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth0";
+      interface = "enp7s0";
       priority = 100;
     };
 

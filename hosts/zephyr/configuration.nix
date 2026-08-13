@@ -352,15 +352,55 @@
     # crash-watchdog.enable = true;
 
     # Backup to Garage S3 - automated daily backups
+    # Garage S3 server runs on nexus (10.1.1.120), not zephyr.
     backup-to-garage = {
       enable = true;
-      endpoint = "http://10.1.1.110:3900";
+      endpoint = "http://10.1.1.120:3900";
       region = "garage";
       bucket = "backups";
       accessKeyFile = "/run/secrets/garage-s3-access-key-id";
       secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00"; # 2 AM daily
+    };
+
+    # RCLONE — declarative cloud storage sync (Garage S3 on nexus).
+    # The config file (/etc/rclone/rclone.conf) is generated from cfg.remotes
+    # by the rclone module; credential fields left empty here are supplied at
+    # runtime via env vars wired through sops-nix paths in each syncJob.
+    rclone-sync = {
+      enable = true;
+
+      remotes = {
+        # Garage S3 cluster (runs on nexus, endpoint 10.1.1.120:3900).
+        # Credentials are left empty in the config so rclone reads them from
+        # env vars — the sops-nix-decrypted files under /run/secrets/.
+        garage = {
+          type = "s3";
+          provider = "Other";
+          endpoint = "http://10.1.1.120:3900";
+          accessKeyId = "";
+          secretAccessKey = "";
+          region = "garage";
+        };
+      };
+
+      # Verification job: list the garage bucket contents every day at 03:00.
+      # Reads the garage S3 secret from /run/secrets (populated by sops-nix).
+      syncJobs = [
+        {
+          name = "garage-list";
+          source = "garage:";
+          destination = "garage:";
+          mode = "ls";
+          startAt = "03:00";
+          enableTimer = true;
+          sopsSecretEnvs = [
+            { var = "AWS_ACCESS_KEY_ID"; secretPath = "/run/secrets/storage/garage-s3-access-key-id"; }
+            { var = "AWS_SECRET_ACCESS_KEY"; secretPath = "/run/secrets/storage/garage-s3-secret-key"; }
+          ];
+        }
+      ];
     };
   };
 
@@ -385,6 +425,10 @@
   # effective configuration includes the SDL/HDR arguments, not just the WSI
   # package support.
   services.gaming.hdr.enable = true;
+
+  # Pin DXVK/NVAPI + the GameMode overclock hook to the display-attached
+  # RTX 3090 (multi-GPU host: 3090 + 3060 Ti). Left null on single-GPU hosts.
+  services.gaming.gpuFilter = "NVIDIA GeForce RTX 3090";
 
   # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
   # `plasma` session name from the SDDM valid-session registry. Valid
@@ -1022,6 +1066,10 @@
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
     telegram-desktop
+    # Freebuff Desktop — packaged from the AppImage (appimageTools.wrapType2).
+    # Installed system-wide so noctalia's systemd-run (PATH=/run/current-system/sw/bin)
+    # can resolve `freebuff-desktop` for launcher clicks (was only in ~/.local/bin).
+    freebuff-desktop
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright

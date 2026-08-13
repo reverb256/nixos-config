@@ -19,7 +19,22 @@ in {
       defaultSopsFile = "${inputs.self}/secrets/ai/nvidia-api-key.yaml";
       defaultSopsFormat = "binary";
       age.keyFile = "/etc/nixos/.age/key.txt";
-      secrets = {};
+    };
+    sops.secrets = {
+      "storage/garage-s3-access-key-id" = {
+        sopsFile = "${inputs.self}/secrets/storage/garage-s3-access-key-id.yaml";
+        format = "yaml";
+        owner = "root";
+        group = "root";
+        mode = "0440";
+      };
+      "storage/garage-s3-secret-key" = {
+        sopsFile = "${inputs.self}/secrets/storage/garage-s3-secret-key.yaml";
+        format = "yaml";
+        owner = "root";
+        group = "root";
+        mode = "0440";
+      };
     };
   };
 }
