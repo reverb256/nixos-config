@@ -35,8 +35,9 @@ done
 
 echo "[classic-compat] verifying namespace entries"
 classic_hosts=$(nix eval --json --no-warn-dirty \
+  --apply 'n: builtins.attrNames n' \
   '.#classicNixosConfigurations' \
-  | jq -r 'keys | sort | join(" ")')
+  | jq -r 'sort | join(" ")')
 if [[ "$classic_hosts" != "forge nexus sentry zephyr" ]]; then
   echo "[classic-compat] ERROR: expected all four entries, got: $classic_hosts" >&2
   exit 1
