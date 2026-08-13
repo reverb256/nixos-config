@@ -173,6 +173,10 @@ in {
       # (all four share the post-build cache, so per-host naming matters).
       # Lix's meson.build composes the version as `version.json + $VERSION_SUFFIX`;
       # nixpkgs' common-lix.nix already plumbed env.VERSION_SUFFIX = suffix.
+      # __intentionallyOverridingVersion silences the nixpkgs warning about
+      # overriding `version` without `src` — we WANT to rename the store path
+      # while building the identical upstream source (plus our patches).
+      __intentionallyOverridingVersion = true;
       version = "${old.version}-homelab-${microarch}";
 
       # 1. Raise the Boehm GC initial-heap cap from 384 MiB to 8 GiB so
@@ -198,6 +202,16 @@ in {
       env = (old.env or {}) // {
         VERSION_SUFFIX = "-homelab-${microarch}";
         NIX_CFLAGS_COMPILE = "${old.env.NIX_CFLAGS_COMPILE or ""} -march=${microarch} -O3";
+        # The Rust crates (lix-rs, lix-doc) build via cargo, which does NOT
+        # read NIX_CFLAGS_COMPILE. Give them the same per-host microarch.
+        # Append (not overwrite) so any nixpkgs default isn't clobbered.
+        #
+        # CAVEAT: RUSTFLAGS also applies to proc-macro / build-script crates
+        # that EXECUTE on the build host during compilation. If nexus (znver2)
+        # builds a host's znver3 Lix, a proc-macro emitting znver3-only
+        # instructions could SIGILL mid-build. Drop RUSTFLAGS (or build the
+        # per-host variant on that host) if the znver3-for-nexus build breaks.
+        RUSTFLAGS = "${old.env.RUSTFLAGS or ""} -C target-cpu=${microarch}";
       };
     }));
 
@@ -230,6 +244,23 @@ in {
       # fully-qualified git+https URL, so the registry is pure latency plus a
       # whole failure class (github: implicit-registry 401s, curl-42 aborts).
       flake-registry = "";
+
+      # ── Eval-cache (homelab fork) ──
+      # Lix's SQLite flake eval-cache skips re-evaluating the whole 30-input
+      # flake on every `nixos-rebuild` / direct `nix build .#nixosConfigurations…`.
+      # (NB: colmena's `--evaluator streaming` path uses nix-eval-jobs, which does
+      # its own eval and does not hit this cache — the win is on the
+      # nixos-rebuild / direct-build path.) Gated in lix/libcmd/installables.cc:402
+      # on `use-eval-cache && pure-eval`, so BOTH must be true. Historically the
+      # deploy scripts passed `--option pure-eval false` (a CLI flag, which
+      # overrides nix.conf), silently disabling the cache on the deploy path —
+      # those overrides are now removed. Set both explicitly so the pairing is
+      # durable across upstream default changes and visible in one place.
+      # Safe here: all four hosts + home-manager + apps evaluate cleanly under
+      # `nix eval --pure-eval` (the old sops-nix eval-time age-key decrypt
+      # migrated to the runtime secretspec subprocess provider).
+      eval-cache = true;
+      pure-eval = true;
 
       auto-optimise-store = true;
 
