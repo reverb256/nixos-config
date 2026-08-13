@@ -127,7 +127,9 @@ def main() -> None:
 
     # Required gates must fail closed.
     require(
-        'done < <(find . -name "*.nix" -not -path "./.git/*")' in ci,
+        "while IFS= read -r -d '' f; do" in ci
+        and '-print0)' in ci
+        and 'exit "$FAILED"' in ci,
         "Nix parse gate must preserve failures outside a pipeline subshell",
     )
     require(
