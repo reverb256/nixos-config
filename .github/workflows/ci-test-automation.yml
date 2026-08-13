@@ -20,18 +20,12 @@ jobs:
 
   test-coverage:
     name: Test Coverage
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     timeout-minutes: 120
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Run all Nix tests with coverage
         run: |

@@ -10,7 +10,7 @@ permissions:
 jobs:
   delete-head:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Delete head branch
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410

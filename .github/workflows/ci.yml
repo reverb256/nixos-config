@@ -15,13 +15,13 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # STAGE 1: Quick validation (fast, runs on GitHub runners)
+  # STAGE 1: Quick validation (fast, self-hosted)
   # ============================================================================
 
   parse-check:
     timeout-minutes: 20
     name: Parse Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -46,12 +46,6 @@ jobs:
             fi
           done
           echo "$FAILED unsigned commit(s) found"
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Validate workflow syntax
         run: nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint --ignore 'shellcheck reported issue' .github/workflows/*.yml
@@ -79,19 +73,13 @@ jobs:
   quick-check:
     timeout-minutes: 30
     name: Quick Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Nix flake check
         run: |
@@ -108,19 +96,13 @@ jobs:
   lint:
     timeout-minutes: 30
     name: Lint Nix
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Lint changed Nix files
         run: |
@@ -156,7 +138,7 @@ jobs:
   home-path-guard:
     timeout-minutes: 15
     name: Home Path Guard (#309)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -207,7 +189,7 @@ jobs:
   tests:
     timeout-minutes: 90
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     needs: [parse-check]
     steps:
       - name: Checkout
@@ -215,12 +197,6 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Parse all test files
         run: |
@@ -273,7 +249,7 @@ jobs:
   security:
     timeout-minutes: 30
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     permissions:
       contents: read
       security-events: write
@@ -283,12 +259,6 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           fetch-depth: 0
-
-      - name: Install Nix
-        # pin:cachix/install-nix-action@v31
-        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Run osv-scanner
         run: |
@@ -330,11 +300,9 @@ jobs:
     timeout-minutes: 360
     name: Build Configs
     needs: [quick-check, lint, tests]
-    # Issue #474: PRs build on GitHub-hosted runners; trusted pushes run on
-    # the pinned Nexus builder only. runs-on expressions cannot yield label
-    # arrays directly, so fromJSON() builds the [self-hosted, nixos, nexus,
-    # builder] array at runtime (actionlint-verified, GitHub-documented).
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
+    # Hosted GitHub runners are retired (2026-08-13) — all jobs run on the
+    # pinned Nexus builder only.
+    runs-on: [self-hosted, nixos, nexus, builder]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
