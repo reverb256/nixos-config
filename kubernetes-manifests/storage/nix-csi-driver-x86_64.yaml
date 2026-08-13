@@ -362,7 +362,11 @@ spec:
           resources:
             requests:
               cpu: 10m
-              memory: 10Mi
+              # >=32Mi required: kube-system system-resource-limits LimitRange
+              # enforces min memory 32Mi; 10Mi made the DS pod fail admission
+              # ("minimum memory usage per Container is 32Mi, but request is
+              # 10Mi") -> CSI never registered -> 18 pods stuck 2d13h.
+              memory: 32Mi
           volumeMounts:
             - mountPath: /csi
               name: csi-socket
@@ -377,7 +381,8 @@ spec:
           resources:
             requests:
               cpu: 10m
-              memory: 10Mi
+              # >=32Mi required (see csi-node-driver-registrar note).
+              memory: 32Mi
           volumeMounts:
             - mountPath: /csi
               name: csi-socket
