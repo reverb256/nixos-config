@@ -92,7 +92,7 @@ in {
         {
           name = "disable-in-tree-it87";
           patch = null;
-          extraStructuredConfig = with lib.kernel; {
+          structuredExtraConfig = with lib.kernel; {
             SENSORS_IT87 = lib.mkForce no;
           };
         }
