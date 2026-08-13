@@ -67,12 +67,15 @@ in mkIf cfg.enable {
         custom = {
           start = "${pkgs.writeShellScript "gamemode-start" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-            gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$2 ~ /RTX 3090/ {print $1; exit}')
-            if [ -n "$gaming_gpu" ]; then
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=1" 2>/dev/null || true
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
-            fi
+            ${lib.optionalString (cfg.gpuFilter != null) ''
+              gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null \
+                | awk -F', ' -v gf=${lib.escapeShellArg cfg.gpuFilter} 'index($2, gf) {print $1; exit}')
+              if [ -n "$gaming_gpu" ]; then
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=1" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+              fi
+            ''}
             # Nexus intentionally keeps PeakMiner and its declared power profile
             # active while Gamescope and games run concurrently. Do not let the
             # shared GameMode hook rewrite its clocks/power on that host.
@@ -80,12 +83,15 @@ in mkIf cfg.enable {
           ''}";
           end = "${pkgs.writeShellScript "gamemode-end" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-            gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$2 ~ /RTX 3090/ {print $1; exit}')
-            if [ -n "$gaming_gpu" ]; then
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=0" 2>/dev/null || true
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
-              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
-            fi
+            ${lib.optionalString (cfg.gpuFilter != null) ''
+              gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null \
+                | awk -F', ' -v gf=${lib.escapeShellArg cfg.gpuFilter} 'index($2, gf) {print $1; exit}')
+              if [ -n "$gaming_gpu" ]; then
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+              fi
+            ''}
             ${lib.optionalString (config.networking.hostName != "nexus") "/etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true"}
           ''}";
         };
@@ -151,6 +157,14 @@ in mkIf cfg.enable {
           export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
           export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
           export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+          # HDR env is gated by services.gaming.hdr.enable (declared in
+          # gaming-hdr.nix) so single-GPU SDR hosts like nexus get a clean
+          # Vulkan/WSI baseline instead of HDR vars forced on unconditionally.
+          ${lib.optionalString cfg.hdr.enable ''
+            export ENABLE_GAMESCOPE_WSI=1
+            export DXVK_HDR=1
+            export PROTON_ENABLE_HDR=1
+          ''}
         '';
       };
     };
@@ -168,9 +182,8 @@ in mkIf cfg.enable {
         __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
         __GLX_FORCE_MONO = "0";
         __GL_ALLOW_FXAA_USAGE = "1";
-        ENABLE_GAMESCOPE_WSI = "1";
-        DXVK_HDR = "1";
-        PROTON_ENABLE_HDR = "1";
+        # HDR env vars (ENABLE_GAMESCOPE_WSI, DXVK_HDR) moved to gaming-hdr.nix,
+        # gated by services.gaming.hdr.enable.
       };
       args = [
         "--immediate-flips"
@@ -249,7 +262,10 @@ in mkIf cfg.enable {
       GAMEMODE_AUTO_RELOAD_CONFIG = "1";
       SDL_JOYSTICK_AXIS_DEADZONE = "30";
       SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
-      DXVK_FILTER_DEVICE_NAME = "NVIDIA GeForce RTX 3090";
+    } // lib.optionalAttrs (cfg.gpuFilter != null) {
+      # Pin DXVK/DXVK-NVAPI to the display GPU on multi-GPU hosts (zephyr).
+      # Left null on single-GPU hosts (nexus) for normal loader discovery.
+      DXVK_FILTER_DEVICE_NAME = cfg.gpuFilter;
       PROTON_ENABLE_NVAPI = "1";
       DXVK_ENABLE_NVAPI = "1";
     };

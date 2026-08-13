@@ -40,6 +40,8 @@
 
     # Bonsai 27B local inference (1-bit Q1_0 on AMD RX 5600 XT via Vulkan)
     ../../modules/services/bonsai.nix
+    # llama-swap cluster: llama-swap across the board (unified turboquant binary)
+    ../../modules/services/llama-swap-cluster.nix
   ];
 
   # ============================================================================
@@ -130,12 +132,15 @@
   services = {
     k3s-cluster = {
       enable = true;
-      role = "server";
+      role = "agent";
       # 2026-08-08: nexus (10.1.1.120) recovered; sentry rejoins the nexus
-      # cluster as a non-initializing server. (During the nexus outage sentry
-      # temporarily bootstrapped its own cluster; that temp CA is discarded.)
-      clusterInit = false;
-      nodeName = "sentry";
+      # cluster as an agent (non-server). Sentry was temporarily bootstrapped
+      # as a standalone server during the nexus outage; that temp CA is discarded.
+      # Running as agent avoids the flannel-backend mismatch that occurs when
+      # a non-initializing server tries to join a cluster with a different
+      # flannel backend config in etcd. Direct nexus address avoids the
+      # keepalived VIP deadlock (sentry holds VIP 10.1.1.100 but its k3s
+      # was down — the VIP routed kubectl to a dead API server).
       serverAddr = "https://10.1.1.120:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
@@ -533,4 +538,7 @@
     # Sentry has no /models mount; weights live at /srv/models.
     onebitModel = "/srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
   };
+
+  # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
+  services.llama-swap-cluster.enable = true;
 }

@@ -86,10 +86,14 @@ in {
 
       vrrpScripts = lib.optionalAttrs cfg.enableHealthCheck {
         check-kube-apiserver = {
-          # NOTE: keepalived requires the script on a SINGLE line. A multiline
-          # '' string emits a newline inside the quotes, which keepalived ≥2.3
-          # rejects as "Unmatched quote" and the VRRP child SIGSEGVs (no VIP).
-          script = "exec ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz";
+          # k3s /healthz requires Bearer auth (HTTP 401 without a token), so the
+          # keepalived_script user can never get a 200 — the health check would
+          # always "fail" and drop priority by `weight` (here -20), making this
+          # node's effective priority equal to lower-priority nodes and risking
+          # unnecessary VIP flapping. Curl without -f exits 0 on any HTTP response
+          # (200-499) and only fails on connection errors / refused / timeout.
+          # Fallback: check the k3s systemd unit state.
+          script = "exec ${pkgs.curl}/bin/curl -s -o /dev/null --connect-timeout 3 --max-time 5 --insecure https://127.0.0.1:6443/healthz || systemctl is-active --quiet k3s";
           weight = -20;
           interval = 2;
           fall = 2;

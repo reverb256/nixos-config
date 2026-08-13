@@ -28,10 +28,10 @@
       url = "git+https://gitlab.com/rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    freebuff-flake = {
-      url = "git+https://github.com/reverb256/freebuff-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # NOTE: freebuff-flake input REMOVED (2026-08-13, duplication reconcile).
+    # The Freebuff binary is packaged locally at packages/freebuff-desktop.nix
+    # (wrapType2, verified hash) and installed via environment.systemPackages;
+    # the flake was declared but never consumed, and its pinned hash was stale.
     # home-manager - Lix github:-fetcher cannot resolve implicit registry refs.
     # Declared explicitly with git+https:// transport (same sweep as other inputs).
     home-manager = {
@@ -173,6 +173,14 @@
     preservation = {
       url = "git+https://github.com/nix-community/preservation";
     };
+    # llama-cpp-turboquant - retroheim prism fork: PrismML Bonsai weights
+    # (Q1_0/Q2_0) + TheTom TurboQuant KV (turbo2/3/4 + TQ3_1S/TQ4_1S) in one
+    # llama.cpp. TriAttention removed upstream (176bc4fd) - it truncated the
+    # effective context window below --ctx-size on Bonsai inference.
+    # Pinned: 2026-05-03 "Remove TriAttention entirely".
+    llama-cpp-turboquant = {
+      url = "git+https://github.com/retroheim/prism-ml-llama.cpp?ref=prism&rev=176bc4fda2ed8bdc0d2f1d863c51b918980d046d";
+    };
   };
 
   outputs = inputs @ {
@@ -278,7 +286,7 @@
 
           # OUTPUT 4: homeConfigurations — consumed from standalone home-manager-config flake
           # Layer 2 of the 3-layer model (NixOS / Home Manager / nix profile).
-          # The standalone flake manages its own inputs (freebuff-flake, nixcord, zen-browser,
+          # The standalone flake manages its own inputs (nixcord, zen-browser,
           # stylix, niri) and patches (noctalia SDR brightness). It exposes homeConfigurations
           # keyed by hostName (zephyr/nexus/forge/sentry) for colmena deployment.
           homeConfigurations = inputs.home-manager-config.homeConfigurations;
@@ -344,29 +352,19 @@
 
           packages.claude = claude-native.packages.x86_64-linux.claude;
           packages.llama-cpp = pkgs.llama-cpp;
-          # One llama.cpp binary with BOTH CUDA and Vulkan backends, covering
-          # the whole fleet: NVIDIA 3090/3060 Ti (CUDA) + Navi 10 Radeons on
-          # forge/sentry (Vulkan). Built from the PrismML bonsai-ml fork so the
-          # Q1_0/Q2_0 repack + DSpark + CPU-MoE specializations are compiled in
-          # (mainline lacks them; the fleet ran the fork's CUDA build already).
-          # Build once on nexus, reference the store path everywhere
-          # (llm-loader, llama-swap, bonsai).
-          packages.llama-cpp-unified = pkgs.llama-cpp.override {
-            useFork = true;
-            cudaSupport = true;
-            vulkanSupport = true;
-            cudaArchitectures = "86;89"; # GA102/GA104 (3090/3060Ti) + AD107 (4060)
-          };
-          # AMD-only variant: same PrismML fork, Vulkan backend without CUDA.
-          # The CUDA build hard-links libcuda.so.1 (DT_NEEDED) and cannot load
-          # on AMD hosts (no libcuda); the loader dies before Vulkan starts.
-          # Fork lineage kept so Q1_0/Q2_0 repack + CPU-MoE + DSpark stay in.
-          packages.llama-cpp-unified-vulkan = pkgs.llama-cpp.override {
-            useFork = true;
-            cudaSupport = false;
-            vulkanSupport = true;
-          };
+          # One llama.cpp binary with BOTH CUDA and Vulkan backends + TurboQuant
+          # KV + PrismML Bonsai support, covering the whole fleet: NVIDIA
+          # 3090/3060 Ti (CUDA) + Navi 10 Radeons on forge/sentry (Vulkan).
+          # Source: retroheim/prism-ml-llama.cpp (PrismML + TheTom TurboQuant),
+          # pinned input. Turbo KV types (turbo2/3/4) compile in with the
+          # backends — required for 256k context on 8 GB cards without RAM spill.
+          # Provided by overlays/llama.nix so host configs resolve the same drv.
+          packages.llama-cpp-unified = pkgs.llama-cpp-unified;
           packages.secretspec = pkgs.secretspec;
+          # llama-swap — model swapping proxy (mostlygeek v240, same version
+          # zephyr's home-manager runs). System-layer package for the cluster
+          # llama-swap services on nexus/forge/sentry.
+          packages.llama-swap = pkgs.llama-swap;
           # CONTAINER IMAGES (for Kubernetes deployment)
 
           # Claude Code container image for Kubernetes deployment

@@ -23,14 +23,17 @@
 # and update the hash.
 let
   pname = "freebuff-desktop";
-  version = "0.0.22"; # approximate; actual version is determined by the API
+  version = "0.0.42"; # approximate; actual version is determined by the API
   src = fetchurl {
     url = "https://freebuff.com/api/desktop/download/linux";
-    # Hash of the AppImage downloaded 2026-07-29 (~v0.0.22+).
-    # Updated after upstream released a new build (hash changed).
-    # To update: nix build .#nixosConfigurations.zephyr.config.system.build.toplevel;
-    # copy the expected hash from the failed build output.
-    sha256 = "sha256-o/e1TeVq9HzTQ/36JLM8JJM5OQ29lZ30ihUDptUXksQ=";
+    # Hash of the AppImage served by the API as of 2026-08-13 (v0.0.42),
+    # verified by a real build. (The freebuff-flake flake input that used to
+    # carry this package was removed 2026-08-13 — this repo is the single
+    # source.) The API always redirects to the latest build, so re-verify on
+    # every upgrade:
+    #   nix build .#nixosConfigurations.zephyr.pkgs.freebuff-desktop
+    #   copy the expected hash from the failed build output.
+    sha256 = "sha256-1TB2NUe9ECI20cUtAjK2CJaN5YnbCSr7HW/MkON3Mdo=";
   };
   # Extract the icon from the AppImage first
   appimageContents = appimageTools.extractType2 {

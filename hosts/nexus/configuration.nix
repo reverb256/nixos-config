@@ -65,6 +65,8 @@
     ../../modules/services/mosaic-k3s-manifests.nix
     # Bonsai 27B: ternary (when GPU idle, port 1238), 1-bit (port 1235)
     ../../modules/services/bonsai.nix
+    # llama-swap cluster: llama-swap across the board (unified turboquant binary)
+    ../../modules/services/llama-swap-cluster.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -234,7 +236,7 @@
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
-      interface = "eth0";
+      interface = "enp7s0";
       priority = 110;
     };
 
@@ -683,4 +685,7 @@
   services.bonsai = {
     enable = true;
   };
+
+  # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
+  services.llama-swap-cluster.enable = true;
 }

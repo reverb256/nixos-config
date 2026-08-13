@@ -35,7 +35,9 @@ in {
         if currentHost == "zephyr"
         then 2 # minimal for coordination
         else if currentHost == "nexus"
-        then 8
+        then 12 # 3900X = 12 physical cores; full CPU for whichever derivation runs
+        else if currentHost == "sentry"
+        then 8 # R7 1700 = 8 physical cores; secondary builder
         else 2
       );
 
@@ -48,7 +50,9 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 6 # exclusive builder — 8 build cores / 6 concurrent jobs
+        then 2 # 12 cores x 2 jobs = 24 threads (SMT) — never over-sold (nix.dev manual)
+        else if currentHost == "sentry"
+        then 2 # 8 cores x 2 jobs = 16 threads (SMT) — never over-sold
         else 0
       );
 
@@ -255,8 +259,31 @@ in {
               systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 6;
+              maxJobs = 2; # sync with nix.settings.max-jobs on nexus (12 cores x 2)
               speedFactor = 10; # exclusive builder
+              connectTimeout = 1;
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "sentry";
+              # Secondary builder (R7 1700, 8 physical cores, 31 GiB RAM).
+              # ssh-ng was wedged here before at 16-job oversubscription
+              # (pipe-drain NixOS/nix#5701); the new low-jobs config (2 jobs,
+              # connect-timeout=1) keeps pipe pressure low, and nexus has run
+              # ssh-ng fine under this config since. If it wedges again,
+              # flip protocol to "ssh" (nix-store --serve, no pipe-drain path).
+              # maxJobs=2 syncs with sentry's own nix.settings.max-jobs
+              # (8 cores x 2 jobs = 16 SMT threads).
+              protocol = "ssh-ng";
+              systems = ["x86_64-linux"];
+              sshUser = "j_kro";
+              sshKey = userHome + "/.ssh/id_ed25519";
+              maxJobs = 2;
+              speedFactor = 6; # secondary — below nexus's 10
               connectTimeout = 1;
               supportedFeatures = [
                 "big-parallel"

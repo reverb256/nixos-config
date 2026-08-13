@@ -111,7 +111,7 @@ with lib; let
   # `model` and `memoryMax` are overridable per-host (sentry uses /srv/models
   # and a smaller ctx/ram cap than the 8-24 GB NVIDIA hosts). Also opens the
   # service port in the host firewall (cluster convention: mkOptionDefault).
-  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, model ? cfg.onebitModel, contextSize ? "131072", cacheTypeK ? "q4_0", cacheTypeV ? "q4_0", memoryMax ? "6G", specType ? null, specDraftNMax ? null, draftModel ? null }: {
+  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, model ? cfg.onebitModel, contextSize ? "262144", cacheTypeK ? "turbo4", cacheTypeV ? "turbo4", memoryMax ? "6G", specType ? null, specDraftNMax ? null, draftModel ? null }: {
     systemd.services."bonsai-1bit-${name}" = {
       description = desc;
       after = ["network.target"];
@@ -214,8 +214,8 @@ with lib; let
 
   # 1-bit on nexus 3060 Ti (8 GB)
   bit1Nexus = mkIf (host == "nexus" && true) (mk1bitService {
-    name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235) q4_0 KV 128K";
-    port = 1235;
+    name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235) turbo4 KV 256k";
+    port = 1235; contextSize = "262144";
   });
 
   # NOTE: ternary on nexus was REMOVED (2026-08-12). The 3060 Ti is an 8 GB
@@ -227,14 +227,14 @@ with lib; let
 
   # 1-bit on forge 4060 GPU 0 (8 GB)
   bit1Forge0 = mkIf (host == "forge" && true) (mk1bitService {
-    name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002) q4_0 KV 128K";
-    port = 8002; gpu = "0";
+    name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002) turbo4 KV 256k";
+    port = 8002; gpu = "0"; contextSize = "262144";
   });
 
   # 1-bit on forge 4060 GPU 1 (8 GB)
   bit1Forge1 = mkIf (host == "forge" && cfg.enableForge1) (mk1bitService {
-    name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006) q4_0 KV 128K";
-    port = 8006; gpu = "1";
+    name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006) turbo4 KV 256k";
+    port = 8006; gpu = "1"; contextSize = "262144";
   });
 
   # NOTE: ternary on forge was REMOVED (2026-08-12) — same root cause as nexus:
@@ -299,9 +299,14 @@ in {
     };
 
     package = mkOption {
-      type = types.package;
-      default = prismBinary;
-      description = "PrismML llama.cpp package. Defaults to binaryStorePath wrapper.";
+      type = types.nullOr types.package;
+      default = null;
+      description = ''
+        llama.cpp package (e.g. the flake's llama-cpp-unified output: PrismML
+        Bonsai + TurboQuant KV + CUDA + Vulkan). Used by prismBinary when
+        binaryStorePath is null. The wrapper (not getExe) resolves llama-server.
+      '';
+      example = lib.literalExpression ''pkgs.llama-cpp-unified'';
     };
 
     ternaryModel = mkOption {
