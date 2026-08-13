@@ -248,6 +248,27 @@ in {
     extraLabels = ["nexus" "builder"];
   };
 
+  # Second runner for the quill repo (2026-08-13): GitHub Actions runners are
+  # per-repo — the nixos-config runner above can NEVER pick up quill CI jobs
+  # (runs-on: [self-hosted, nixos] queued forever). This instance registers
+  # nexus-quill-runner against reverb256/quill with the same labels.
+  # Lower cgroup ceiling: quill CI is pnpm/tsc, not nix builds.
+  services.ci-runners = {
+    enable = true;
+    instances = {
+      quill = {
+        user = "runner-quill";
+        repo = "reverb256/quill";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["nexus" "quill"];
+        memoryHigh = "16G";
+        memoryMax = "24G";
+      };
+    };
+  };
+
   services.k8s-secret-sync = {
     enable = true;
     # MapleSpike/Quill Stripe + JWT secret mappings removed 2026-08-08: the
