@@ -127,7 +127,6 @@
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
-    ./services/ci-runners.nix
     ./services/auto-update.nix
     ./services/hermes/default.nix
     ./services/hermes-cli.nix
