@@ -105,7 +105,9 @@ def main() -> None:
     require("github.event_name == 'pull_request'" in automation, "test automation must cancel obsolete PR runs")
     require(
         "--arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}'" in automation
-        and "import <nixpkgs> {}" not in automation,
+        and "import <nixpkgs> {}" not in automation
+        and automation.count("nix-instantiate --eval --strict") >= 2
+        and "grep -oE 'passed = true|all_pass = true'" in automation,
         "test automation must use the pinned flake nixpkgs input",
     )
     require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")

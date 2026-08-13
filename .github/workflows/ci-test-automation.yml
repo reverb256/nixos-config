@@ -57,12 +57,12 @@ jobs:
               continue
             fi
 
-            if nix-instantiate --eval \
+            if nix-instantiate --eval --strict \
               --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
               "$test" 2>&1; then
-              result=$(nix-instantiate --eval \
+              result=$(nix-instantiate --eval --strict \
                 --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
-                "$test" 2>/dev/null | grep -o 'passed = true' || true)
+                "$test" 2>/dev/null | grep -oE 'passed = true|all_pass = true' || true)
 
               if [ -n "$result" ]; then
                 echo "  ✓ PASS"
