@@ -390,9 +390,13 @@
           packages.llama-cpp = pkgs.llama-cpp;
           # One llama.cpp binary with BOTH CUDA and Vulkan backends, covering
           # the whole fleet: NVIDIA 3090/3060 Ti (CUDA) + Navi 10 Radeons on
-          # forge/sentry (Vulkan). Build once on nexus, reference the store
-          # path everywhere (llm-loader, llama-swap, bonsai).
+          # forge/sentry (Vulkan). Built from the PrismML bonsai-ml fork so the
+          # Q1_0/Q2_0 repack + DSpark + CPU-MoE specializations are compiled in
+          # (mainline lacks them; the fleet ran the fork's CUDA build already).
+          # Build once on nexus, reference the store path everywhere
+          # (llm-loader, llama-swap, bonsai).
           packages.llama-cpp-unified = pkgs.llama-cpp.override {
+            useFork = true;
             cudaSupport = true;
             vulkanSupport = true;
             cudaArchitectures = "86;89"; # GA102/GA104 (3090/3060Ti) + AD107 (4060)
