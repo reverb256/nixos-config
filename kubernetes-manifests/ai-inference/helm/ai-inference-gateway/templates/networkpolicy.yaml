@@ -40,7 +40,7 @@ spec:
     - ports:
         - protocol: TCP
           port: 6379
-    # Allow external APIs (ZAI, NIM, etc.)
+    # Allow configured external APIs (NIM and other approved providers)
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

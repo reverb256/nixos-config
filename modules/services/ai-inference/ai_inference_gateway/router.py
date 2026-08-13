@@ -293,7 +293,7 @@ class ModelInfo:
     specializations: List[TaskSpecialization] = field(default_factory=list)
     cost_tier: int = 1
     estimated_tokens_per_second: float = 50.0
-    backend: str = "llama-cpp"  # llama-cpp, zai, etc.
+    backend: str = "llama-cpp"  # llama-cpp, vllm, or another local backend
 
 
 @dataclass
@@ -383,7 +383,6 @@ class Router:
         # Backend health cache
         self._backend_health: Dict[str, bool] = {
             "llama-cpp": True,
-            "zai": True,
         }
         self._backend_health_check_time: Dict[str, float] = {}
         self._health_check_ttl: float = 10.0  # Check health every 10 seconds
@@ -399,7 +398,7 @@ class Router:
         Get current load on a backend.
 
         Args:
-            backend: Backend name (llama-cpp, zai, etc.)
+            backend: Backend name (for example, llama-cpp or vllm)
 
         Returns:
             Dict with load information
@@ -543,21 +542,16 @@ class Router:
         Check if a backend is healthy.
 
         Uses cached health status with TTL to avoid excessive health checks.
-        For llama-cpp, we check if the backend is accepting connections.
-        For zai, we assume it's healthy (cloud service).
+        For local backends, we check if the backend is accepting connections.
 
         Args:
-            backend: Backend name (llama-cpp, zai, etc.)
+            backend: Backend name (for example, llama-cpp or vllm)
             force_check: Force a new health check, bypassing cache
 
         Returns:
             True if backend is healthy, False otherwise
         """
         import time
-
-        # ZAI is assumed healthy (cloud service with own failover)
-        if backend == "zai":
-            return True
 
         # Determine port for this backend
         port = self.BACKEND_PORTS.get(backend)
@@ -646,7 +640,6 @@ class Router:
         Note: "1M" context variants map to the same underlying model since Qwen models
         support up to 256K context. The distinction is client-side metadata.
 
-        ZAI fallback chain (when Local backend down/capacity): glm-5 → glm-4.7 → glm-4.5-air
         """
         return {
             # Haiku tier → Local 0.8B Opus reasoning distilled (fastest)
@@ -858,105 +851,20 @@ class Router:
         # Check if llama.cpp is healthy before routing
         local_backend_healthy = await self.check_backend_health("llama-cpp")
 
-        # If Local backend (llama-cpp) is down, route directly to ZAI
         if not local_backend_healthy:
-            logger.info("Local backend (llama-cpp) is down, auto-failing over to ZAI")
-            estimated_tokens = self.estimate_tokens(messages)
-
-            # Get available ZAI models
-            zai_models = [m for m in self.models.values() if m.backend == "zai"]
-            if zai_models:
-                # Sort by priority and pick the best one
-                best_zai = max(zai_models, key=lambda m: m.priority)
-                specialization = self.detect_specialization(messages)
-
-                # If client requested a specific model, try to map it
-                if requested_model and requested_model in self.claude_model_mapping:
-                    mapped_model = self.claude_model_mapping[requested_model]
-                    model_info = self.models.get(mapped_model)
-                    if model_info and model_info.backend == "zai":
-                        return RouteDecision(
-                            model=mapped_model,
-                            confidence=1.0,
-                            reason=f"Local backend down, using ZAI fallback for {requested_model}",
-                            estimated_tokens=estimated_tokens,
-                            backend="zai",
-                            specialization=specialization,
-                            expected_latency_ms=model_info.estimated_tokens_per_second
-                            * estimated_tokens
-                            / 1000,
-                        )
-
-                return RouteDecision(
-                    model=best_zai.id,
-                    confidence=0.95,
-                    reason="Local backend down (auto-failover to ZAI)",
-                    estimated_tokens=estimated_tokens,
-                    backend="zai",
-                    specialization=specialization,
-                    expected_latency_ms=best_zai.estimated_tokens_per_second
-                    * estimated_tokens
-                    / 1000,
-                )
-            else:
-                # No ZAI models available - this is an error condition
-                logger.error("Local backend down and no ZAI models available!")
-                # Return default model anyway (will likely fail)
-                return RouteDecision(
-                    model="qwen/qwen3.5-9b",
-                    confidence=0.1,
-                    reason="Local backend down, no ZAI fallback available",
-                    estimated_tokens=estimated_tokens,
-                    backend="llama-cpp",
-                )
+            logger.warning(
+                "Local llama.cpp backend is unhealthy; routing will continue "
+                "so the request can use an explicitly configured backend"
+            )
 
         # Check if llama.cpp is busy with streaming requests
         local_backend_load = await self.get_backend_load("llama-cpp")
 
-        # If llama.cpp is at capacity (processing streams), route to ZAI
         if local_backend_load["at_capacity"] and local_backend_load["is_streaming"]:
             logger.info(
-                f"Local backend busy ({local_backend_load['active_requests']} active requests, "
-                f"streaming: {local_backend_load['is_streaming']}), auto-offloading to ZAI"
+                "Local backend is at streaming capacity; selecting from "
+                "configured local candidates"
             )
-            # Find best ZAI model for the request
-            estimated_tokens = self.estimate_tokens(messages)
-
-            # If client requested a specific model, check if we can map it to ZAI
-            if requested_model:
-                # Check if it's a Claude model that maps to ZAI
-                if requested_model in self.claude_model_mapping:
-                    mapped_model = self.claude_model_mapping[requested_model]
-                    model_info = self.models.get(mapped_model)
-                    if model_info and model_info.backend == "zai":
-                        return RouteDecision(
-                            model=mapped_model,
-                            confidence=1.0,
-                            reason=f"llama.cpp at capacity, using ZAI fallback for {requested_model}",
-                            estimated_tokens=estimated_tokens,
-                            backend="zai",
-                            expected_latency_ms=model_info.estimated_tokens_per_second
-                            * estimated_tokens
-                            / 1000,
-                        )
-
-            # Otherwise, find best ZAI model based on specialization
-            zai_models = [m for m in self.models.values() if m.backend == "zai"]
-            if zai_models:
-                # Sort by priority and pick the best one
-                best_zai = max(zai_models, key=lambda m: m.priority)
-                specialization = self.detect_specialization(messages)
-                return RouteDecision(
-                    model=best_zai.id,
-                    confidence=0.9,
-                    reason="llama.cpp at capacity (auto-failover to ZAI)",
-                    estimated_tokens=estimated_tokens,
-                    backend="zai",
-                    specialization=specialization,
-                    expected_latency_ms=best_zai.estimated_tokens_per_second
-                    * estimated_tokens
-                    / 1000,
-                )
 
         # Estimate tokens
         estimated_tokens = self.estimate_tokens(messages)
@@ -1290,61 +1198,6 @@ def create_default_router() -> Router:
             cost_tier=1,
             estimated_tokens_per_second=110.0,
             backend="llama-cpp",
-        ),
-        # ZAI models - Fallback priority order: glm-5 → glm-4.7 → glm-4.5-air
-        ModelInfo(
-            id="glm-5",
-            name="GLM-5",
-            context_length=200000,
-            priority=9,  # Highest ZAI priority (Opus tier fallback)
-            specializations=[TaskSpecialization.AGENTIC, TaskSpecialization.GENERAL],
-            cost_tier=4,
-            estimated_tokens_per_second=40.0,
-            backend="zai",
-        ),
-        ModelInfo(
-            id="glm-4.7",
-            name="GLM-4.7",
-            context_length=200000,
-            priority=8,  # Second ZAI priority (Sonnet tier fallback)
-            specializations=[TaskSpecialization.CODING, TaskSpecialization.GENERAL],
-            cost_tier=3,
-            estimated_tokens_per_second=50.0,
-            backend="zai",
-        ),
-        ModelInfo(
-            id="glm-4.5-air",
-            name="GLM-4.5 Air",
-            context_length=132000,
-            priority=7,  # Third ZAI priority (Haiku tier fallback)
-            specializations=[TaskSpecialization.FAST],
-            cost_tier=1,
-            estimated_tokens_per_second=80.0,
-            backend="zai",
-        ),
-        ModelInfo(
-            id="glm-4.6v",
-            name="GLM-4.6v",
-            context_length=200000,
-            priority=6,  # Lower priority (vision specialist)
-            specializations=[
-                TaskSpecialization.CODING,
-                TaskSpecialization.FAST,
-                TaskSpecialization.VISION,
-            ],
-            cost_tier=2,
-            estimated_tokens_per_second=60.0,
-            backend="zai",
-        ),
-        ModelInfo(
-            id="glm-4-flash",
-            name="GLM-4 Flash",
-            context_length=128000,
-            priority=5,  # Lowest ZAI priority
-            specializations=[TaskSpecialization.FAST],
-            cost_tier=1,
-            estimated_tokens_per_second=80.0,
-            backend="zai",
         ),
     ]
 

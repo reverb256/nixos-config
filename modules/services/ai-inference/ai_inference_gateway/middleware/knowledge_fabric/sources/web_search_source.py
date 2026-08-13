@@ -1,7 +1,7 @@
 """
 Web Search Knowledge Source Adapter for Knowledge Fabric
 
-Provides MCP-based web search integration using the web_search_prime tool.
+Provides MCP-based web search integration using the gateway's local search tool.
 """
 
 import logging
@@ -22,10 +22,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WebSearchKnowledgeSource:
     """
-    Web search knowledge source via MCP web_search_prime integration.
+    Web search knowledge source via the local MCP search integration.
 
-    Provides real-time web search capabilities through the MCP broker,
-    aggregating results from multiple search engines.
+    Provides real-time web search capabilities through the local MCP broker.
     """
     mcp_url: str = "http://127.0.0.1:8080/mcp/call"
     max_results: int = 5
@@ -38,7 +37,7 @@ class WebSearchKnowledgeSource:
 
     async def retrieve(self, query: str, **kwargs) -> KnowledgeResult:
         """
-        Execute web search via MCP web_search_prime tool.
+        Execute web search via the local MCP search tool.
 
         Uses JSON-RPC 2.0 over HTTP with SSE response handling.
         """
@@ -50,8 +49,8 @@ class WebSearchKnowledgeSource:
 
         chunks = []
         metadata = {
-            "tool": "webSearchPrime",
-            "mcp_server": "web-search-prime",
+            "tool": "search",
+            "mcp_server": "local-web-search",
         }
 
         try:
@@ -61,9 +60,9 @@ class WebSearchKnowledgeSource:
                 "id": 1,
                 "method": "tools/call",
                 "params": {
-                    "name": "webSearchPrime",
+                    "name": "search",
                     "arguments": {
-                        "search_query": sanitized_query,
+                        "query": sanitized_query,
                     }
                 }
             }

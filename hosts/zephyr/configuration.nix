@@ -718,7 +718,6 @@
     # AI Coding Tools - Harmonized MCP configs (Droid, Claude, Crush, OpenCode)
     ai-coding-tools = {
       enable = true;
-      zaiApiKeyFile = "/run/secrets/zai-api-key";
       context7ApiKeyFile = "/run/secrets/context7-api-key";
       tools.pi.packages = [
         "npm:pi-annotated-reply@0.4.1"
@@ -837,7 +836,7 @@
     group = "root";
   };
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
-  # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
+  # Gateway routes to local and approved inference backends.
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
 
@@ -1138,7 +1137,7 @@
   '';
 
   # ============================================================================
-  # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
+  # CLAUDE CODE ROUTER - Route Claude Code to approved local/NVIDIA models
   # ============================================================================
   # Corsair keyboard/mouse driver daemon (ckb-next)
   systemd.services.ckb-next = {

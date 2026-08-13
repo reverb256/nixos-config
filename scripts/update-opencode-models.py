@@ -20,7 +20,6 @@ from pathlib import Path
 
 # Configuration
 GATEWAY_URL = "http://127.0.0.1:8080"
-LM_STUDIO_API_KEY = Path("/run/agenix/lm-studio-api-key")
 OPENCODE_USER_CONFIG = Path.home() / ".config" / "opencode" / "opencode.json"
 OPENCODE_ROOT_CONFIG = Path("/root/.config/opencode/opencode.json")
 
@@ -56,10 +55,10 @@ MODEL_PATTERNS = {
     # writing - documentation and prose
     "writing": ["unredacted", "writing", "prose"],
 
-    # visual-engineering - UI/UX (requires vision models - use ZAI)
+    # visual-engineering - UI/UX (requires a multimodal model when available)
     "visual-engineering": ["vision", "multimodal", "vl"],
 
-    # artistry - creative work (requires creative models - use ZAI)
+    # artistry - creative work
     "artistry": ["creative", "artistic"],
 }
 
@@ -97,8 +96,8 @@ def categorize_model(model_id: str) -> str:
     - artistry: Creative work (requires creative models)
     - writing: Documentation, prose
 
-    Note: Local LM Studio models don't have vision capabilities,
-    so visual-engineering/artistry should use ZAI remote models.
+    Local models may not provide vision capabilities. Keep visual and
+    creative routing explicit when a compatible model is available.
     """
     model_lower = model_id.lower()
 
@@ -328,18 +327,9 @@ def fetch_gateway_models() -> List[str]:
         return []
 
 
-def read_api_key() -> Optional[str]:
-    """Read LM Studio API key from file."""
-    try:
-        return LM_STUDIO_API_KEY.read_text().strip()
-    except Exception:
-        return None
-
-
 def generate_opencode_config(
     model_ids: List[str],
     existing_config: Optional[Dict] = None,
-    zai_api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Generate complete OpenCode configuration."""
 
@@ -362,17 +352,24 @@ def generate_opencode_config(
                     "maxRetries": 3,
                 },
                 "models": models_config,
-            }
+            },
+            "nvidia-nim": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "NVIDIA NIM",
+                "options": {
+                    "baseURL": "https://integrate.api.nvidia.com/v1",
+                    "apiKey": "{env:NVIDIA_NIM_API_KEY}",
+                },
+            },
+            "lmstudio": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "LM Studio (Local)",
+                "options": {
+                    "baseURL": "http://127.0.0.1:1234/v1",
+                },
+            },
         },
     }
-
-    # Add ZAI provider if API key is available or exists in current config
-    if zai_api_key or (existing_config and "zai-coding-plan" in existing_config.get("provider", {})):
-        config["provider"]["zai-coding-plan"] = {
-            "options": {
-                "apiKey": "{env:ZAI_API_KEY}",
-            }
-        }
 
     # Select default and small models
     default_model = select_default_model(model_ids)
@@ -381,8 +378,16 @@ def generate_opencode_config(
     config["model"] = default_model
     config["small_model"] = small_model
 
-    # Preserve existing configurations
+    # Preserve existing configurations. The canonical providers below win for
+    # managed IDs, while user-defined providers remain intact.
     if existing_config:
+        existing_providers = existing_config.get("provider")
+        if isinstance(existing_providers, dict):
+            config["provider"] = {
+                **existing_providers,
+                **config["provider"],
+            }
+
         # Preserve MCP servers if they exist
         if "mcp" in existing_config:
             config["mcp"] = existing_config["mcp"]
@@ -428,12 +433,9 @@ def update_opencode_config(
         except Exception as e:
             print(f"⚠ Could not read existing config: {e}")
 
-    # Read ZAI API key (for reference only - we use env var in config)
-    zai_api_key = read_api_key()
-
     # Generate new configuration
     print("\n🔧 Generating OpenCode configuration...")
-    new_config = generate_opencode_config(model_ids, existing_config, zai_api_key)
+    new_config = generate_opencode_config(model_ids, existing_config)
 
     # Print summary
     print("\n📊 Configuration Summary:")

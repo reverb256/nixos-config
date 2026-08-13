@@ -20,10 +20,9 @@ metadata:
   name: ai-inference-gateway-config
   namespace: ai-inference
 data:
-  # Backend configuration (primary: local llama.cpp, fallback: ZAI)
+  # Backend configuration
   BACKEND_URL: "http://zephyr.lan:8081"
   BACKEND_TYPE: "llama-cpp"
-  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/coding/paas/v4"
 
   # Gateway configuration
   GATEWAY_HOST: "0.0.0.0"
@@ -167,12 +166,6 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config
                 key: BACKEND_TYPE
-          - name: ZAI_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: ai-inference-gateway-secrets
-                key: zai-api-key
-                optional: true
           - name: BACKEND_FALLBACK_URLS
             valueFrom:
               configMapKeyRef:
@@ -510,7 +503,7 @@ spec:
       ports:
         - protocol: UDP
           port: 53
-    # Allow HTTPS egress to external APIs (ZAI, Pollinations)
+    # Allow HTTPS egress to configured external APIs
     - ports:
         - protocol: TCP
           port: 443

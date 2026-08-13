@@ -48,36 +48,6 @@ create_namespace() {
     print_success "Namespace created/updated"
 }
 
-# Create secrets from existing config
-create_secrets() {
-    print_step "Creating secrets..."
-
-    # Extract Z.AI API key from Claude config
-    if [ -f ~/.claude.json ]; then
-        ZAI_KEY=$(jq -r '.mcpServers["zai-mcp-server"].env.Z_AI_API_KEY' ~/.claude.json 2>/dev/null)
-
-        if [ "$ZAI_KEY" != "null" ] && [ -n "$ZAI_KEY" ]; then
-            kubectl create secret generic ai-coding-secrets \
-                --from-literal=zai-api-key="$ZAI_KEY" \
-                --namespace="$NAMESPACE" \
-                --dry-run=client -o yaml | kubectl apply -f -
-            print_success "Secrets created from existing config"
-        else
-            print_warning "Z.AI API key not found, creating placeholder"
-            kubectl create secret generic ai-coding-secrets \
-                --from-literal=zai-api-key="placeholder" \
-                --namespace="$NAMESPACE" \
-                --dry-run=client -o yaml | kubectl apply -f -
-        fi
-    else
-        print_warning "Claude config not found, creating placeholder secret"
-        kubectl create secret generic ai-coding-secrets \
-            --from-literal=zai-api-key="placeholder" \
-            --namespace="$NAMESPACE" \
-            --dry-run=client -o yaml | kubectl apply -f -
-    fi
-}
-
 # Deploy storage
 deploy_storage() {
     print_step "Deploying storage..."
@@ -176,7 +146,6 @@ main() {
 
     check_prereqs
     create_namespace
-    create_secrets
     deploy_storage
     deploy_claude_code
     deploy_opencode

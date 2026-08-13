@@ -233,13 +233,6 @@ class CategoryRouter:
         # Build model pools by specialization
         self._build_model_pools()
 
-        # GLM model tier configuration (for ZAI backend)
-        self.glm_tiers = {
-            5: ["glm-5", "glm-5-flash"],  # Highest tier
-            4.7: ["glm-4.7"],
-            4.6: ["glm-4.6", "glm-4.6v"],  # Vision model
-            4.5: ["glm-4.5-air"],  # Fast model
-        }
 
     def _build_model_pools(self) -> None:
         """Build model pools organized by specialization and quality tier."""

@@ -104,13 +104,7 @@ spec:
         - name: CLAUDE_HISTORY_FILE
           value: /home/j_kro/.claude/history.jsonl
 
-        # MCP Server configuration (inherited from mounted config)
-        - name: Z_AI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ai-coding-secrets
-              key: zai-api-key
-              optional: true
+        # MCP configuration is managed by the mounted Claude config.
 
         ports:
         - name: http

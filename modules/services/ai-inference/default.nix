@@ -56,7 +56,7 @@ in {
       url = mkOption {
         type = types.str;
         default = "http://127.0.0.1:1234";
-        description = "Backend API URL (LM Studio, vLLM, Ollama, or ZAI)";
+        description = "Backend API URL (LM Studio, vLLM, Ollama, or another OpenAI-compatible service)";
       };
 
       type = mkOption {
@@ -64,92 +64,10 @@ in {
           "vllm"
           "llama-cpp"
           "sglang"
-          "zai"
           "pollinations"
         ];
         default = "llama-cpp";
         description = "Backend inference engine type";
-      };
-
-      # ZAI-specific configuration
-      zai = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable ZAI coding plan endpoint";
-        };
-
-        apiKey = mkOption {
-          type = types.str;
-          default = "";
-          description = "ZAI API key for coding plan";
-        };
-
-        apiKeyFile = mkOption {
-          type = types.nullOr types.path;
-          default = null;
-          example = literalExpression "/run/secrets/zai-api-key";
-          description = "Path to file containing ZAI API key (takes precedence over apiKey)";
-        };
-
-        baseUrl = mkOption {
-          type = types.str;
-          default = "https://api.z.ai/api/coding/paas/v4";
-          description = "ZAI API base URL (matches OpenCode configuration)";
-        };
-
-        # Advanced retry configuration
-        maxRetries = mkOption {
-          type = types.int;
-          default = 3;
-          description = "Maximum retry attempts for ZAI requests";
-        };
-
-        retryDelay = mkOption {
-          type = types.float;
-          default = 1.0;
-          description = "Initial retry delay in seconds (exponential backoff)";
-        };
-
-        timeout = mkOption {
-          type = types.float;
-          default = 300.0;
-          description = "Request timeout in seconds";
-        };
-
-        enableRetry = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Enable automatic retry with exponential backoff for ZAI requests";
-        };
-
-        models = mkOption {
-          type = types.attrs;
-          default = {
-            "glm-5.1" = {
-              name = "GLM-5.1 (200K)";
-            };
-            "glm-5" = {
-              name = "GLM-5 (200K)";
-            };
-            "glm-5-turbo" = {
-              name = "GLM-5 Turbo (200K, Agentic)";
-            };
-            "glm-4.7" = {
-              name = "GLM-4.7 (200K)";
-            };
-            "glm-4.7-flash" = {
-              name = "GLM-4.7 Flash (128K, Vision)";
-            };
-            "glm-4.6" = {
-              name = "GLM-4.6 (256K)";
-            };
-            "glm-4.5-air" = {
-              name = "GLM-4.5 Air (128K)";
-            };
-          };
-          description = "Available ZAI models";
-        };
       };
 
       # Pollinations-specific configuration
@@ -319,7 +237,6 @@ in {
         type = types.listOf types.str;
         default = [
           "vllm"
-          "zai"
           "pollinations"
         ];
         description = "Order of backend fallback on failure";
@@ -808,58 +725,6 @@ in {
           Configure a backend URL in one of these ways:
             services.ai-inference.backend.url = "http://127.0.0.1:1234";  # LM Studio
             services.ai-inference.backend.url = "http://127.0.0.1:8080";  # Gateway
-        '';
-      }
-      {
-        assertion =
-          cfg.backend.zai.enable -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
-        message = ''
-          ZAI backend is enabled but no API key is configured.
-
-          When services.ai-inference.backend.zai.enable is true, you must configure:
-            services.ai-inference.backend.zai.apiKey = "your-api-key";
-            # OR
-            services.ai-inference.backend.zai.apiKeyFile = /run/secrets/zai-api-key;
-
-          Current configuration:
-            zai.enable = ${toString cfg.backend.zai.enable}
-            zai.apiKey = ${
-            if cfg.backend.zai.apiKey != ""
-            then "***"
-            else "(not set)"
-          }
-            zai.apiKeyFile = ${
-            if cfg.backend.zai.apiKeyFile != null
-            then toString cfg.backend.zai.apiKeyFile
-            else "(not set)"
-          }
-        '';
-      }
-      {
-        assertion =
-          cfg.backend.type == "zai" -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
-        message = ''
-          Backend type is "zai" but no ZAI API key is configured.
-
-          When using ZAI backend, configure an API key:
-            services.ai-inference.backend.zai.apiKey = "your-zai-api-key";
-            # OR
-            services.ai-inference.backend.zai.apiKeyFile = /run/secrets/zai-api-key;
-
-          Current configuration:
-            backend.type = "${cfg.backend.type}"
-            zai.apiKey = ${
-            if cfg.backend.zai.apiKey != ""
-            then "***"
-            else "(not set)"
-          }
-            zai.apiKeyFile = ${
-            if cfg.backend.zai.apiKeyFile != null
-            then toString cfg.backend.zai.apiKeyFile
-            else "(not set)"
-          }
-
-          Or change backend type to: vllm, llama-cpp, sglang, pollinations
         '';
       }
       {
