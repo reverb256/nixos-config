@@ -32,6 +32,7 @@ jobs:
             echo "No failed jobs found, skipping."
             exit 0
           fi
+          bash -n scripts/ci-doctor.sh
           bash scripts/ci-doctor.sh \
             "${{ github.repository }}" \
             "${{ github.event.workflow_run.id }}" \

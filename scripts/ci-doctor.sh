@@ -94,6 +94,7 @@ $DIAGNOSIS
 $(echo "$LOGS" | tail -c 3000)
 \`\`\`
 ISSUE
+)
 
 gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" 2>&1 || {
   echo "$BODY" > "$TMPDIR/issue_body.md"
