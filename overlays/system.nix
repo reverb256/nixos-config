@@ -42,6 +42,16 @@
     cudaSupport = true;
     inherit (prev) cudaPackages;
   };
+  # PrismML bonsai-ml fork + CUDA + Vulkan in one binary — the fleet-wide
+  # package (Q1_0/Q2_0 repack, DSpark, CPU-MoE). Real derivation, so colmena
+  # copies it and GC keeps it (unlike string binaryStorePath refs).
+  llama-cpp-unified = prev.callPackage ../packages/llama-cpp.nix {
+    useFork = true;
+    cudaSupport = true;
+    vulkanSupport = true;
+    cudaArchitectures = "86;89";
+    inherit (prev) cudaPackages;
+  };
   llama-cpp-ik = prev.callPackage ../packages/llama-cpp-ik.nix {};
   llama-cpp-rocm = prev.callPackage ../packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ../packages/llama-cpp-vulkan.nix {};

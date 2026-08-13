@@ -39,18 +39,18 @@ with lib; let
   # hosts must point binaryStorePath at a proper flake output so colmena copies
   # it and GC keeps it. Until migrated, restore a GC'd binary by copying it from
   # a host that still has it (nexus/zephyr).
+  # Durable default: the unified PrismML fork package (CUDA+Vulkan, Q1_0/Q2_0
+  # repack, DSpark, CPU-MoE) from the overlay/flake. It is a REAL derivation,
+  # so colmena copies it to targets and GC keeps it — no string-path hazard.
+  # Hosts may still pin a specific fork store path via binaryStorePath (e.g.
+  # the old 560rfa8pm build) but should migrate to the unified package.
   prismBinary = if cfg.binaryStorePath != null then
     pkgs.writeShellScriptBin "llama-server-bonsai" ''
       export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       exec ${cfg.binaryStorePath}/bin/llama-server "$@"
     ''
   else
-    throw ''
-      services.bonsai.binaryStorePath is null but services.bonsai.enable is true.
-
-      Build the PrismML fork per the instructions in the header of this file,
-      then point services.bonsai.binaryStorePath at the resulting store path.
-    '';
+    pkgs.llama-cpp-unified;
 
   # Optional PrismML fork Vulkan binary (NVIDIA/AMD fork build).
   prismVulkanBinary =
@@ -175,20 +175,20 @@ with lib; let
   # NOTE: llama.cpp enumerates CUDA0 = RTX 3090, CUDA1 = RTX 3060 Ti — the
   # REVERSE of nvidia-smi (GPU0 = 3060 Ti, GPU1 = 3090). GPU pinning uses
   # CUDA_VISIBLE_DEVICES, so ternary (24 GB card) = "0", 1-bit (8 GB) = "1".
-  ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
+  ternaryZephyr = mkIf (host == "zephyr" && true) (mkTernaryService {
     name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) q8_0 KV + DSpark";
     port = 8005; gpu = "0"; memoryMax = "20G";
     extraEnv = { GGML_CUDA_GRAPH_OPT = "1"; LLAMA_ATTN_ROT_DISABLE = "1"; CUDA_SCALE_LAUNCH_QUEUES = "4"; LD_LIBRARY_PATH = "/usr/local/lib/bonsai-turbo:/run/opengl-driver/lib"; };
   });
 
   # 1-bit on zephyr 3060 Ti (CUDA1 = 8 GB) — explicit 128K + q4_0 KV
-  bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
+  bit1Zephyr = mkIf (host == "zephyr" && true) (mk1bitService {
     name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236) q4_0 KV 128K";
     port = 1236; gpu = "1";
   });
 
   # 1-bit on nexus 3060 Ti (8 GB)
-  bit1Nexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mk1bitService {
+  bit1Nexus = mkIf (host == "nexus" && true) (mk1bitService {
     name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235) q4_0 KV 128K";
     port = 1235;
   });
@@ -201,13 +201,13 @@ with lib; let
   # unconditionally.
 
   # 1-bit on forge 4060 GPU 0 (8 GB)
-  bit1Forge0 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
+  bit1Forge0 = mkIf (host == "forge" && true) (mk1bitService {
     name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002) q4_0 KV 128K";
     port = 8002; gpu = "0";
   });
 
   # 1-bit on forge 4060 GPU 1 (8 GB)
-  bit1Forge1 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
+  bit1Forge1 = mkIf (host == "forge" && true) (mk1bitService {
     name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006) q4_0 KV 128K";
     port = 8006; gpu = "1";
   });
