@@ -83,13 +83,11 @@ in
     # (the NixOS-side kde target historically caused "option does not
     # exist" eval errors when autoEnable probed it).
     targets.qt.enable = true;
-    # Avoid qtct→kvantum (default for non-GNOME/non-Plasma-only DEs).
-    # Cluster runs niri; use gnome platform → adwaita-dark so Qt matches
-    # GTK (adw-gtk3) without Kvantum plugins (removed for Plasma6/NVIDIA
-    # crash risk; also fragile when theme files are missing).
-    # mkForce: override stylix DE-detect (niri is neither pure GNOME nor pure
-    # Plasma6, so the module would set qtct → kvantum).
-    targets.qt.platform = lib.mkForce "qtct";
+    # Qt platform theme is owned by the HM-native `qt` module
+    # (modules/system/home-manager.nix: platformTheme adwaita + style
+    # adwaita-dark). Do NOT set stylix targets.qt.platform here: the old
+    # "qtct" value is a known KDE freeze (stylix#971 / PR#1310 comment) and
+    # is dead config anyway — HM wins at runtime via QT_QPA_PLATFORMTHEME.
 
     autoEnable = false;
 
