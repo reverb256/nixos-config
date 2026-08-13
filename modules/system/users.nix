@@ -29,6 +29,9 @@
       "gamemode"
       "i2c"
       "kvm"
+      # Handy STT global hotkeys: rdev needs /dev/uinput (input group +
+      # udev rule below) to register system-wide shortcuts on Wayland.
+      "input"
     ];
     packages = with pkgs; (
       # Desktop apps only on hosts with a desktop environment
@@ -96,5 +99,13 @@
   # j_kro already a kvm member via incus-gamepass; ensure root can use KVM too.
   users.users.root.extraGroups = [ "kvm" ];
   users.groups.i2c = {};
+  users.groups.input = {};
+
+  # Handy STT (rdev global hotkeys): allow the input group to read/write
+  # /dev/uinput so system-wide shortcuts work on Wayland (niri owns the
+  # bind; rdev injects via uinput).
+  services.udev.extraRules = lib.mkAfter ''
+    KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660"
+  '';
   users.groups.ai-inference = {};
 }
