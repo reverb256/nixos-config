@@ -31,19 +31,18 @@ with lib; let
   # Wrap the PrismML fork CUDA binary into a package.
   # 2026-07-29: Fail-fast on misconfiguration — throw if enable is true but no
   # binaryStorePath is set, rather than silently falling back to upstream.
-  # 2026-08-13: binaryStorePath must become a REAL closure dependency
-  # (builtins.storePath), not a bare string in the wrapper script. String
-  # interpolation is invisible to the nix store DB, so `nix-collect-garbage`
-  # deleted the binary on forge while the wrapper survived (status 127 crash
-  # loop, restart counter 29). builtins.storePath registers the path as an
-  # input of the wrapper derivation: colmena copies it to targets on deploy
-  # and GC keeps it. All hosts (zephyr/nexus/forge) must have the path in
-  # their local store for eval — they do, since their bonsai services run it.
+  # 2026-08-13: GC hazard documented. binaryStorePath is interpolated as a
+  # string, invisible to the store DB — nix-collect-garbage deleted the binary
+  # on forge while the wrapper survived (status 127 crash loop). builtins.storePath
+  # was tried as a fix but is BANNED in pure eval (colmena deploys pure). Durable
+  # fix is the unified llama-cpp flake package (packages.llama-cpp-unified):
+  # hosts must point binaryStorePath at a proper flake output so colmena copies
+  # it and GC keeps it. Until migrated, restore a GC'd binary by copying it from
+  # a host that still has it (nexus/zephyr).
   prismBinary = if cfg.binaryStorePath != null then
-    let binaryPath = builtins.storePath cfg.binaryStorePath; in
     pkgs.writeShellScriptBin "llama-server-bonsai" ''
-      export LD_LIBRARY_PATH="${binaryPath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      exec ${binaryPath}/bin/llama-server "$@"
+      export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      exec ${cfg.binaryStorePath}/bin/llama-server "$@"
     ''
   else
     throw ''
@@ -56,10 +55,9 @@ with lib; let
   # Optional PrismML fork Vulkan binary (NVIDIA/AMD fork build).
   prismVulkanBinary =
     if cfg.vulkanBinaryStorePath != null then
-      let vkPath = builtins.storePath cfg.vulkanBinaryStorePath; in
       pkgs.writeShellScriptBin "llama-server-bonsai-vulkan" ''
-        export LD_LIBRARY_PATH="${vkPath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        exec ${vkPath}/bin/llama-server "$@"
+        export LD_LIBRARY_PATH="${cfg.vulkanBinaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        exec ${cfg.vulkanBinaryStorePath}/bin/llama-server "$@"
       ''
     else null;
 
@@ -82,9 +80,8 @@ with lib; let
 
   # turboQuant binary wrapper — wraps the retroheim turbo build.
   turboPackage = if cfg.turboBinaryStorePath != null then
-    let turboPath = builtins.storePath cfg.turboBinaryStorePath; in
     pkgs.writeShellScriptBin "llama-server-turbo-asym" ''
-      exec ${turboPath}/llama-server-turbo "$@"
+      exec ${cfg.turboBinaryStorePath}/llama-server-turbo "$@"
     ''
   else null;
 
