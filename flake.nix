@@ -231,11 +231,20 @@
           commonModules = import ./common-modules-list.nix {
             inherit inputs self;
           };
+          # Shared dendritic host evaluator (single source of truth for the
+          # module-list and specialArgs contract used by every host).
+          mkDendriticHost = import ./lib/dendritic-host.nix {
+            inherit inputs self commonModules;
+          };
 
           # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-          # No classic cluster hosts remain — all four are dendritic; this
-          # helper survives only for the portable rescue config below.
-          mkNixosSystem = {
+          # No classic cluster hosts remain - all four are dendritic. This
+          # independent legacy evaluator is kept as a compatibility ORACLE: it
+          # deliberately does NOT call mkDendriticHost.mkHost, so a regression
+          # in the shared module/argument contract is caught by drvPath/hostName
+          # divergence between the two namespaces before the classic layer is
+          # removed. The portable rescue config below rides this helper.
+          mkClassicNixosSystem = {
             hostName,
             extraModules ? [],
           }:
@@ -248,9 +257,8 @@
               # qtbase/dufs fixes reach host builds. Passing an external `pkgs`
               # instance instead triggered "configures nixpkgs with an externally
               # created instance" because those modules set `nixpkgs.config`.
-              specialArgs = {
-                inherit inputs vfioPkgs;
-              };
+              inherit system;
+              specialArgs = mkDendriticHost.mkSpecialArgs system;
               modules =
                 commonModules
                 ++ [
@@ -292,7 +300,7 @@
           nixosConfigurations =
             builtins.mapAttrs (
               _name: value:
-                mkNixosSystem {
+                mkClassicNixosSystem {
                   inherit (value) hostName extraModules;
                 }
             )
@@ -305,6 +313,19 @@
             // {
               portable = portableConfig;
             };
+
+          # Explicit compatibility namespace: exercise the pre-dendritic
+          # evaluator for every current host without colliding with the live
+          # dendritic `nixosConfigurations.<host>` outputs. This is removed only
+          # after all four dendritic host closures build successfully.
+          classicNixosConfigurations =
+            builtins.mapAttrs (
+              _name: value:
+                mkClassicNixosSystem {
+                  inherit (value) hostName extraModules;
+                }
+            )
+            hosts;
 
           # OUTPUT 2: colmena (raw hive configuration)
           # The typed inventory is the whole-cluster source of truth.
@@ -387,6 +408,7 @@
             zephyr-dispatcher-policy = mkCheck "zephyr-dispatcher-policy" ./tests/zephyr-dispatcher-policy.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
             inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
+            dendritic-parity = mkCheck "dendritic-parity" ./tests/dendritic-parity.nix;
           };
 
           # EXISTING OUTPUTS (maintain compatibility)
