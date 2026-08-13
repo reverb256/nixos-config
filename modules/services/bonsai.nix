@@ -48,6 +48,10 @@ with lib; let
   # server binary (the raw package's mainProgram is llama-cli, which takes no
   # --host/--port). The unified package is interpolated as "${...}" so Nix
   # records a REAL dependency: colmena copies it, GC keeps it.
+  # Sentry (AMD-only) must use llama-cpp-unified-vulkan: the CUDA+Vulkan build
+  # hard-links libcuda.so.1 (DT_NEEDED) and the loader dies before Vulkan
+  # initializes on AMD-only hosts (verified 2026-08-13).
+  effectiveLlama = if host == "sentry" then pkgs.llama-cpp-unified-vulkan else pkgs.llama-cpp-unified;
   prismBinary = if cfg.binaryStorePath != null then
     pkgs.writeShellScriptBin "llama-server-bonsai" ''
       export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -55,8 +59,8 @@ with lib; let
     ''
   else
     pkgs.writeShellScriptBin "llama-server-bonsai" ''
-      export LD_LIBRARY_PATH="${pkgs.llama-cpp-unified}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      exec ${pkgs.llama-cpp-unified}/bin/llama-server "$@"
+      export LD_LIBRARY_PATH="${effectiveLlama}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      exec ${effectiveLlama}/bin/llama-server "$@"
     '';
 
   # Optional PrismML fork Vulkan binary (NVIDIA/AMD fork build).

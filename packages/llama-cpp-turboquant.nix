@@ -21,17 +21,20 @@
 # while adding TurboQuant KV compression (the 8 GB 3060 Ti / 4060s need it
 # for 256k context without spilling to system RAM).
 #
-# PATCH (2026-08-13, verified): the fork registers
-#   CREATE_FA(GGML_TYPE_TURBO3_0, turbo3_0, FA_COOPMAT2, _cm2)
-# inside VK_NV_cooperative_matrix2, but its shader-gen never emits a turbo3_0
-# coopmat2 SPIR-V variant -> CUDA+Vulkan builds fail at ggml-vulkan.cpp:3587.
+# PATCH (2026-08-13, verified applies clean): the fork registers per-type
+# flash-attn pipelines for NV cooperative matrix v2 (FA_COOPMAT2) but its
+# shader-gen never emits the per-type coopmat2 SPIR-V variants — only a
+# generic flash_attn_cm2.comp + mul_mm_cm2 (matmul). Every
+# CREATE_FA(..., FA_COOPMAT2, _cm2) references nonexistent symbols, so a
+# CUDA+Vulkan build fails (verified twice: turbo3_0 first, then iq4_nl).
 # Upstream TheTom agrees ("cm2 NV-coopmat skipped, fp32-only for turbo3",
-# a09bafe). No fleet hardware uses NV coopmat2 on Vulkan (NVIDIA= CUDA,
-# Navi 10 = no coopmat2), so we drop that single registration.
+# a09bafe). No fleet hardware uses NV coopmat2 on Vulkan (NVIDIA = CUDA,
+# Navi 10 = no coopmat2), so we drop the whole flash-attn coopmat2 block.
 {
   lib,
   pkgs,
   llama-cpp-turboquant,
+  useCuda ? true,
   ...
 }:
 let
@@ -39,7 +42,7 @@ let
   packageNix = "${forkSource}/.devops/nix/package.nix";
 in
 (pkgs.callPackage packageNix {
-  useCuda = true;
+  inherit useCuda;
   useVulkan = true;
   useBlas = false;
   useMpi = false;
@@ -48,5 +51,5 @@ in
   useWebUi = false; # headless cluster; skip tools/ui npm build
   llamaVersion = "turboquant-176bc4f";
 }).overrideAttrs (old: {
-  patches = (old.patches or []) ++ [ ../patches/drop-turbo3-cm2.patch ];
+  patches = (old.patches or []) ++ [ ../patches/drop-fa-coopmat2.patch ];
 })

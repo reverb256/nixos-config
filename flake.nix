@@ -360,6 +360,10 @@
           # backends — required for 256k context on 8 GB cards without RAM spill.
           # Provided by overlays/llama.nix so host configs resolve the same drv.
           packages.llama-cpp-unified = pkgs.llama-cpp-unified;
+          # AMD-only variant (useCuda=false): the CUDA+Vulkan build hard-links
+          # libcuda.so.1 and cannot load on AMD-only hosts (sentry). Same
+          # retroheim turboquant fork, Vulkan backend only.
+          packages.llama-cpp-unified-vulkan = pkgs.llama-cpp-unified-vulkan;
           packages.secretspec = pkgs.secretspec;
           # llama-swap — model swapping proxy (mostlygeek v240, same version
           # zephyr's home-manager runs). System-layer package for the cluster
