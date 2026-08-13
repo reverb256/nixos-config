@@ -23,14 +23,11 @@
   #   sudo dd if=result/portable.raw of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync
   meshKeys = import ../../mesh-keys.nix;
 
-  # 1-bit Bonsai 27B GGUF embedded at a fixed path (/models/...) so the
-  # llama-server service can reference it. repart storePaths only carries
-  # store paths, so wrap the GGUF in a runCommand that places it at the
-  # exact target subpath; a tmpfiles rule symlinks it into place at boot.
-  bonsaiModel = pkgs.runCommand "bonsai-1bit-model" { } ''
-    mkdir -p $out/models/bonsai/1bit-27b
-    cp ${/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf} $out/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf
-  '';
+  # The portable image has no checked-in model payload. Keep the model
+  # integration optional so pure flake evaluation never reads a host path.
+  modelAvailable = false;
+  bonsaiModel = null;
+
 in {
   imports = [
     "${modulesPath}/image/repart.nix"
@@ -195,11 +192,11 @@ in {
   # ── Local AI inference: 1-bit Bonsai 27B on Vulkan + Hermes ──
   # Symlink the embedded model (in /nix/store via bonsaiModel) to the fixed
   # path the service expects, created at boot by tmpfiles.
-  systemd.tmpfiles.rules = [
+  systemd.tmpfiles.rules = lib.mkIf modelAvailable [
     "L+ /models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf - - - - ${bonsaiModel}/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf"
   ];
   # llama-cpp-vulkan serves it on 127.0.0.1:8080; Hermes points at that.
-  systemd.services.bonsai-local = {
+  systemd.services.bonsai-local = lib.mkIf modelAvailable {
     description = "Local Bonsai 27B 1-bit inference (Vulkan)";
     after = ["network.target"];
     wantedBy = ["multi-user.target"];
@@ -219,7 +216,8 @@ in {
     };
   };
   # Hermes desktop client: point at the local Bonsai server.
-  environment.etc."hermes/config.toml".text = ''
+  environment.etc."hermes/config.toml" = lib.mkIf modelAvailable {
+    text = ''
     [models.local]
     name = "bonsai-27b-1bit-local"
     provider = "openai"
@@ -232,7 +230,8 @@ in {
     type = "openai"
     base_url = "http://127.0.0.1:8080/v1"
     api_key = "sk-local"
-  '';
+    '';
+  };
 
   # ── Nix on the stick: official cache + self-contained store ──
   nix.settings = {
