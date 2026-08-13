@@ -72,6 +72,9 @@
     monitoring = {
       autoDetect = false;
       fanControl = true;
+      # Board-specific curve script; required when fanControl is on
+      # (monitoring.nix asserts this and coerces it into ExecStart).
+      fanScript = "/etc/nixos/scripts/simple-fancontrol.py";
     };
 
     corsair = {
