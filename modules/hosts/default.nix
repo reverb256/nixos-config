@@ -7,8 +7,9 @@
 #
 # Adding a host = one line here + modules/hosts/<host>/default.nix.
 #
-# Incremental rollout (map: zephyr → forge → sentry → nexus (nexus skipped while down): this registry
-# currently registers zephyr + forge. nexus/forge/sentry join here as their
-# cutover lands, while they stay on the classic shim (common-modules-list.nix
-# + mkNixosSystem) until then.
-{ imports = [ ./zephyr ./forge ]; }
+# Migration complete (2026-08-13): ALL four hosts are dendritic.
+# Rollout order: zephyr (#398) → forge (#411/#413) → nexus → sentry.
+# No host remains on the classic shim (common-modules-list.nix + mkNixosSystem);
+# the shim in flake.nix now has an empty classicHosts set and is a
+# legacy carve-out pending dissolution.
+{imports = [./zephyr ./forge ./nexus ./sentry];}
