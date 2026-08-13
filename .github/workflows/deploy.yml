@@ -58,7 +58,41 @@ jobs:
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "All targets build successfully. Proceeding with deploy..."
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Guard Layer-2 lock sync
+        run: |
+          cd /etc/nixos
+          # The home-manager-config flake input is the Layer-2 source of truth.
+          # If flake.lock pins a rev behind the input's default branch (master),
+          # the deploy silently ships the stale Layer-2 config. Catch that here
+          # before any node is touched.
+          LOCK_REV=$(python3 - <<'PY'
+          import json
+          d = json.load(open('flake.lock'))
+          n = d['nodes']
+          for k, v in n.items():
+              if 'home-manager-config' in k:
+                  print(v['locked']['rev'])
+                  break
+          PY
+          )
+          REMOTE_REV=$(git ls-remote https://github.com/reverb256/home-manager-config.git refs/heads/master | awk '{print $1}')
+          echo "flake.lock pins home-manager-config at: $LOCK_REV"
+          echo "home-manager-config master is at:         $REMOTE_REV"
+          if [ -z "$REMOTE_REV" ]; then
+            echo "::warning::Could not reach home-manager-config remote; skipping lock-sync guard (network-limited)."
+            exit 0
+          fi
+          if [ "$LOCK_REV" != "$REMOTE_REV" ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "ABORT: home-manager-config lock is behind master."
+            echo "Run 'nix flake update home-manager-config' (or wait for the"
+            echo "scheduled flake-update.yml PR) and re-run the deploy."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          fi
+          echo "✓ home-manager-config lock is in sync with master"
 
       - name: Pause mining
         run: |
@@ -81,7 +115,6 @@ jobs:
             fi
           }
 
-          ALL_HOSTS="zephyr nexus forge sentry"
           GPU_HOSTS="zephyr nexus forge sentry"
 
           TARGET="${{ github.event.inputs.target }}"
