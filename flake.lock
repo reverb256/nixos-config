@@ -832,11 +832,11 @@
         "zen-browser": "zen-browser"
       },
       "locked": {
-        "lastModified": 1786588463,
-        "narHash": "sha256-wjok3DfGRopHO4M7hc3r94UOCK0+Ckr82E/gt0Wtk6Y=",
+        "lastModified": 1786590625,
+        "narHash": "sha256-gdSZjbrg0B/DoOShfjmw76M6nz0oBbtxvLxjmhrjqnQ=",
         "ref": "refs/heads/master",
-        "rev": "b1ad8ec27649fe9ba6914721c2096e037715077c",
-        "revCount": 86,
+        "rev": "af29c5037d03a220b1ea2f1d02aa827e9249a33a",
+        "revCount": 88,
         "type": "git",
         "url": "https://github.com/reverb256/home-manager-config"
       },
