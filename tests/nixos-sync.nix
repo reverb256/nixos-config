@@ -5,12 +5,17 @@
 
   checks = {
     usesExplicitSafeDirectory = has "safe.directory";
+    usesPerCommandSafeDirectory = has "git -C \"$FLAKE\" -c safe.directory=\"$FLAKE\"";
+    checksCurrentBranch = has "branch --show-current";
+    skipsNonMainBranches = has "not on main";
     checksWorkingTree = has "status --porcelain";
     skipsDirtyTrees = has "checkout is dirty";
+    fetchesRemoteMain = has "fetch origin main";
     fastForwardsOnly = has "merge --ff-only";
     skipsDivergedTrees = has "not a fast-forward";
     keepsPeriodicTimer = has "systemd.timers.nixos-sync";
     keepsRemoteSyncEnabledByDefault = has "default = true;";
+    usesSshForRemoteFetch = has "pkgs.openssh";
     removesDestructiveReset = !(has "reset --hard");
   };
 
