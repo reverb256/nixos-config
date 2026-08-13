@@ -28,8 +28,8 @@
 
 - **Module wiring:** `common-modules-list.nix` line 8
   (`inputs.sops-nix.nixosModules.default`) + line 9 (`./modules/system/sops-secrets-registry.nix`).
-- **Hosts:** `forge`, `nexus`, `sentry`, `zephyr` (defined at
-  `flake.nix:260`; assembled via `mkNixosSystem` at `flake.nix:284`).
+- **Hosts:** `forge`, `nexus`, `sentry`, `zephyr` (dendritic registry:
+  `modules/hosts/<n>/default.nix`, composed via `lib/dendritic-host.nix`).
 - **Per-host flags:** `zephyr` is the only host with the registry enabled.
   As of 2026-07-08 it sets `services.sops-secrets-registry.enable = true`
   with `aiServices` and `kubernetes` = `true`; `monitoring`, `storage`,

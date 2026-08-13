@@ -4,7 +4,7 @@
 # B: tests/k3s-topology-evidence.nix does builtins.readFile on
 # ../hosts/nexus/configuration.nix by path, so the ORIGINAL classic file must
 # survive byte-identical. Layer 1 therefore wraps it by PATH (zero body edits);
-# Layer 2 composes the evaluator exactly like the classic mkNixosSystem shim:
+# Layer 2 composes the evaluator via the shared lib/dendritic-host.nix helper:
 # commonModules ++ [ configuration.nix ] ++ extraModules.
 #
 # Layer 1: flake.modules.nixos.nexusConfig - the CONTENT (identity-first +
@@ -31,7 +31,7 @@
   flake.modules.nixos.nexusConfig = import ../../../hosts/nexus/configuration.nix;
 
   # Layer 2 - EVALUATOR. Shared helper composes the exact same module list
-  # and specialArgs contract as the classic shim (single source of truth).
+  # and specialArgs contract used by colmena.nix (single source of truth).
   flake.nixosConfigurations.nexus = withSystem "x86_64-linux" ({system, ...}: let
     commonModules = import ../../../common-modules-list.nix {inherit inputs self;};
     mkDendriticHost = import ../../../lib/dendritic-host.nix {

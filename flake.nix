@@ -205,24 +205,15 @@
           ./modules/hosts/default.nix
         ];
 
-        # ── CLASSIC SHIM (option B) ──────────────────────────────────────────
-        # All four hosts are dendritic (modules/hosts/<n>/default.nix, issue
-        # #397, complete 2026-08-13) and are REMOVED from this map so the two
-        # definitions never collide. classicHosts is now empty; the shim itself
-        # (commonModules + mkNixosSystem) is a legacy carve-out kept only for
-        # the portable rescue config until dissolution. Shared feature files
-        # stay classic: the shim + dendritic hosts both consume them by path.
+        # ── DENDRITIC HOST WIRING (dissolved) ────────────────────────────────
+        # All four cluster hosts are dendritic (modules/hosts/<n>/default.nix,
+        # issue #397, complete 2026-08-13). This `flake` block no longer carries
+        # the legacy mkNixosSystem shim, the classic-hosts carve-out, or the
+        # pre-dendritic compatibility oracle — all dissolved after phase-1b
+        # parity (hostName + stateVersion) passed for every host. It keeps only
+        # the typed inventory + commonModules (consumed by colmena.nix) and the
+        # standalone portable rescue config.
         flake = let
-          system = "x86_64-linux";
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-          };
-          # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
-          # Reference the flake output's legacyPackages set directly (verified to
-          # expose kvmfr / looking-glass-client / OVMFFull / qemu_kvm / scream / virtio-win).
-          vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
-
           # COMMON MODULES - Shared across all hosts (single source of truth)
           # Host identity/deployment/capability facts live in the typed inventory;
           # NixOS and Colmena consume the same value instead of duplicating it.
@@ -231,41 +222,6 @@
           commonModules = import ./common-modules-list.nix {
             inherit inputs self;
           };
-          # Shared dendritic host evaluator (single source of truth for the
-          # module-list and specialArgs contract used by every host).
-          mkDendriticHost = import ./lib/dendritic-host.nix {
-            inherit inputs self commonModules;
-          };
-
-          # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-          # No classic cluster hosts remain - all four are dendritic. This
-          # independent legacy evaluator is kept as a compatibility ORACLE: it
-          # deliberately does NOT call mkDendriticHost.mkHost, so a regression
-          # in the shared module/argument contract is caught by drvPath/hostName
-          # divergence between the two namespaces before the classic layer is
-          # removed. The portable rescue config below rides this helper.
-          mkClassicNixosSystem = {
-            hostName,
-            extraModules ? [],
-          }:
-            nixpkgs.lib.nixosSystem {
-              # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
-              # system, python, images, hardware, apps) via the supported
-              # `nixpkgs.overlays` module option. This keeps pkgs internally-created
-              # (so modules may still set `nixpkgs.config.*`, e.g. lm-studio,
-              # nix-config, peakminer) while making the qdrant/gjs/gtk4/webkitgtk/
-              # qtbase/dufs fixes reach host builds. Passing an external `pkgs`
-              # instance instead triggered "configures nixpkgs with an externally
-              # created instance" because those modules set `nixpkgs.config`.
-              inherit system;
-              specialArgs = mkDendriticHost.mkSpecialArgs system;
-              modules =
-                commonModules
-                ++ [
-                  ./hosts/${hostName}/configuration.nix
-                ]
-                ++ extraModules;
-            };
 
           # HOST DEFINITIONS - derived from the canonical typed inventory.
           # hostName: matches ./hosts/<n>/ and networking.hostName
@@ -276,13 +232,8 @@
           # (use this to selectively load desktop-only modules for
           # zephyr/forge while keeping nexus/sentry free of niri/etc)
           # Adding a 5th host = 1 attr in contracts/host-inventory.nix +
-          # ./hosts/<n>/configuration.nix + (once dendritic) a host file under
-          # modules/hosts/<n>/.
+          # ./hosts/<n>/configuration.nix + a host file under modules/hosts/<n>/.
           #   NOTE: also update ./machines (its keys are colmena machine entries).
-          # Dendritic cutover complete: ALL hosts removed here (now under
-          # modules/hosts/<n>/); classicHosts is empty and kept only so the
-          # portable config can ride the mkNixosSystem helper.
-          classicHosts = builtins.removeAttrs hosts ["zephyr" "nexus" "forge" "sentry"];
 
           # Portable USB stick — standalone rescue/pinch config (wayfinder #421/#425).
           # Shared by nixosConfigurations.portable and packages.portable-image.
@@ -292,47 +243,25 @@
             modules = [./modules/profiles/portable-usb.nix];
           };
         in {
-          # OUTPUT 1: nixosConfigurations (classic shim — EMPTY for cluster
-          # hosts; all four dendritic definitions come from
-          # modules/hosts/<n>/default.nix). Only the portable rescue config
-          # remains here.
+          # OUTPUT 1: nixosConfigurations — cluster hosts come from the
+          # dendritic registry (modules/hosts/<n>/default.nix, imported via
+          # ./modules/hosts/default.nix); only the standalone portable rescue
+          # config is declared here.
 
-          nixosConfigurations =
-            builtins.mapAttrs (
-              _name: value:
-                mkClassicNixosSystem {
-                  inherit (value) hostName extraModules;
-                }
-            )
-            classicHosts
-            # OUTPUT 1b: portable USB stick — standalone rescue/pinch config.
+          nixosConfigurations = {
             # Deliberately OUTSIDE the cluster hive (no commonModules: no
             # sops-nix / peakminer / mcp-registry / caddy). Built only as a
             # systemd-repart disk image (see modules/profiles/portable-usb.nix).
             # Wayfinder map #421; contract #425.
-            // {
-              portable = portableConfig;
-            };
-
-          # Explicit compatibility namespace: exercise the pre-dendritic
-          # evaluator for every current host without colliding with the live
-          # dendritic `nixosConfigurations.<host>` outputs. This is removed only
-          # after all four dendritic host closures build successfully.
-          classicNixosConfigurations =
-            builtins.mapAttrs (
-              _name: value:
-                mkClassicNixosSystem {
-                  inherit (value) hostName extraModules;
-                }
-            )
-            hosts;
+            portable = portableConfig;
+          };
 
           # OUTPUT 2: colmena (raw hive configuration)
           # The typed inventory is the whole-cluster source of truth.
           # `colmena.nix` derives both `meta.nodeNixpkgs` AND each host's
-          # colmena `meta` from it. No duplicate host declarations needed.
-          # UNCHANGED classic wiring — flips to config.flake.* at dissolution
-          # (after all four hosts are dendritic).
+          # colmena `meta` from it, and composes host modules via the shared
+          # lib/dendritic-host.nix evaluator (same module list + specialArgs
+          # contract as nixosConfigurations). No duplicate host declarations.
 
           colmena = import ./colmena.nix {
             inherit inputs self hosts commonModules;
