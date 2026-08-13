@@ -42,13 +42,18 @@ jobs:
           - mcp-registry
           - caddy-ingress
           - gpu-proxy
+          # home-manager-config is the Layer-2 source of truth, consumed as a
+          # remote git input. Without a scheduled bump, the flake.lock drifts
+          # behind its master and the next colmena deploy silently reverts
+          # Layer-2 to the stale pinned rev (this caused a 15-commit gap).
+          - home-manager-config
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
       - name: Install Nix
-        # pin:cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+        # pin:cachix/install-nix-action@v31
         uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -106,7 +111,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
       - name: Install Nix
-        # pin:cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+        # pin:cachix/install-nix-action@v31
         uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
         with:
           nix_path: nixpkgs=channel:nixos-unstable
