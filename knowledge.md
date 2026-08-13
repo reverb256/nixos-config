@@ -126,14 +126,16 @@ kubectl describe node <n> | grep -A 5 "Allocated resources"
 
 ```
 /etc/nixos/
-├── flake.nix                # Main flake + hosts (zephyr/nexus/forge/sentry) + colmena wrapper
+├── flake.nix                # Main flake (inputs/outputs/checks); hosts come from modules/hosts/
 │                            #   + inputs (nixpkgs, home-manager, home-manager-config, colmena, ...)
-├── colmena.nix              # Multi-host deployment (targetHost, tags per host)
-├── common-modules-list.nix  # Module list imported by BOTH flake.nix and colmena.nix (must stay in sync)
-├── overlay.nix              # Cross-system package overlay
+├── colmena.nix              # Multi-host deployment (targetHost, tags per host); shares the dendritic evaluator
+├── common-modules-list.nix  # Shared module list (inputs + modules/default.nix + overlays), consumed via lib/dendritic-host.nix
+├── lib/dendritic-host.nix   # Shared mkHost/mkSpecialArgs evaluator (single source of truth for nixos + colmena)
+├── overlays/default.nix     # Canonical package overlay (root overlay.nix is a compat shim)
 ├── justfile                 # All CI/CD tasks
-├── hosts/<host>/            # Per-host NixOS configs
+├── hosts/<host>/            # Per-host NixOS *bodies* (wrapped by modules/hosts/<host>/default.nix)
 ├── modules/                 # ~171 reusable .nix files
+│   ├── hosts/               # Dendritic host registry (modules/hosts/<host>/default.nix = two-layer wiring)
 │   ├── system/              # Core (ssh, users, networking, sops, nix, OOM/oomd, vm-tuning)
 │   ├── services/            # Background daemons (k8s, monitoring, mining, hermes, bonsai...)
 │   ├── desktop/             # Niri-only desktop (compositor, UWSM sessions, monitors, HDR/brightness)
