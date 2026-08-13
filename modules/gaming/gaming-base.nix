@@ -151,9 +151,6 @@ in mkIf cfg.enable {
           export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
           export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
           export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
-          export ENABLE_GAMESCOPE_WSI=1
-          export DXVK_HDR=1
-          export PROTON_ENABLE_HDR=1
         '';
       };
     };
@@ -173,6 +170,7 @@ in mkIf cfg.enable {
         __GL_ALLOW_FXAA_USAGE = "1";
         ENABLE_GAMESCOPE_WSI = "1";
         DXVK_HDR = "1";
+        PROTON_ENABLE_HDR = "1";
       };
       args = [
         "--immediate-flips"
