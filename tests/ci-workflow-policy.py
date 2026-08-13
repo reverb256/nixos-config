@@ -52,8 +52,12 @@ def main() -> None:
             "pull_request_target:" not in workflow
             and "types: [closed]" in workflow
         )
+        # Issue #474: PR-triggered workflows may only reach a self-hosted
+        # runner through a gated matrix (ci.yml's build job), never through a
+        # literal runs-on array. Checking for any self-hosted runs-on literal
+        # keeps this guard honest as label sets evolve.
         require(
-            "runs-on: [self-hosted, nixos]" not in workflow,
+            "runs-on: [self-hosted" not in workflow,
             f"{name} must not run PR-triggered work on the persistent runner",
         )
         if "pull_request_target:" not in workflow and not post_merge_maintenance:
@@ -77,10 +81,16 @@ def main() -> None:
                 f"{name} must request read-only permissions",
             )
 
+    # Issue #474: the build job uses a runs-on expression so PRs build on
+    # Ubuntu while trusted pushes require the pinned Nexus builder labels.
+    # runs-on expressions cannot yield label arrays directly, so fromJSON()
+    # builds the [self-hosted, nixos, nexus, builder] array at runtime.
     require(
-        "runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}"
-        in ci,
-        "ci.yml must use Ubuntu for PRs and self-hosted only for trusted pushes",
+        "runs-on: ${{ github.event_name == 'pull_request'" in ci
+        and "'ubuntu-latest'" in ci
+        and '["self-hosted", "nixos", "nexus", "builder"]' in ci
+        and "github.event_name != 'pull_request'" in ci,
+        "ci.yml build must use Ubuntu for PRs and the pinned Nexus builder for trusted pushes",
     )
     require(
         "pull_request:" in ci and "runs-on: [self-hosted, nixos]" not in ci,
@@ -153,7 +163,7 @@ def main() -> None:
     require("runs-on: [self-hosted, nixos]" not in secretspec, "secretspec PR validation must not use self-hosted")
     require(trusted_secretspec, "trusted secretspec workflow must exist")
     require("pull_request:" not in trusted_secretspec, "trusted secretspec workflow must not run on PRs")
-    require("runs-on: [self-hosted, nixos]" in trusted_secretspec, "trusted secretspec workflow must use trusted runner")
+    require('["self-hosted", "nixos", "nexus", "builder"]' in trusted_secretspec, "trusted secretspec workflow must use the pinned Nexus builder")
     require("${{ secrets." in trusted_secretspec, "trusted secretspec workflow must own secret use")
     require("continue-on-error: true" not in trusted_secretspec, "trusted secretspec build must fail closed")
     require(trusted_secretspec.count("timeout-minutes:") >= 2, "trusted secretspec jobs must be bounded")
