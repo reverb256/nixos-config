@@ -2,13 +2,11 @@
   config,
   pkgs,
   lib,
-  inputs,
   ...
 }: let
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
   inherit (portHelpers) ports;
 
-  k8s = config.networking.cluster.kubernetes.services;
   cluster = config.networking.cluster;
 in {
   systemd.tmpfiles.rules = [
