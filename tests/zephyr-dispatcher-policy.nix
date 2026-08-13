@@ -32,9 +32,11 @@
     zephyrHasNoDistributedBuildsOverride = !hasDistributedBuildsOverride;
     zephyrHasNoBuildersOverride = !hasEmptyBuildersOverride;
     zephyrHasNoSettingsAttrsetOverride = !hasSettingsAttrsetOverride;
-    sharedForcesZephyrZero = sharedForcesZephyrZero;
-    sharedForcesNexusSix = sharedForcesNexusSix;
-    sharedBuildersUseSubstitutes = sharedBuildersUseSubstitutes;
+    inherit
+      sharedForcesZephyrZero
+      sharedForcesNexusSix
+      sharedBuildersUseSubstitutes
+      ;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;

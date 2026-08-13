@@ -120,7 +120,8 @@ def main() -> None:
         "changed-file lint must keep Alejandra fatal",
     )
     require("Skipping pre-existing Statix/Deadnix findings in $f" in ci
-        and "modules/services/bonsai.nix" in ci, "lint exceptions must be explicit")
+        and "modules/services/bonsai.nix" in ci
+        and "hosts/zephyr/configuration.nix" in ci, "lint exceptions must be explicit")
     require("#osv-scanner -c osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
     require("cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" in ci, "security scan must install Nix")
     require("security-events: write" in ci, "trusted SARIF upload must have security-events permission")
