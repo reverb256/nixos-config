@@ -9,9 +9,11 @@
 
   cluster = config.networking.cluster;
 
-  # Per-repo GitHub Actions runners (quill). Function-based generator:
-  # returns a plain config fragment merged below with // — no module reads
-  # config.services.ci-runners in its config output (colmena recursion, 2026-08-13).
+  # Per-repo GitHub Actions runners (quill + home-manager-config). Function-
+  # based generator: returns a plain config fragment merged below with // —
+  # no module reads config.services.ci-runners in its config output (colmena
+  # recursion, 2026-08-13). nixos-config's own runner (nexus-runner) is the
+  # legacy single-repo services.ci-runner module further down.
   ciRunners = import ../../modules/services/ci-runners.nix { inherit lib pkgs; };
   runnerFragments = ciRunners {
     instances = {
@@ -25,6 +27,21 @@
         runnerName = "nexus-quill-runner";
         memoryHigh = "16G";
         memoryMax = "24G";
+      };
+      home-manager-config = {
+        user = "runner-hm";
+        repo = "reverb256/home-manager-config";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["nexus" "home-manager"];
+        runnerName = "nexus-hm-runner";
+        # HM CI is lighter than quill's: nix parse + flake check + 4
+        # activation-package builds, all delegated to the nix daemon (not the
+        # runner cgroup). Scope memory below quill's 16/24G to leave headroom
+        # on the 46 GiB builder while all three runners are registered.
+        memoryHigh = "8G";
+        memoryMax = "12G";
       };
     };
   };
