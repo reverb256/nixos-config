@@ -58,7 +58,10 @@
       lib.strings.hasInfix "mkClassicNixosSystem" flakeSource
       && lib.strings.hasInfix "specialArgs = mkDendriticHost.mkSpecialArgs system" flakeSource;
     classic_compatibility_namespace_covers_all_hosts =
-      lib.strings.hasInfix "classicNixosConfigurations = builtins.mapAttrs" flakeSource
+      # alejandra may split the binding across lines, so check each token
+      # independently rather than a single infix string.
+      lib.strings.hasInfix "classicNixosConfigurations" flakeSource
+      && lib.strings.hasInfix "builtins.mapAttrs" flakeSource
       && lib.strings.hasInfix "classicNixosConfigurations" flakeSource
       && builtins.all (host: builtins.hasAttr host inventory.hosts) hosts;
     no_classic_cluster_nixos_configurations =
