@@ -25,10 +25,11 @@
   inputs.gpu-proxy.nixosModules.default
 
   # Audit F-13 (2026-07-28): Stylix is theme infrastructure, not
-  # desktop-only — ALL hosts with home-manager need the stylix NixOS
-  # module so that `homeManagerIntegration.followSystem` propagates
-  # the stylix HM module (stylix.targets.* options) into the common
-  # home-manager config in modules/system/home-manager.nix.
+  # desktop-only — ALL hosts need the stylix NixOS module so
+  # modules/desktop/stylix.nix can set the base16 scheme and system-level
+  # targets. User-app theming (starship/alacritty/kitty/qt/gtk/zen) lives in
+  # the standalone Layer-2 flake (home-manager-config), which imports stylix's
+  # homeModules directly.
   inputs.stylix.nixosModules.default
   ./modules/desktop/stylix.nix
 

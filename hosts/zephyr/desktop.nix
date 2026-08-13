@@ -50,7 +50,7 @@
   # Noctalia v5 (noctalia flake input) is enabled automatically by
   # modules/desktop/wayland-compositor-common.nix whenever `programs.niri.enable`
   # is true. The binary is launched via the niri `spawn-at-startup` list in
-  # modules/home-manager/niri-config.nix (`uwsm app -s s -- noctalia`) which
+  # home-manager-config/modules/niri-config.nix (`uwsm app -s s -- noctalia`) which
   # runs inside the uwsm-managed systemd --user session.
   # `programs.noctalia.systemd.enable` is intentionally left at its upstream
   # default (`false`) to avoid a double-launch against `graphical-session.target`.

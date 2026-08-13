@@ -1,7 +1,7 @@
 # Fish Shell - System-Level Configuration
 # This module enables fish at the system level and installs required packages.
 # User-level shell configuration (aliases, functions, prompt) is managed by Home Manager
-# in modules/home-manager/fish.nix to avoid conflicts and ensure DRY.
+# in home-manager-config/modules/fish.nix to avoid conflicts and ensure DRY.
 {pkgs, ...}: {
   # Enable Fish shell at system level (required for proper PATH setup)
   programs.fish = {

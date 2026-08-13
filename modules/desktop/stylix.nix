@@ -76,16 +76,17 @@ in
     # `stylix.targets.kde` option DOES exist in the pinned stylix
     # (modules/kde/hm.nix, defaults to ENABLED) — it is explicitly
     # disabled in the shared HM stylix targets
-    # (modules/home-manager/shared-leaf-modules.nix) so the
+    # (home-manager-config/modules/shared-leaf-modules.nix) so the
     # stylix-kde-apply-plasma-theme activation stops firing on every
     # `home-manager switch` for non-Plasma sessions.
     # autoEnable=false keeps stylix from touching unlisted targets
     # (the NixOS-side kde target historically caused "option does not
     # exist" eval errors when autoEnable probed it).
     targets.qt.enable = true;
-    # Qt platform theme is owned by the HM-native `qt` module
-    # (modules/system/home-manager.nix: platformTheme adwaita + style
-    # adwaita-dark). Do NOT set stylix targets.qt.platform here: the old
+    # Qt platform theme is owned by the HM-native `qt` module in the
+    # standalone Layer-2 flake (home-manager-config/modules/standalone.nix:
+    # platformTheme adwaita + style adwaita-dark). Do NOT set stylix
+    # targets.qt.platform here: the old
     # "qtct" value is a known KDE freeze (stylix#971 / PR#1310 comment) and
     # is dead config anyway — HM wins at runtime via QT_QPA_PLATFORMTHEME.
 
@@ -95,7 +96,9 @@ in
     # autoEnable=false means stylix only themes targets that are EXPLICITLY
     # enabled. Terminal-app targets (starship, alacritty, kitty, fish, btop,
     # lazygit, gtk, qt, zen-browser) are HOME-MANAGER targets — empower them
-    # in the HM `stylix` block (modules/system/home-manager.nix), NOT here at
+    # in the standalone Layer-2 flake's `stylix` block
+    # (home-manager-config/modules/shared-leaf-modules.nix stylixTargets), NOT
+    # here at
     # the NixOS level (config.stylix.targets.* only carries system targets like
     # lightdm/limine and will throw "option does not exist"). System targets
     # (lightdm, limine, grub, etc.) ARE enabled here. So: when you add a new
