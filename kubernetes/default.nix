@@ -68,7 +68,7 @@ in {
       ./modules/haven.nix
       ./modules/cert-manager.nix
       ./modules/oauth2-proxy.nix
-      ./modules/monitoring.nix
+      ./modules/monitoring
       ./modules/monitoring-dashboards.nix
       ./modules/monitoring-rules.nix
       ./modules/grafana-dashboards.nix
@@ -85,7 +85,7 @@ in {
 
   # Separate manifests for large modules (to avoid eval bottleneck)
   monitoring = mkManifest "monitoring" [
-    ./modules/monitoring.nix
+    ./modules/monitoring
     ./modules/monitoring-dashboards.nix
     ./modules/monitoring-rules.nix
     ./modules/grafana-dashboards.nix
