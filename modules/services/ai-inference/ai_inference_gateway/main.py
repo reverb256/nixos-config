@@ -269,7 +269,7 @@ async def check_backend_health(
         url: Backend URL
         timeout: Request timeout in seconds
         api_key: Optional API key for authentication
-        backend_type: Type of backend (llama-cpp, zai, pollinations, etc.)
+        backend_type: Type of backend (llama-cpp, pollinations, etc.)
 
     Returns:
         True if backend is healthy, False otherwise
@@ -350,11 +350,7 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
 
     # Only add backend authentication if client didn't provide one
     if "authorization" not in {k.lower() for k in headers.keys()}:
-        if config.backend_type == "zai":
-            api_key = config.get_zai_api_key()
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-        elif config.backend_type == "pollinations":
+        if config.backend_type == "pollinations":
             api_key = config.get_pollinations_api_key()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
@@ -1539,7 +1535,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         This endpoint adds:
         - Model selection by Claude model ID (haiku, sonnet, opus variants)
         - Thinking effort levels (low/medium/high) that map to budget_tokens
-        - ZAI fallback when llama.cpp unavailable
+        - Configured backend fallback when the primary local backend is unavailable
         - Extended thinking support
 
         Model mapping (5 Claude options → 3 underlying local models):
@@ -3961,10 +3957,6 @@ async def try_backends_with_failover(
     # Build list of backends to try
     backends_to_try = [("primary", config.backend_url, config.backend_type)]
 
-    # Add fallback backends (assuming they're ZAI for now)
-    for i, fallback_url in enumerate(config.get_backend_fallback_urls()):
-        backends_to_try.append(("fallback", fallback_url, "zai"))
-
     last_error = None
 
     for backend_type_name, backend_url, backend_api_type in backends_to_try:
@@ -3991,17 +3983,7 @@ async def try_backends_with_failover(
 
             # Add authentication for this backend
             if "authorization" not in {k.lower() for k in headers.keys()}:
-                if backend_api_type == "zai":
-                    api_key = config.get_zai_api_key()
-                    if api_key:
-                        headers["Authorization"] = f"Bearer {api_key}"
-                elif backend_api_type == "zai":
-                    api_key = config.get_zai_api_key()
-                    if api_key:
-                        headers["Authorization"] = f"Bearer {api_key}"
-                    else:
-                        logger.warning("ZAI API key not found for fallback backend")
-                elif backend_api_type == "pollinations":
+                if backend_api_type == "pollinations":
                     api_key = config.get_pollinations_api_key()
                     if api_key:
                         headers["Authorization"] = f"Bearer {api_key}"
@@ -4015,25 +3997,8 @@ async def try_backends_with_failover(
             )
 
             async with httpx.AsyncClient(timeout=timeout) as client:
-                # For ZAI, convert OpenAI-style endpoints to ZAI format
-                if backend_api_type == "zai":
-                    # ZAI uses /chat/completions instead of /v1/chat/completions
-                    zai_endpoint = (
-                        endpoint.replace("/v1/", "/")
-                        if endpoint.startswith("/v1/")
-                        else endpoint
-                    )
-                    url = f"{backend_url}{zai_endpoint}"
-                else:
-                    url = f"{backend_url}{endpoint}"
+                url = f"{backend_url}{endpoint}"
 
-                # Debug logging for ZAI (only at DEBUG level)
-                if backend_api_type == "zai" and logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"ZAI URL: {url}")
-                    logger.debug(
-                        f"ZAI Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}..."
-                    )
-                    logger.debug(f"ZAI Body model: {content.get('model', 'NO_MODEL')}")
 
                 # Debug logging for Pollinations (only at DEBUG level)
                 if backend_api_type == "pollinations" and logger.isEnabledFor(
@@ -4063,15 +4028,6 @@ async def try_backends_with_failover(
                 logger.info(
                     f"{backend_type_name} backend response: HTTP {response.status_code}"
                 )
-
-                # Debug logging for ZAI responses (only at DEBUG level)
-                if backend_api_type == "zai" and logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"ZAI Response status: {response.status_code}")
-                    if response.status_code != 200:
-                        try:
-                            logger.debug(f"ZAI Response body: {response.text[:500]}")
-                        except Exception:
-                            pass
 
                 # Debug logging for Pollinations responses (only at DEBUG level)
                 if backend_api_type == "pollinations" and logger.isEnabledFor(

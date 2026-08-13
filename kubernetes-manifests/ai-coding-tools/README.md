@@ -5,11 +5,11 @@
 ### Claude Code
 - **Config**: `~/.claude/` and `~/.claude.json`
 - **MCP Servers**:
-  - zai-mcp-server (Z.AI API)
-  - web-reader (web scraping)
-  - zread (GitHub repo reader)
-  - web-search-prime (search)
+  - filesystem, git, and fetch (local workspace access)
+  - hound (web fetch, crawl, and search)
   - context7 (documentation)
+  - playwright and Chrome DevTools (browser automation)
+  - gateway (local inference bridge)
 - **Mode**: Interactive CLI with 4,500+ startups
 
 ### OpenCode

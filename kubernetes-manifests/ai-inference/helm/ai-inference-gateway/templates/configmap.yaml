@@ -20,11 +20,6 @@ data:
   ROUTING_ENABLED: "{{ .Values.routing.enabled }}"
   DEFAULT_MODEL: "{{ .Values.routing.defaultModel }}"
 
-  # ZAI
-  {{- if .Values.zai.enabled }}
-  ZAI_BASE_URL: "{{ .Values.zai.baseUrl }}"
-  {{- end }}
-
   # Pollinations
   {{- if .Values.pollinations.enabled }}
   POLLINATIONS_BASE_URL: "{{ .Values.pollinations.baseUrl }}"

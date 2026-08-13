@@ -36,6 +36,8 @@ for the authority boundaries and `just health`/`just provenance` for live claims
 | **Decision record index** | Architectural decisions, rationale, and source links | [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) |
 | **Decision table** | Current open/completed decisions and rationale | [`ACTION-ITEMS.md`](ACTION-ITEMS.md#decision-log) |
 | **Current state** | Checked-in architecture and documentation authority boundaries | `docs/current-state.md` |
+| **AI stack analysis** | Current AI architecture, provider policy, and benchmark baseline | [`docs/AI_STACK_ANALYSIS.md`](docs/AI_STACK_ANALYSIS.md) |
+| **AI stack refactor plan** | Proposed local/NVIDIA/Hermes/NemoClaw migration stages | [`docs/ai-stack-refactor-plan-2026-08-12.md`](docs/ai-stack-refactor-plan-2026-08-12.md) |
 | **STATUS.md** | Generated status snapshot; verify its timestamp before relying on it | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
 | **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
@@ -361,7 +363,9 @@ kubectl logs <pod> -n <namespace>
 
 **2026-07-25:** SECURITY-INCIDENT-2026-07-25.md — secretspec Phase 2 complete + SAMSUNG_TV_TOKEN routing regression discovered.
 
-**2026-07-15:** Z.AI/GLM provider fully removed cluster-wide (referenced `ZAI_API_KEY`). Freedom model removed from Hermes profile.
+**2026-08-12:** AI stack reference refreshed. Z.AI cleanup and the proposed local/NVIDIA/Hermes/NemoClaw refactor are documented in [`docs/AI_STACK_ANALYSIS.md`](docs/AI_STACK_ANALYSIS.md) and [`docs/ai-stack-refactor-plan-2026-08-12.md`](docs/ai-stack-refactor-plan-2026-08-12.md).
+
+**2026-07-15:** Z.AI/GLM provider removal began cluster-wide. Remaining historical mentions are retained only in dated audit material.
 
 **2026-05-23:** Phase 5 (GPU Workloads) deliverables final — llama.cpp + AI Gateway integration verified (24.7 tok/s on 3090).
 

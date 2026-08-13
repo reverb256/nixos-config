@@ -16,9 +16,9 @@ metadata:
   name: ai-inference-gateway-config-diagnostic
   namespace: ai-inference
 data:
-  # Backend configuration (using ZAI for testing without local llama.cpp)
-  BACKEND_URL: "https://api.z.ai/api/coding/paas/v4"
-  BACKEND_TYPE: "zai"
+  # Backend configuration for the local llama.cpp service
+  BACKEND_URL: "http://zephyr.lan:8081"
+  BACKEND_TYPE: "llama-cpp"
   BACKEND_FALLBACK_URLS: ""
 
   # Gateway configuration
@@ -159,12 +159,6 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config-diagnostic
                 key: BACKEND_TYPE
-          - name: ZAI_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: ai-inference-gateway-secrets
-                key: zai-api-key
-                optional: true
           - name: BACKEND_FALLBACK_URLS
             valueFrom:
               configMapKeyRef:

@@ -141,15 +141,15 @@ def sample_mcp_servers() -> List[Dict[str, Any]]:
     """Sample MCP server configurations."""
     return [
         {
-            "name": "web-search-prime",
+            "name": "local-web-search",
             "type": "remote",
             "url": "https://api.example.com/mcp",
             "enabled": True,
         },
         {
-            "name": "web-reader",
+            "name": "local-web-fetch",
             "type": "remote",
-            "url": "https://api.example.com/web-reader",
+            "url": "http://127.0.0.1:8080/mcp/fetch",
             "enabled": True,
         },
     ]

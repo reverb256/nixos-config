@@ -505,7 +505,7 @@ in {
        **Benefits:**
        - Single stdio connection replaces multiple direct MCP servers
        - Shared authentication and caching via the gateway
-       - Remote access to gateway-hosted tools (ZAI APIs, etc.)
+       - Remote access to approved gateway-hosted tools
        - Unified observability and logging
        ## Playwright Configuration
        The Playwright MCP server can be configured via NixOS:

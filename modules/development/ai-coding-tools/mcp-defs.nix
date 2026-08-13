@@ -1,10 +1,7 @@
 {lib}: let
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
 
-  # Full MCP server set — kept in sync with the inline definitions
-  # in modules/development/ai-coding-tools.nix so the sub-files
-  # (claude.nix, droid.nix, crush.nix, opencode.nix, pi.nix)
-  # produce identical output.
+  # Local MCP servers shared by the coding tools.
   localStdioServers = {
     filesystem = {
       command = "mcp-filesystem";
@@ -36,34 +33,6 @@
     };
   };
 
-  # Z.AI MCP servers (HTTP + stdio). These were removed in the 2026-07-15
-  # sub-file draft but are still active in the main ai-coding-tools.nix.
-  # Restored 2026-07-29 to match the authoritative inline config.
-  zaiMcpServers = {
-    zai-mcp-server = {
-      type = "stdio";
-      command = "npx";
-      args = ["-y" "@z_ai/mcp-server"];
-      env.Z_AI_MODE = "ZAI";
-      env.Z_AI_API_KEY = "$ZAI_API_KEY";
-    };
-    web-search-prime = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-    web-reader = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/web_reader/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-    zread = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/zread/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-  };
-
   mkMcpServersJson = {
     keyMode ? "resolved",
     extraServers ? {},
@@ -71,19 +40,14 @@
   }: let
     isEnv = keyMode == "env";
     ctx7Key = if isEnv then context7ApiKeyRef else "$ctx7_key";
-    zaiKey = if isEnv then "$ZAI_API_KEY" else "$zai_key";
-
-    allServers = localStdioServers // zaiMcpServers // extraServers;
+    allServers = localStdioServers // extraServers;
 
     mkServerFragment = name: server: let
       isHttp = server.type or null == "http";
       isContext7 = name == "context7";
-      isZai = lib.hasPrefix "zai-" name || lib.hasPrefix "web-" name || name == "zread";
 
       resolveEnv = k: v:
-        if isContext7 && k == "CONTEXT7_API_KEY" then ctx7Key
-        else if isZai && k == "Z_AI_API_KEY" then zaiKey
-        else v;
+        if isContext7 && k == "CONTEXT7_API_KEY" then ctx7Key else v;
 
       resolveHeader = _k: v: "\"" + v + "\"";
 
@@ -117,5 +81,5 @@
     lib.concatStringsSep ",\n    " serverFragments;
 in {
   inherit mkMcpServersJson;
-  fullMcpSet = localStdioServers // zaiMcpServers;
+  fullMcpSet = localStdioServers;
 }

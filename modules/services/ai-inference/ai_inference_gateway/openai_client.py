@@ -1,21 +1,10 @@
-"""
-OpenAI SDK client wrapper for AI Gateway.
-
-This module provides OpenAI client instances configured for different backends:
-- llama.cpp (local OpenAI-compatible server)
-- ZAI (cloud OpenAI-compatible API)
-- Pollinations (free OpenAI-compatible API)
-
-The OpenAI SDK handles:
-- Automatic header management (User-Agent, etc.)
-- Proper authentication (Bearer tokens)
-- Request/response formatting
-- Streaming support
-- Error handling
-"""
+"""OpenAI-compatible client wrapper for configured inference backends."""
 
 import logging
-from typing import Optional, Dict, Any
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
@@ -23,18 +12,37 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAIBackendError(Exception):
-    """Exception raised when backend request fails."""
+    """Exception raised when all configured backend requests fail."""
 
-    pass
+
+def _normalise_base_url(url: str) -> str:
+    """Return an OpenAI SDK base URL with one ``/v1`` suffix."""
+    value = url.rstrip("/")
+    return value if value.endswith("/v1") else f"{value}/v1"
+
+
+def _read_api_key_from_environment() -> Optional[str]:
+    """Read a fallback API key without placing its value in generated config."""
+    for name in ("NVIDIA_NIM_API_KEY", "NVIDIA_API_KEY"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+
+    for name in ("NVIDIA_NIM_API_KEY_FILE", "NVIDIA_API_KEY_FILE"):
+        path = os.environ.get(name, "").strip()
+        if path:
+            try:
+                value = Path(path).read_text().strip()
+            except OSError:
+                continue
+            if value:
+                return value
+
+    return None
 
 
 class OpenAIClientWrapper:
-    """
-    Wrapper for OpenAI SDK clients with automatic backend failover.
-
-    Manages multiple OpenAI clients for different backends and provides
-    a unified interface for chat completions with automatic failover.
-    """
+    """Provide one primary client and optional configured fallback clients."""
 
     def __init__(
         self,
@@ -42,51 +50,49 @@ class OpenAIClientWrapper:
         primary_api_key: Optional[str],
         fallback_url: Optional[str] = None,
         fallback_api_key: Optional[str] = None,
+        fallback_urls: Optional[list[str]] = None,
+        fallback_model: Optional[str] = None,
         timeout: float = 60.0,
-        zai_models: Optional[list[str]] = None,
+        **_ignored: Any,
     ):
-        """
-        Initialize OpenAI client wrapper.
+        urls = [url for url in (fallback_urls or []) if url]
+        if fallback_url:
+            urls.insert(0, fallback_url)
 
-        Args:
-            primary_url: Primary backend URL (e.g., llama.cpp)
-            primary_api_key: API key for primary backend (optional for local)
-            fallback_url: Fallback backend URL (e.g., ZAI)
-            fallback_api_key: API key for fallback backend
-            timeout: Request timeout in seconds
-            zai_models: List of ZAI models to try (in order)
-        """
         self.primary_url = primary_url.rstrip("/")
-        # For local servers (llama.cpp), use placeholder if no key provided
-        # OpenAI SDK requires api_key to be set, but local servers don't validate it
-        if primary_api_key and primary_api_key.strip():
-            self.primary_api_key = primary_api_key
-        else:
-            self.primary_api_key = "not-needed"  # Placeholder for local servers
-        self.fallback_url = fallback_url.rstrip("/") if fallback_url else None
-        self.fallback_api_key = fallback_api_key
-        self.timeout = timeout
-        # ZAI models to try in order (from fastest to most capable)
-        self.zai_models = zai_models or ["glm-4.6", "glm-4.7", "glm-5"]
-
-        # Initialize primary client
+        self.primary_api_key = primary_api_key.strip() if primary_api_key else "not-needed"
         self.primary_client = AsyncOpenAI(
-            base_url=f"{self.primary_url}/v1",
+            base_url=_normalise_base_url(self.primary_url),
             api_key=self.primary_api_key,
             timeout=timeout,
         )
 
-        # Initialize fallback client if configured
-        self.fallback_client: Optional[AsyncOpenAI] = None
-        if self.fallback_url and self.fallback_api_key:
-            # ZAI uses /api/coding/paas/v4 without /v1 prefix
-            self.fallback_client = AsyncOpenAI(
-                base_url=self.fallback_url,
-                api_key=self.fallback_api_key,
+        api_key = fallback_api_key or _read_api_key_from_environment()
+        self.fallback_model = fallback_model or os.environ.get("NIM_FALLBACK_MODEL", "").strip()
+        self.fallback_clients = [
+            AsyncOpenAI(
+                base_url=_normalise_base_url(url),
+                api_key=api_key or "not-needed",
                 timeout=timeout,
             )
-            logger.info(f"Initialized ZAI fallback client: {self.fallback_url}")
-            logger.info(f"ZAI model fallback order: {self.zai_models}")
+            for url in dict.fromkeys(urls)
+        ]
+
+    def _clients_for_backend(self, backend: Optional[str], model: str):
+        """Select client/model pairs without guessing incompatible model IDs."""
+        nvidia_route = backend and backend.lower() in {"nvidia", "nvidia-nim", "nim"}
+        if nvidia_route:
+            return [
+                *((client, model) for client in self.fallback_clients),
+                (self.primary_client, model),
+            ]
+
+        attempts = [(self.primary_client, model)]
+        if self.fallback_model:
+            attempts.extend(
+                (client, self.fallback_model) for client in self.fallback_clients
+            )
+        return attempts
 
     async def chat_completion(
         self,
@@ -94,294 +100,68 @@ class OpenAIClientWrapper:
         model: str,
         stream: bool = False,
         backend: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> ChatCompletion | AsyncStream[ChatCompletionChunk]:
-        """
-        Create chat completion with automatic failover.
-
-        Args:
-            messages: Chat messages
-            model: Model name
-            stream: Whether to stream response
-            backend: Backend to use ("llama-cpp", "zai", or None for auto-detection)
-            **kwargs: Additional OpenAI parameters
-
-        Returns:
-            ChatCompletion or AsyncStream of ChatCompletionChunk
-
-        Raises:
-            OpenAIBackendError: If all backends fail
-        """
-        # Remove 'stream' from kwargs to avoid duplicate parameter error
+        """Create a completion and try configured fallbacks after backend errors."""
         kwargs.pop("stream", None)
-
-        # Filter out parameters not supported by OpenAI SDK
-        # These are used by llama.cpp/Qwen models but not supported by OpenAI Python SDK
-        unsupported_params = [
-            "top_k",          # llama.cpp sampling parameter
-            "repeat_penalty", # Qwen-specific penalty
-            "thinking",       # Qwen thinking mode flag
-            "thinking_enabled", # Qwen thinking mode
-            "supports_thinking_toggle", # Qwen capability flag
-            "backend",        # Gateway routing parameter (not for SDK)
-        ]
-        for param in unsupported_params:
+        for param in (
+            "top_k",
+            "repeat_penalty",
+            "thinking",
+            "thinking_enabled",
+            "supports_thinking_toggle",
+            "backend",
+        ):
             kwargs.pop(param, None)
 
-        # If backend is specified, use it directly
-        if backend == "zai" and self.fallback_client:
-            logger.info(f"Using ZAI backend directly for model: {model}")
+        errors = []
+        for client, attempt_model in self._clients_for_backend(backend, model):
             try:
-                response = await self.fallback_client.chat.completions.create(
+                return await client.chat.completions.create(
                     messages=messages,
-                    model=model,
+                    model=attempt_model,
                     stream=stream,
                     **kwargs,
                 )
-                logger.info(f"ZAI backend succeeded with model: {model}")
-                return response
-            except Exception as e:
-                logger.error(f"ZAI backend failed: {str(e)}")
-                raise OpenAIBackendError(f"ZAI backend error: {str(e)}")
-        elif backend == "llama-cpp":
-            logger.info(f"Using llama.cpp backend directly for model: {model}")
-            try:
-                response = await self.primary_client.chat.completions.create(
-                    messages=messages,
-                    model=model,
-                    stream=stream,
-                    **kwargs,
-                )
-                logger.info(f"llama.cpp backend succeeded with model: {model}")
-                return response
-            except Exception as e:
-                logger.error(f"llama.cpp backend failed: {str(e)}")
-                raise OpenAIBackendError(f"llama.cpp backend error: {str(e)}")
-        elif backend == "pollinations":
-            logger.info(f"Using Pollinations backend directly for model: {model}")
-            try:
-                response = await self.primary_client.chat.completions.create(
-                    messages=messages,
-                    model=model,
-                    stream=stream,
-                    **kwargs,
-                )
-                logger.info(f"Pollinations backend succeeded with model: {model}")
-                return response
-            except Exception as e:
-                logger.error(f"Pollinations backend failed: {str(e)}")
-                raise OpenAIBackendError(f"Pollinations backend error: {str(e)}")
+            except Exception as error:
+                errors.append(str(error))
+                logger.warning("Inference backend request failed: %s", error)
 
-        # Auto-detect: try primary backend first
-        try:
-            logger.info(
-                f"Attempting primary backend: {self.primary_url} with model: {model}"
-            )
-            response = await self.primary_client.chat.completions.create(
-                messages=messages,
-                model=model,
-                stream=stream,
-                **kwargs,
-            )
-            logger.info(f"Primary backend succeeded with model: {model}")
-            return response
+        detail = "; ".join(errors[-3:]) or "no configured backend"
+        raise OpenAIBackendError(f"All inference backends failed: {detail}")
 
-        except Exception as e:
-            error_msg = str(e)
-            logger.warning(f"Primary backend failed: {error_msg}")
+    async def stream_chat_completion(
+        self,
+        messages: list[Dict[str, Any]],
+        model: str,
+        backend: Optional[str] = None,
+        **kwargs: Any,
+    ) -> AsyncStream[ChatCompletionChunk]:
+        """Compatibility method for callers that explicitly request a stream."""
+        return await self.chat_completion(
+            messages=messages,
+            model=model,
+            stream=True,
+            backend=backend,
+            **kwargs,
+        )
 
-            # Check if it's a connection error (should failover)
-            # or an application error (should not failover)
-            if self._should_failover(error_msg):
-                if self.fallback_client:
-                    # For streaming requests, only try the requested model (no multi-model fallback)
-                    # to avoid connection issues when switching models mid-stream
-                    if stream:
-                        try:
-                            logger.info(
-                                f"Attempting ZAI fallback with requested model: {model}"
-                            )
-                            response = (
-                                await self.fallback_client.chat.completions.create(
-                                    messages=messages,
-                                    model=model,
-                                    stream=stream,
-                                    **kwargs,
-                                )
-                            )
-                            logger.info(f"ZAI fallback succeeded with model: {model}")
-                            return response
-                        except Exception as fallback_error:
-                            logger.error(f"ZAI fallback failed: {str(fallback_error)}")
-                            raise OpenAIBackendError(
-                                f"ZAI backend error: {str(fallback_error)}"
-                            )
-                    else:
-                        # For non-streaming requests, try multiple ZAI models in sequence
-                        last_error = None
-                        for zai_model in self.zai_models:
-                            try:
-                                logger.info(
-                                    f"Attempting ZAI fallback with model: {zai_model}"
-                                )
-                                response = (
-                                    await self.fallback_client.chat.completions.create(
-                                        messages=messages,
-                                        model=zai_model,
-                                        stream=stream,
-                                        **kwargs,
-                                    )
-                                )
-                                logger.info(
-                                    f"ZAI fallback succeeded with model: {zai_model}"
-                                )
-                                return response
-                            except Exception as model_error:
-                                last_error = model_error
-                                model_error_msg = str(model_error)
-                                logger.warning(
-                                    f"ZAI model {zai_model} failed: {model_error_msg}"
-                                )
-
-                                # Don't try more models if it's not a retryable error
-                                if not self._should_try_next_model(model_error_msg):
-                                    logger.error(
-                                        f"ZAI model {zai_model} failed with non-retryable error, stopping fallback"
-                                    )
-                                    raise OpenAIBackendError(
-                                        f"ZAI backend error: {model_error_msg}"
-                                    )
-
-                        # All models failed
-                        logger.error(
-                            f"All ZAI models failed. Last error: {str(last_error)}"
-                        )
-                        raise OpenAIBackendError(
-                            f"All ZAI models failed. Last error: {str(last_error)}"
-                        )
-                else:
-                    logger.warning("No fallback backend configured")
-                    raise OpenAIBackendError(f"Primary backend failed: {error_msg}")
-            else:
-                # Application error (4xx/5xx) - don't failover
-                raise OpenAIBackendError(f"Backend error: {error_msg}")
-
-    def _should_failover(self, error_message: str) -> bool:
-        """
-        Determine if an error should trigger failover.
-
-        Only connection errors should trigger failover, not application errors.
-        This prevents cascading bad requests across all backends.
-
-        Args:
-            error_message: Error message string
-
-        Returns:
-            True if error should trigger failover
-        """
-        # Connection errors - should failover
-        connection_errors = [
-            "connect",
-            "timeout",
-            "connection refused",
-            "connection reset",
-            "host unreachable",
-            "network unreachable",
-            "all connection attempts failed",
-        ]
-
-        error_lower = error_message.lower()
-        return any(err in error_lower for err in connection_errors)
-
-    def _should_try_next_model(self, error_message: str) -> bool:
-        """
-        Determine if we should try the next ZAI model.
-
-        Retryable errors that suggest trying a different model:
-        - Rate limiting (429)
-        - Model unloaded
-        - Insufficient balance
-        - Model-specific errors
-
-        Non-retryable errors that should stop immediately:
-        - Authentication errors (401)
-        - Invalid request format (400)
-        - Context length exceeded
-        - Other client errors
-
-        Args:
-            error_message: Error message string
-
-        Returns:
-            True if we should try the next model
-        """
-        # Retryable errors - try next model
-        retryable_errors = [
-            "rate limit",  # 429 rate limiting
-            "429",  # HTTP 429 status code
-            "too many requests",  # Rate limiting message
-            "model unloaded",  # Model not loaded
-            "no models loaded",  # No models available
-            "insufficient balance",  # Balance issues
-            "error code: 400",  # ZAI returns 400 for model issues
-            "unknown model",  # Model doesn't exist
-        ]
-
-        # Non-retryable errors - stop immediately
-        non_retryable_errors = [
-            "401",  # Authentication - won't help to switch models
-            "unauthorized",  # Auth failure
-            "invalid api key",  # Auth failure
-            "context length",  # Request too long - won't help to switch models
-            "maximum context length",  # Request too long
-            "this model's maximum context length",  # Request too long
-        ]
-
-        error_lower = error_message.lower()
-
-        # Check non-retryable first (these should stop immediately)
-        if any(err in error_lower for err in non_retryable_errors):
-            return False
-
-        # Check retryable (these should try next model)
-        return any(err in error_lower for err in retryable_errors)
-
-    async def close(self):
-        """Close all client connections."""
-        await self.primary_client.close()
-        if self.fallback_client:
-            await self.fallback_client.close()
+    async def close(self) -> None:
+        """Close all backend client connections."""
+        clients = [self.primary_client, *self.fallback_clients]
+        for client in clients:
+            await client.close()
 
 
 def create_openai_client(config) -> OpenAIClientWrapper:
-    """
-    Create OpenAI client wrapper from gateway configuration.
-
-    Args:
-        config: GatewayConfig instance
-
-    Returns:
-        OpenAIClientWrapper instance
-    """
-    # Get primary backend credentials
+    """Create a client from the gateway configuration."""
     primary_api_key = None
-    if config.backend_type == "zai":
-        primary_api_key = config.get_zai_api_key()
-    elif config.backend_type == "pollinations":
+    if config.backend_type == "pollinations":
         primary_api_key = config.get_pollinations_api_key()
-    # llama-cpp doesn't require authentication
-
-    # Get fallback backend credentials
-    fallback_url = None
-    fallback_api_key = None
-    fallback_urls = config.get_backend_fallback_urls()
-    if fallback_urls:
-        fallback_url = fallback_urls[0]
-        fallback_api_key = config.get_zai_api_key()
 
     return OpenAIClientWrapper(
         primary_url=config.backend_url,
         primary_api_key=primary_api_key,
-        fallback_url=fallback_url,
-        fallback_api_key=fallback_api_key,
+        fallback_urls=config.get_backend_fallback_urls(),
+        fallback_model=os.environ.get("NIM_FALLBACK_MODEL"),
     )

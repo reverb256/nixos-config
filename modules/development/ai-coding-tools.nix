@@ -1,9 +1,9 @@
 # AI Coding Tools - Harmonized MCP Configuration
 # Generates unified MCP server configs for: Droid (Factory), Claude Code, Crush, OpenCode
-# All tools get the same MCP server set: Z.AI HTTP + local stdio servers
+# All tools get the same local MCP server set.
 #
 # API keys are read from agenix secrets at runtime (never hardcoded).
-# Required secrets: zai-api-key, context7-api-key
+# Required secrets: context7-api-key, nvidia-api-key
 {
   config,
   lib,
@@ -26,8 +26,6 @@
   # per audit F-22 (2026-07-29 reconciliation). Source of truth is now
   # ./ai-coding-tools/{mcp-defs,claude,droid,crush,opencode,pi}.nix.
   nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
-  zaiCodingBaseUrl = "https://api.z.ai/api/coding/paas/v4";
-
   mcpDefs = import ./ai-coding-tools/mcp-defs.nix { inherit lib; };
   inherit (mcpDefs) mkMcpServersJson;
 
@@ -41,7 +39,7 @@
     inherit cfg pkgs gatewayUrl nvidiaNimBaseUrl mkMcpServersJson;
   };
   opencodeGen = import ./ai-coding-tools/opencode.nix {
-    inherit cfg pkgs gatewayUrl zaiCodingBaseUrl nvidiaNimBaseUrl mkMcpServersJson;
+    inherit cfg pkgs gatewayUrl nvidiaNimBaseUrl mkMcpServersJson;
   };
   piGen = import ./ai-coding-tools/pi.nix {
     inherit cfg pkgs gatewayUrl nvidiaNimBaseUrl mkMcpServersJson;
@@ -60,11 +58,6 @@ in {
       type = types.str;
       default = "j_kro";
       description = "User for AI coding tool configs";
-    };
-    zaiApiKeyFile = mkOption {
-      type = types.path;
-      default = "/run/secrets/zai-api-key";
-      description = "Path to Z.AI API key (agenix secret)";
     };
     context7ApiKeyFile = mkOption {
       type = types.path;
@@ -127,11 +120,11 @@ in {
         };
       };
     };
-    # Environment variables for Z.AI API (used by Claude Code env, shell sessions)
+    # Environment variables for API-backed MCP servers and shell sessions
     enableShellEnv = mkOption {
       type = types.bool;
       default = true;
-      description = "Set ZAI_API_KEY and related env vars in shell session";
+      description = "Set Context7 and related API variables in shell sessions";
     };
   };
   config = mkIf cfg.enable {
@@ -167,10 +160,10 @@ in {
       "d /home/${cfg.user}/.pi/agent 0700 ${cfg.user} users -"
       "d /home/${cfg.user}/.pi/agent/sessions 0700 ${cfg.user} users -"
     ];
-    # Shell environment variables (ZAI_API_KEY available to all tools)
+    # Shell environment variables available to all tools
     environment.sessionVariables = mkIf cfg.enableShellEnv {
-      ZAI_API_KEY_FILE = cfg.zaiApiKeyFile;
       CONTEXT7_API_KEY_FILE = cfg.context7ApiKeyFile;
+      NVIDIA_NIM_API_KEY_FILE = cfg.nvidiaNimApiKeyFile;
     };
     # Systemd service to generate all configs after secrets are available
     systemd.services.ai-coding-tools-config = {
@@ -213,7 +206,7 @@ in {
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
                 set -euo pipefail
                 # Wait for secrets to be available
-                for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
+                for secret in ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
                   for i in {1..30}; do
                     if [ -f "$secret" ] && [ -s "$secret" ]; then
                       break
@@ -224,12 +217,10 @@ in {
                     sleep 1
                   done
                 done
-                export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-          ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
                 export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
-          CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
+                CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
                 export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
-          NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
+                NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
                 echo "[ai-coding-tools] Generating harmonized MCP configs..."
                 ${optionalString cfg.tools.droid.enable ''
             echo "[ai-coding-tools] Generating Droid settings..."
@@ -259,21 +250,14 @@ in {
     };
     # Fish shell integration (read secrets into env for interactive use)
     programs.fish.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      # AI Coding Tools - Load API keys from agenix secrets
-      if test -f ${cfg.zaiApiKeyFile}
-        set -gx ZAI_API_KEY (cat ${cfg.zaiApiKeyFile})
-      end
+      # AI Coding Tools - Load API keys from sops secrets
       if test -f ${cfg.context7ApiKeyFile}
         set -gx CONTEXT7_API_KEY (cat ${cfg.context7ApiKeyFile})
       end
     '';
     # Bash integration
     programs.bash.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      # AI Coding Tools - Load API keys from agenix secrets
-      if [ -f ${cfg.zaiApiKeyFile} ]; then
-        ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-        export ZAI_API_KEY="$(cat $ZAI_KEY_PATH)"
-      fi
+      # AI Coding Tools - Load API keys from sops secrets
       if [ -f ${cfg.context7ApiKeyFile} ]; then
         CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
         export CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH)"
@@ -320,7 +304,7 @@ in {
         done
         echo ""
         echo "Secrets:"
-        for s in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile}; do
+        for s in ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
           if [ -f "$s" ] && [ -s "$s" ]; then
             echo "  ✓ $s"
           else
@@ -347,18 +331,12 @@ in {
       ## Unified Provider Set
       | Provider | Endpoint | Key Source | Tools |
       |----------|----------|------------|-------|
-      | Z.AI (Anthropic) | api.z.ai/api/anthropic | agenix | Droid |
-      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | agenix | OpenCode, Crush, Pi |
       | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Pi, Droid |
-      | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Pi, Droid |
+      | NVIDIA NIM | integrate.api.nvidia.com/v1 | sops secret | OpenCode, Crush, Pi, Droid |
       | LM Studio | 127.0.0.1:8080/v1 | None (local) | OpenCode, Crush, Pi |
       ## Unified MCP Server Set
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
-      | zai-mcp-server | stdio | Z.AI image/video/analysis | Yes |
-      | web-search-prime | HTTP | Z.AI web search | Yes |
-      | web-reader | HTTP | Z.AI URL reader | Yes |
-      | zread | HTTP | Z.AI GitHub repo reader | Yes |
       | filesystem | stdio | Local filesystem access | Yes |
       | git | stdio | Git operations | Yes |
       | fetch | stdio | Web fetching | Yes |
@@ -382,11 +360,10 @@ in {
       | Pi | `pi` | npx @mariozechner/pi-coding-agent@latest |
       ## API Keys
       All keys managed via agenix secrets:
-      - zai-api-key → /run/secrets/zai-api-key
       - context7-api-key → /run/secrets/context7-api-key
       - nvidia-api-key → /run/secrets/nvidia-api-key
       Keys are loaded into shell environment (fish/bash) and referenced
-      in configs at generation time. Z.AI HTTP servers use Bearer tokens.
+      in configs at generation time.
     '';
   };
 }

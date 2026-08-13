@@ -2,11 +2,11 @@
 RAG URL Ingestion Service
 
 Fetches and ingests documents from URLs into the RAG system.
-Supports both direct HTTP fetching and MCP web-reader integration.
+Supports direct HTTP fetching and an optional local MCP web-fetch integration.
 
 Features:
 - HTTP client for direct URL fetching
-- MCP web-reader integration for enhanced fetching
+- local MCP web-fetch integration for enhanced fetching
 - Domain whitelist for security
 - Batch ingestion support
 - Content extraction and chunking
@@ -45,7 +45,7 @@ class IngestionSource(Enum):
     """Document ingestion source types."""
 
     HTTP_DIRECT = "http_direct"  # Direct HTTP fetch
-    MCP_WEB_READER = "mcp_web_reader"  # MCP web-reader tool
+    MCP_WEB_FETCH = "mcp_web_fetch"  # Local MCP web-fetch tool
     FILE = "file"  # Local file upload
 
 
@@ -60,7 +60,7 @@ class IngestionConfig:
         max_file_size_bytes: Maximum file size to fetch (default: 10MB)
         timeout_seconds: HTTP timeout (default: 30s)
         user_agent: User agent string for HTTP requests
-        enable_mcp_web_reader: Use MCP web-reader if available
+        enable_mcp_web_fetch: Use the local MCP web-fetch tool if available
         batch_size: Number of URLs to process in parallel (default: 5)
     """
 
@@ -69,7 +69,7 @@ class IngestionConfig:
     max_file_size_bytes: int = 10 * 1024 * 1024  # 10MB
     timeout_seconds: int = 30
     user_agent: str = "Mozilla/5.0 (compatible; AIInferenceGateway/1.0)"
-    enable_mcp_web_reader: bool = True
+    enable_mcp_web_fetch: bool = True
     batch_size: int = 5
 
     def is_domain_allowed(self, domain: str) -> bool:
@@ -109,7 +109,7 @@ class URLIngestionService:
     """
     Service for ingesting documents from URLs into RAG system.
 
-    Supports both direct HTTP fetching and MCP web-reader integration.
+    Supports direct HTTP fetching and an optional local MCP web-fetch integration.
     """
 
     def __init__(
@@ -130,7 +130,7 @@ class URLIngestionService:
             embedder: Embedding service
             chunker: Document chunker
             qdrant: Qdrant manager
-            mcp_broker: Optional MCP broker for web-reader tool
+            mcp_broker: Optional MCP broker for the local web-fetch tool
         """
         self.config = config
         self.rag_config = rag_config
@@ -146,7 +146,7 @@ class URLIngestionService:
             f"URLIngestionService initialized: "
             f"allowed_domains={len(config.allowed_domains)}, "
             f"blocked_domains={len(config.blocked_domains)}, "
-            f"mcp_web_reader={config.enable_mcp_web_reader}"
+            f"mcp_web_fetch={config.enable_mcp_web_fetch}"
         )
 
     async def _get_http_client(self) -> httpx.AsyncClient:
@@ -163,7 +163,7 @@ class URLIngestionService:
         self,
         url: str,
         collection: str = "default",
-        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER,
+        source_preference: IngestionSource = IngestionSource.MCP_WEB_FETCH,
     ) -> IngestedDocument:
         """
         Ingest document from URL.
@@ -201,8 +201,8 @@ class URLIngestionService:
             )
 
         # Try preferred source first
-        if source_preference == IngestionSource.MCP_WEB_READER:
-            if self.config.enable_mcp_web_reader and self.mcp_broker:
+        if source_preference == IngestionSource.MCP_WEB_FETCH:
+            if self.config.enable_mcp_web_fetch and self.mcp_broker:
                 doc = await self._ingest_via_mcp(url)
                 if doc.success:
                     # Store in Qdrant
@@ -225,7 +225,7 @@ class URLIngestionService:
         self,
         urls: List[str],
         collection: str = "default",
-        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER,
+        source_preference: IngestionSource = IngestionSource.MCP_WEB_FETCH,
     ) -> List[IngestedDocument]:
         """
         Ingest multiple URLs in batches.
@@ -268,24 +268,24 @@ class URLIngestionService:
         return results
 
     async def _ingest_via_mcp(self, url: str) -> IngestedDocument:
-        """Ingest URL via MCP web-reader tool."""
+        """Ingest URL via the local MCP web-fetch tool."""
         if not self.mcp_broker:
             return IngestedDocument(
                 url=url,
-                source=IngestionSource.MCP_WEB_READER,
+                source=IngestionSource.MCP_WEB_FETCH,
                 error="MCP broker not available",
             )
 
         try:
-            # Call web-reader MCP tool
+            # Call the local web-fetch MCP tool
             result = await self.mcp_broker.call_tool(
-                server_name="web-reader", tool_name="webReader", arguments={"url": url}
+                server_name="local-web-fetch", tool_name="fetch", arguments={"url": url}
             )
 
             if "error" in result:
                 return IngestedDocument(
                     url=url,
-                    source=IngestionSource.MCP_WEB_READER,
+                    source=IngestionSource.MCP_WEB_FETCH,
                     error=result.get("error"),
                 )
 
@@ -294,8 +294,8 @@ class URLIngestionService:
             if not content:
                 return IngestedDocument(
                     url=url,
-                    source=IngestionSource.MCP_WEB_READER,
-                    error="No content returned from web-reader",
+                    source=IngestionSource.MCP_WEB_FETCH,
+                    error="No content returned from local web-fetch",
                 )
 
             # Parse title if available
@@ -303,16 +303,16 @@ class URLIngestionService:
 
             return IngestedDocument(
                 url=url,
-                source=IngestionSource.MCP_WEB_READER,
+                source=IngestionSource.MCP_WEB_FETCH,
                 title=title,
                 content=content,
-                metadata={"ingestion_method": "mcp_web_reader"},
+                metadata={"ingestion_method": "mcp_web_fetch"},
             )
 
         except Exception as e:
             logger.error(f"Error ingesting via MCP: {e}")
             return IngestedDocument(
-                url=url, source=IngestionSource.MCP_WEB_READER, error=f"MCP error: {e}"
+                url=url, source=IngestionSource.MCP_WEB_FETCH, error=f"MCP error: {e}"
             )
 
     async def _ingest_via_http(self, url: str) -> IngestedDocument:

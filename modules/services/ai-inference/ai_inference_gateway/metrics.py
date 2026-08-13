@@ -154,7 +154,7 @@ model_quality_score = Gauge(
 backend_requests_total = Counter(
     "gateway_backend_requests_total",
     "Backend requests",
-    ["backend", "status"],  # backend: llama-cpp, zai, vllm
+    ["backend", "status"],  # backend: llama-cpp, vllm, sglang, or pollinations
 )
 
 backend_errors_total = Counter(

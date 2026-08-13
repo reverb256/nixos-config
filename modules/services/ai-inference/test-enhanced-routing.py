@@ -169,13 +169,13 @@ class EnhancedRouter:
             "lm-studio",
             TaskSpecialization.LARGE_CONTEXT,
         ),
-        "claude-sonnet-4": ("glm-5", "zai", TaskSpecialization.AGENTIC),
+        "claude-sonnet-4": ("magnum-opus-35b-a3b-i1", "llama-cpp", TaskSpecialization.AGENTIC),
         "claude-sonnet-4-20250514-simplified": (
-            "glm-4.7",
-            "zai",
+            "qwen3.5-9b-claude-4.6-opus-reasoning-distilled",
+            "llama-cpp",
             TaskSpecialization.CODING,
         ),
-        "claude-haiku-4-20250514": ("glm-4.5-air", "zai", TaskSpecialization.FAST),
+        "claude-haiku-4-20250514": ("qwen3.5-4b", "llama-cpp", TaskSpecialization.FAST),
     }
 
     def __init__(self):
@@ -208,36 +208,6 @@ class EnhancedRouter:
             estimated_tokens_per_second=50.0,
         )
 
-        # ZAI models (simulated)
-        self.models["glm-5"] = ModelInfo(
-            id="glm-5",
-            name="GLM-5",
-            context_length=200000,
-            priority=120,
-            specializations=[TaskSpecialization.AGENTIC],
-            cost_tier=5,
-            estimated_tokens_per_second=40.0,
-        )
-
-        self.models["glm-4.7"] = ModelInfo(
-            id="glm-4.7",
-            name="GLM-4.7",
-            context_length=200000,
-            priority=110,
-            specializations=[TaskSpecialization.CODING],
-            cost_tier=3,
-            estimated_tokens_per_second=50.0,
-        )
-
-        self.models["glm-4.5-air"] = ModelInfo(
-            id="glm-4.5-air",
-            name="GLM-4.5 Air",
-            context_length=128000,
-            priority=80,
-            specializations=[TaskSpecialization.FAST],
-            cost_tier=1,
-            estimated_tokens_per_second=100.0,
-        )
 
     def estimate_tokens(self, text: str) -> int:
         """Estimate token count for text."""
@@ -336,7 +306,7 @@ class EnhancedRouter:
                 backend=(
                     "lm-studio"
                     if "35b" in requested_model or "qwen" in requested_model
-                    else "zai"
+                    else "llama-cpp"
                 ),
                 specialization=(
                     model_info.specializations[0]
@@ -421,7 +391,7 @@ class EnhancedRouter:
                     backend=(
                         "lm-studio"
                         if "35b" in model_id or "qwen" in model_id
-                        else "zai"
+                        else "llama-cpp"
                     ),
                     score=score,
                     reason=f"Model with {model_info.context_length} context, specializations: {[s.value for s in model_info.specializations]}",

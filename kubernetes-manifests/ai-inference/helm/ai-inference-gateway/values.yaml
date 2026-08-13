@@ -19,15 +19,8 @@ gateway:
 
 # Backend inference engine
 backend:
-  type: "llama-cpp"  # llama-cpp | vllm | sglang | zai | pollinations
+  type: "llama-cpp"  # llama-cpp | vllm | sglang | pollinations
   url: "http://llama-cpp-service.ai-inference.svc.cluster.local:8083"
-
-# ZAI provider (optional cloud fallback)
-zai:
-  enabled: false
-  apiKey: ""
-  apiKeyFile: ""  # Path to mounted secret file (takes precedence)
-  baseUrl: "https://api.z.ai/api/coding/paas/v4"
 
 # NVIDIA NIM provider (optional free-tier models)
 nvidiaNim:
@@ -49,7 +42,6 @@ routing:
   defaultModel: "qwen3.5-35b-a3b"
   fallbackChain:
     - vllm
-    - zai
     - pollinations
 
 # Middleware toggles

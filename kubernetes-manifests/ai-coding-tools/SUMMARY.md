@@ -50,11 +50,6 @@ chmod +x deploy.sh
 # Create namespace
 kubectl create namespace ai-inference
 
-# Create secrets from existing config
-kubectl create secret generic ai-coding-secrets \
-  --from-literal=zai-api-key="YOUR_KEY_HERE" \
-  --namespace=ai-inference
-
 # Deploy in order
 kubectl apply -f 00-storage.yaml
 kubectl apply -f 10-claude-code-deployment.yaml
@@ -309,7 +304,7 @@ kubectl logs -n kube-system metrics-server-xxxxx
    - Pods run with your user ID (1000)
    - All secrets in ~/.claude are accessible to pods
 
-2. **API keys in secrets**: Z.AI API key stored in Kubernetes secret
+2. **API keys in secrets**: Only configured providers use Kubernetes secrets
    - Secrets are base64 encoded (not encrypted by default)
    - Consider using External Secrets Operator for production
    - Rotate keys regularly

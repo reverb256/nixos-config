@@ -211,7 +211,6 @@ in {
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
-    zaiApiKeyFile = "/run/secrets/zai-api-key";
     context7ApiKeyFile = "/run/secrets/context7-api-key";
     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
     tools = {
