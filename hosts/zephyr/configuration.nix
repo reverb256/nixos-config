@@ -557,15 +557,10 @@
   # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
-  # Zephyr builds locally on the workstation; do not dispatch builds to
-  # the cluster. The shared distributed-builds module provides the fleet
-  # defaults, so these host-level values intentionally use mkForce.
-  nix.distributedBuilds = lib.mkForce false;
-  # mkOverride 40 is stronger than the shared module's mkForce (priority 50)
-  # and nix-safety's ordinary assignment, avoiding an equal-priority conflict.
-  nix.settings.builders = lib.mkOverride 40 "";
-  nix.settings.max-jobs = lib.mkOverride 40 6;
-
+  # Zephyr never builds locally (31 GiB RAM — local `nix build` is the
+  # documented OOM root cause). The shared distributed-builds module owns
+  # this policy: max-jobs = 0, distributed builds enabled, builders = machines.
+  # Do NOT override nix.settings here; the shared module's mkForce applies.
 
   # ============================================================================
   # SERVICES - Consolidated service configuration
@@ -1207,13 +1202,13 @@
     opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     secretspecEnvVarMappings = {
-      "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
-      "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
+      "NVIDIA_API_KEY" = "NVIDIA_API_KEY";
+      "OPENCODE_API_KEY" = "OPENCODE_ZEN_API_KEY";
       "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
     };
     managedProviders = {
       "switchyard" = {
-        api_key_env = "NVIDIA_API_KEY";   # local proxy; key unused for localhost
+        api_key_env = "NVIDIA_API_KEY"; # local proxy; key unused for localhost
         base_url = "http://127.0.0.1:4000/v1";
         discover_models = true;
         model = "switchyard/local";
@@ -1238,10 +1233,22 @@
       };
     };
     managedFallbackProviders = [
-      { provider = "switchyard";    model = "switchyard/local"; }
-      { provider = "opencode-zen";  model = "nemotron-3.5-lightning-free"; }
-      { provider = "opencode-go";   model = "deepseek-v4-flash"; }
-      { provider = "nvidia";        model = "nvidia/nemotron-3.5-lightning-30b-a3b"; }
+      {
+        provider = "switchyard";
+        model = "switchyard/local";
+      }
+      {
+        provider = "opencode-zen";
+        model = "nemotron-3.5-lightning-free";
+      }
+      {
+        provider = "opencode-go";
+        model = "deepseek-v4-flash";
+      }
+      {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3.5-lightning-30b-a3b";
+      }
     ];
   };
 }
