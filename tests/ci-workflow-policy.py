@@ -30,6 +30,7 @@ def main() -> None:
     docs = read("doc-rot-guard.yml")
     cache = read("cache.yml")
     secretspec = read("secretspec-build.yml")
+    trusted_secretspec = read("secretspec-trusted.yml") if (WORKFLOWS / "secretspec-trusted.yml").exists() else ""
 
     # PR code may run Nix and shell commands, but never on the persistent
     # runner. Check every workflow, not only today's known filenames, so a new
@@ -55,6 +56,11 @@ def main() -> None:
             "runs-on: [self-hosted, nixos]" not in workflow,
             f"{name} must not run PR-triggered work on the persistent runner",
         )
+        if "pull_request_target:" not in workflow and not post_merge_maintenance:
+            require(
+                "${{ secrets." not in workflow,
+                f"{name} must not reference workflow secrets",
+            )
         if "pull_request_target:" in workflow:
             require(
                 "actions/checkout" not in workflow,
@@ -84,7 +90,29 @@ def main() -> None:
     # Cache population and secretspec builds can access trusted infrastructure
     # or credentials, so they must not be triggered by untrusted pull requests.
     require("pull_request:" not in cache, "cache.yml must not build PR code")
-    require("pull_request:" not in secretspec, "secretspec-build.yml must not run PR code")
+    require("concurrency:" in cache, "cache.yml must serialize trusted cache publication")
+    require("timeout-minutes:" in cache, "cache.yml must have a bounded job")
+    require("concurrency:" in ci, "ci.yml must define workflow concurrency")
+    require("cancel-in-progress:" in ci, "ci.yml must define cancellation behavior")
+    require("github.event_name == 'pull_request'" in ci, "ci.yml must cancel obsolete PR runs")
+    require("concurrency:" in automation, "ci-test-automation.yml must define workflow concurrency")
+    require("cancel-in-progress:" in automation, "test automation must define cancellation behavior")
+    require("github.event_name == 'pull_request'" in automation, "test automation must cancel obsolete PR runs")
+    require("pull_request:" in secretspec, "secretspec-build.yml must validate PR structure")
+    require("${{ secrets." not in secretspec, "secretspec PR validation must not contain secrets")
+    require("runs-on: [self-hosted, nixos]" not in secretspec, "secretspec PR validation must not use self-hosted")
+    require(trusted_secretspec, "trusted secretspec workflow must exist")
+    require("pull_request:" not in trusted_secretspec, "trusted secretspec workflow must not run on PRs")
+    require("runs-on: [self-hosted, nixos]" in trusted_secretspec, "trusted secretspec workflow must use trusted runner")
+    require("${{ secrets." in trusted_secretspec, "trusted secretspec workflow must own secret use")
+
+    deploy = read("deploy.yml")
+    require("concurrency:" in deploy, "deploy.yml must serialize deployments")
+    require("cancel-in-progress: false" in deploy, "deployments must not be cancelled mid-activation")
+    require("environment: homelab-production" in deploy, "deploy.yml must use the protected environment")
+    require("contents: read" in deploy, "deploy.yml must use read-only contents permission")
+    require("contents: write" not in deploy, "deploy.yml must not request contents write")
+    require("id-token: write" not in deploy, "deploy.yml must not request unused OIDC access")
 
     # Required gates must fail closed.
     require(

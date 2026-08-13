@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-test-automation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # Comprehensive test suite with coverage reporting
@@ -17,6 +21,7 @@ jobs:
   test-coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout
         # pin:actions/checkout@v5

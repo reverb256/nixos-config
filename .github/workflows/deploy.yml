@@ -17,13 +17,18 @@ on:
           - sentry
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
+
+concurrency:
+  group: homelab-production-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Deploy to Cluster
     runs-on: [self-hosted, nixos]
+    environment: homelab-production
+    timeout-minutes: 360
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
