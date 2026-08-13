@@ -1111,16 +1111,19 @@
   # Survives NixOS rebuilds without restart (restartIfChanged = false)
   services.unbound-common.enable = true;
 
-  # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD
-  # nvidia_x11 provides nvidia_icd.json; Steam looks for nvidia_icd.x86_64.json
-  # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD
+  # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD.
+  # 2026-08-13: VK_DRIVER_FILES must point at the DECLARATIVE /etc/xdg link
+  # (nvidia-common.nix 7f3318e5). The old target
+  # /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json does NOT
+  # exist: the tmpfiles L+ rule raced the /run/opengl-driver population at
+  # boot and the symlink was never created, so every Vulkan process died
+  # with "Found no drivers" (PoE2/DX12 instant engine-init crash, launch
+  # options irrelevant). The /etc/xdg link is nix-managed and immune to the
+  # race. Verified: VK_DRIVER_FILES=/etc/xdg/vulkan/icd.d/nvidia_icd.json
+  # enumerates RTX 3090 + 3060 Ti.
   environment.sessionVariables = {
-    VK_DRIVER_FILES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+    VK_DRIVER_FILES = "/etc/xdg/vulkan/icd.d/nvidia_icd.json";
   };
-
-  # Ensure the arch-suffixed ICD file exists (nvidia_x11 only provides nvidia_icd.json)
-  systemd.tmpfiles.rules = [
-    "L+ /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json - - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json"
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
 
