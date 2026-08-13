@@ -619,6 +619,10 @@
       "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
       # lolMiner workaround for OpenCL ICD path bug
       "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+      # Bonsai models live on the @persistent subvol; fleet convention is /models
+      # (nexus/zephyr have it as a real dir). 2026-08-13: forge had no /models at
+      # all, so bonsai-1bit-forge-0/1 could not load Bonsai-27B-Q1_0.gguf.
+      "L+ /models - - - - /persistent/models"
     ];
     slices.mining = {
       description = "Mining Services Slice";
