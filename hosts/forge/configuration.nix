@@ -191,6 +191,13 @@
       serverAddr = "https://10.1.1.120:6443"; # direct nexus join for recovery
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.130";
+      # At-rest encryption key MUST match the cluster (nexus/sentry share it;
+      # key is byte-identical across all 3 hosts: 2e9b199b...). Without this,
+      # the apiserver starts without --encryption-provider-config and cannot
+      # read nexus's aescbc-encrypted secrets ("identity transformer tried to
+      # read encrypted data"). The same field in forge/services.nix is dead
+      # code (that file is not imported) — this is the live one.
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
     k8s-manifest-autoapply.enable = true;
