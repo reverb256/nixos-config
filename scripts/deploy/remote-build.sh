@@ -76,6 +76,14 @@ set -euo pipefail
 exec 9>/tmp/nixos-build-farm.lock
 flock -n 9 || { echo "build farm lock is busy" >&2; exit 75; }
 cd /etc/nixos
+# colmena apply-local --sudo evaluates the flake as root and can create
+# root-owned files in the flake dir (flake.lock, .git objects), which breaks
+# the NEXT build/fetch (insufficient permission). Normalize before fetching.
+REPO_OWNER="$(stat -c %U .)"
+REPO_GROUP="$(stat -c %G .)"
+if [[ -n "$REPO_OWNER" ]] && [[ "$(find . -not -user "$REPO_OWNER" 2>/dev/null | head -1)" ]]; then
+  sudo chown -R "$REPO_OWNER":"$REPO_GROUP" . 2>/dev/null || true
+fi
 git fetch origin $(printf '%q' "$FETCH_REF") >/dev/null 2>&1
 git reset --hard FETCH_HEAD >/dev/null 2>&1
 nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel >$(printf '%q' "$STORE_PATH_FILE") 2>$(printf '%q' "/tmp/${TAG}-build-log")
