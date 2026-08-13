@@ -3,8 +3,12 @@
 **Parent:** `../AGENTS.md` | **Domain:** Per-host NixOS configs (31 .nix files, 4 hosts)
 
 ## Overview
-Each host has 7-8 files: `configuration.nix` (main), `hardware-configuration.nix` (auto-generated, NEVER edit),
-plus host-specific modules for services, desktop, firewall, hardware, monitoring.
+Each host has 7-8 files under `hosts/<host>/`: `configuration.nix` (main body), `hardware-configuration.nix`
+(auto-generated, NEVER edit), plus host-specific modules for services, desktop, firewall, hardware, monitoring.
+
+The host *body* (`hosts/<host>/configuration.nix`) is wrapped by the dendritic registry entry
+`modules/hosts/<host>/default.nix` (two-layer: content + evaluator). Shared modules are composed by
+`lib/dendritic-host.nix` via `common-modules-list.nix` — see `../AGENTS.md` → "Host wiring (dendritic)".
 
 ## Host Files
 
@@ -21,6 +25,7 @@ Each host has: `configuration.nix`, `hardware-configuration.nix`, `hardware.nix`
 
 | Task | Location |
 |------|----------|
+| Host wiring (dendritic) | `modules/hosts/<host>/default.nix` |
 | Host module imports | `<host>/configuration.nix` (top of file) |
 | Host-specific services | `<host>/services.nix` |
 | Host firewall ports | `<host>/firewall.nix` |
@@ -30,8 +35,17 @@ Each host has: `configuration.nix`, `hardware-configuration.nix`, `hardware.nix`
 | AI inference (Zephyr, Nexus) | `<host>/ai-inference.nix` |
 | Mining proxy examples | `<host>/mining-proxy-example.nix` (Forge, Zephyr) |
 
-## Import Order (per host)
-1. `../../modules/default.nix` — shared modules
+## Host wiring (dendritic)
+
+- `modules/hosts/<host>/default.nix` — the dendritic registry entry. Layer 1 sets
+  `flake.modules.nixos.<host>Config = import ../../../hosts/<host>/configuration.nix;` (the body);
+  Layer 2 sets `flake.nixosConfigurations.<host>` via `lib/dendritic-host.nix` `mkHost`.
+- `common-modules-list.nix` → `modules/default.nix` is the shared module list, composed into every
+  host by the evaluator (`commonModules ++ [hostConfig] ++ extraModules`).
+- `contracts/host-inventory.nix` holds host identity/targetHost/tags/extraModules; colmena consumes it too.
+
+## Import Order (per host body, `hosts/<host>/configuration.nix`)
+1. `../../modules/default.nix` — shared modules (also supplied via common-modules-list.nix; NixOS dedupes)
 2. `../../modules/hardware/*.nix` — host-specific hardware
 3. `../../modules/services/k3s-cluster.nix` — K3s on all nodes
 4. Host-specific modules (keepalived, security, etc.)

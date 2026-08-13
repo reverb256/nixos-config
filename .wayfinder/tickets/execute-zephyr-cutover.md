@@ -1,10 +1,16 @@
 ---
 type: handoff
-assignee: j_kro-agent (drafted, not executed)
+assignee: j_kro-agent (executed 2026-08-13)
 blocked-by: [rollout-order-safety, prototype-reference-conversion, research-online-verification]
 labels: [wayfinder:execute, wayfinder:handoff]
-status: open
+status: closed
 ---
+
+> **COMPLETED 2026-08-13 (issue #397).** Full dendritic migration ran to completion:
+> zephyr → nexus → forge → sentry cutover, then classic-shim dissolution. Wiring is the
+> two-layer Variant B pattern (`modules/hosts/<host>/default.nix` + `lib/dendritic-host.nix`).
+> Commits `3d78210b` (phase-1b merge) and `3da95702` (dissolution). This checklist was the
+> template reused for the other three hosts.
 
 ## Question
 

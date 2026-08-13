@@ -188,12 +188,15 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 
 ```
 /etc/nixos/                          # 268 .nix files, ~45k lines
-├── flake.nix                        # Main flake + host definitions
-├── colmena.nix                      # Multi-host Colmena deployment
+├── flake.nix                        # Main flake (inputs/outputs/checks); hosts via modules/hosts/
+├── colmena.nix                      # Multi-host Colmena deployment (same evaluator as nixosConfigurations)
+├── common-modules-list.nix          # Shared module list (inputs + modules/default.nix + overlays)
+├── lib/dendritic-host.nix           # Shared mkHost/mkSpecialArgs evaluator (single source of truth)
 ├── justfile                         # Task runner (deploy, check, rollback)
-├── hosts/<hostname>/                # Per-host configs
+├── hosts/<hostname>/                # Per-host NixOS *bodies* (wrapped by modules/hosts/<host>/default.nix)
 │   └── (never edit hardware-configuration.nix)
 ├── modules/                         # Reusable modules (~171 .nix files)
+│   ├── hosts/                       # Dendritic host registry (two-layer wiring per host)
 │   ├── system/                      # Core system (34 files)
 │   ├── services/                    # Background daemons (67 files)
 │   ├── desktop/                     # Wayland compositors (11 files)
@@ -229,6 +232,16 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 ├── secrets/                         # Encrypted sops material and secret templates
 └── .github/workflows/               # CI/CD (16 workflows, SHA-pinned)
 ```
+
+### Host wiring (dendritic) — issue #397, complete 2026-08-13
+
+Each host is wired through a **two-layer** dendritic pattern (Variant B path-import):
+
+- **Layer 1 (content)** — `modules/hosts/<host>/default.nix` sets `flake.modules.nixos.<host>Config = import ../../../hosts/<host>/configuration.nix;` (the host body, kept byte-identical for source-grep tests).
+- **Layer 2 (evaluator)** — the same file sets `flake.nixosConfigurations.<host>` via the shared `lib/dendritic-host.nix` `mkHost` helper, which composes `commonModules ++ [hostConfig] ++ extraModules` with `mkSpecialArgs`.
+- **Colmena** (`colmena.nix`) uses the *same* `mkHost` evaluator and the typed `contracts/host-inventory.nix` — no duplicate host declarations.
+- **Adding a host** = 1 entry in `contracts/host-inventory.nix` + `hosts/<host>/configuration.nix` + `modules/hosts/<host>/default.nix` (and update `./machines`).
+- The legacy `mkNixosSystem` shim, `classicHosts`, the `classicNixosConfigurations` oracle, and `hosts/registry.nix`/`hosts/metadata.nix` are **dissolved** (enforced by `tests/dendritic-parity.nix`).
 
 ## ⚠️ Critical Safety Rules
 

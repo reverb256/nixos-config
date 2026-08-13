@@ -7,6 +7,38 @@
 
 ## Recent Achievements
 
+### Dendritic flake-parts host migration (issue #397) (2026-08-13)
+
+**Status:** ✅ COMPLETE
+
+Migrated all four cluster hosts (zephyr, nexus, forge, sentry) to the dendritic
+flake-parts host-wiring pattern and dissolved the legacy classic shim.
+
+**Root Cause / Motivation:**
+- `modules/default.nix` was a hardcoded ~90-path central registry imported by every host;
+  `common-modules-list.nix` + `mkNixosSystem` was duplicated across `flake.nix` and
+  `colmena.nix`, letting the two deploy paths drift.
+
+**Solution:**
+- Added `lib/dendritic-host.nix` — a shared `mkHost`/`mkSpecialArgs` evaluator composing
+  `commonModules ++ [hostConfig] ++ extraModules`.
+- Added `modules/hosts/<host>/default.nix` — a two-layer host file (Layer 1 content
+  `flake.modules.nixos.<host>Config`, Layer 2 evaluator `flake.nixosConfigurations.<host>`),
+  aggregated by `modules/hosts/default.nix`.
+- `colmena.nix` now composes hosts via the same evaluator + typed `contracts/host-inventory.nix`.
+- Dissolved the classic shim: removed `mkClassicNixosSystem`, the `classicNixosConfigurations`
+  oracle, `classicHosts`, and dead `hosts/registry.nix`/`hosts/metadata.nix`; replaced
+  `tests/dendritic-parity.nix` with a `classic_shim_dissolved` gate.
+
+**Result:**
+- One module-list + specialArgs contract for `nixosConfigurations` and `colmena`.
+- `nix flake check --no-build` passes; all 4 hosts + portable + colmenaHive evaluate.
+
+**Commits:** `3d78210b` (phase-1b merge), `3da95702` (dissolution)
+**Documentation:** `AGENTS.md` → "Host wiring (dendritic)"; `knowledge.md`; `hosts/AGENTS.md`
+
+---
+
 ### Plasma Brightness Control Fix (2026-03-31)
 
 **Status:** ✅ COMPLETE
