@@ -200,17 +200,18 @@
           # (allowUnfree for checks/packages, mirroring the classic flake's
           # top-level `import nixpkgs { config.allowUnfree = true; }`).
           inputs.flake-parts.flakeModules.nixpkgs
-          # Dendritic host registry: zephyr + forge live here (modules/hosts/<n>).
-          # nexus/sentry join at their cutovers (nexus currently down, skipped).
+          # Dendritic host registry: ALL FOUR hosts live here
+          # (modules/hosts/<n>). Migration complete 2026-08-13 (issue #397).
           ./modules/hosts/default.nix
         ];
 
         # ── CLASSIC SHIM (option B) ──────────────────────────────────────────
-        # nexus/sentry keep the classic wiring (commonModules + per-host
-        # configuration.nix + extraModules) until their own cutovers. zephyr and
-        # forge are dendritic (modules/hosts/<n>/default.nix) and are REMOVED
-        # from this map so the two definitions never collide. Shared feature files stay
-        # classic: the shim + zephyr both consume them by path until dissolution.
+        # All four hosts are dendritic (modules/hosts/<n>/default.nix, issue
+        # #397, complete 2026-08-13) and are REMOVED from this map so the two
+        # definitions never collide. classicHosts is now empty; the shim itself
+        # (commonModules + mkNixosSystem) is a legacy carve-out kept only for
+        # the portable rescue config until dissolution. Shared feature files
+        # stay classic: the shim + dendritic hosts both consume them by path.
         flake = let
           system = "x86_64-linux";
           pkgs = import nixpkgs {
@@ -232,7 +233,8 @@
           };
 
           # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-          # Classic hosts only — zephyr is built dendritically.
+          # No classic cluster hosts remain — all four are dendritic; this
+          # helper survives only for the portable rescue config below.
           mkNixosSystem = {
             hostName,
             extraModules ? [],
@@ -269,9 +271,10 @@
           # ./hosts/<n>/configuration.nix + (once dendritic) a host file under
           # modules/hosts/<n>/.
           #   NOTE: also update ./machines (its keys are colmena machine entries).
-          # Dendritic cutover: zephyr + forge removed here (now under modules/hosts/<n>);
-          # nexus, sentry still classic until their cutovers.
-          classicHosts = builtins.removeAttrs hosts ["zephyr" "forge"];
+          # Dendritic cutover complete: ALL hosts removed here (now under
+          # modules/hosts/<n>/); classicHosts is empty and kept only so the
+          # portable config can ride the mkNixosSystem helper.
+          classicHosts = builtins.removeAttrs hosts ["zephyr" "nexus" "forge" "sentry"];
 
           # Portable USB stick — standalone rescue/pinch config (wayfinder #421/#425).
           # Shared by nixosConfigurations.portable and packages.portable-image.
@@ -281,8 +284,10 @@
             modules = [./modules/profiles/portable-usb.nix];
           };
         in {
-          # OUTPUT 1: nixosConfigurations (classic shim — nexus/sentry only;
-          # zephyr/forge dendritic definitions come from modules/hosts/<n>/default.nix)
+          # OUTPUT 1: nixosConfigurations (classic shim — EMPTY for cluster
+          # hosts; all four dendritic definitions come from
+          # modules/hosts/<n>/default.nix). Only the portable rescue config
+          # remains here.
 
           nixosConfigurations =
             builtins.mapAttrs (
