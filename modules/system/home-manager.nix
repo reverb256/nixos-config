@@ -106,11 +106,15 @@ in
         home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
         # Dolphin/KDE MIME fix (Arch wiki): KDE apps build their KSycoca
         # app/MIME registry from .desktop files; under niri (non-Plasma) they
-        # need the plasma- menu prefix to find them.
-        home.sessionVariables.XDG_MENU_PREFIX = lib.mkForce "plasma-";
-        # KDE platform theme for KDE apps (read kdeglobals + color scheme).
-        home.sessionVariables.QT_QPA_PLATFORMTHEME = lib.mkForce "kde";
-        home.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = lib.mkForce "kde";
+        # need the plasma- menu prefix to find them. These MUST go on
+        # systemd.user.sessionVariables (HM generates 10-home-manager.conf
+        # from that option, NOT home.sessionVariables — HM modules/systemd.nix)
+        # or the qt module's adwaita assignment wins in the env file.
+        systemd.user.sessionVariables = {
+          QT_QPA_PLATFORMTHEME = lib.mkForce "kde";
+          QT_QPA_PLATFORMTHEME_QT6 = lib.mkForce "kde";
+          XDG_MENU_PREFIX = lib.mkForce "plasma-";
+        };
         home.pointerCursor.enable = true;
 
         # CopyQ clipboard manager (replaces cliphist)
