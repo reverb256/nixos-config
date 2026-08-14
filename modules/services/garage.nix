@@ -41,6 +41,10 @@
       -e "s|@METRICS_TOKEN@|$metrics_token|g" \
       ${garageConfigTemplate} > /run/garage/garage.toml
     chmod 600 /run/garage/garage.toml
+    # preStart runs as root; the server runs as the garage user. Without the
+    # chown, garage exits with "IO error: Permission denied (os error 13)"
+    # reading its own config (verified 2026-08-14).
+    chown garage:garage /run/garage/garage.toml
   '';
 in {
   options.services.garage-cluster = {
