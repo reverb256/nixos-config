@@ -369,8 +369,11 @@ with lib; let
   # (3.8 t/s). E2B (3.1 GB) is fully GPU-resident: measured 8.8 t/s decode,
   # 46 t/s prefill, 128K native context — same throughput as Bonsai with a
   # far stronger model (Gemma 4 family: thinking, tool-calling, 128K).
-  # q8_0 KV: turbo4/turbo3 measured identical speed on this model, q8_0
-  # keeps quality headroom on the 6GB card.
+  # 2026-08-14 (2): --flash-attn OFF is the RDNA1 decode lever. The Vulkan
+  # scoreboard (#10879) measured -fa on as 3x SLOWER for decode on RDNA1
+  # (Llama 2 7B Q4_0: 70.7 -> 23.2 t/s); on E2B the penalty measured even
+  # worse — 8.8 t/s with FA on vs 89.8 t/s with FA off (10x). Quantized V
+  # requires FA, so V must be f16 when FA is off (K stays q8_0).
   gemmaE2BSentry = mkIf (host == "sentry") {
     systemd.services."gemma-e2b-sentry" = {
       description = "Gemma 4 E2B — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
@@ -381,7 +384,7 @@ with lib; let
         User = "bonsai";
         RuntimeDirectory = "gemma-e2b-sentry";
         ExecStart =
-          "${getExe forkVulkanBinary} -m /srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf --host 0.0.0.0 --port 8003 -ngl 99 --fit off --cache-type-k q8_0 --cache-type-v q8_0 -c 131072 --flash-attn on -t 8 -tb 8 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias gemma-4-e2b";
+          "${getExe forkVulkanBinary} -m /srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf --host 0.0.0.0 --port 8003 -ngl 99 --fit off --cache-type-k q8_0 --cache-type-v f16 -c 131072 --flash-attn off -t 8 -tb 8 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias gemma-4-e2b";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
