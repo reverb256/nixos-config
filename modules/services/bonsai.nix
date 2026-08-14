@@ -363,6 +363,53 @@ with lib; let
     memoryMax = "6G";
   });
 
+  # Gemma 4 E2B on sentry (2026-08-14): replaces the Bonsai 1-bit on 8003.
+  # The 26B-A4B MoE experiment failed on sentry (Zen 1 CPU + Vulkan = 2.3
+  # t/s CPU-expert streaming); the E4B dense+PLE is too heavy for Navi 10
+  # (3.8 t/s). E2B (3.1 GB) is fully GPU-resident: measured 8.8 t/s decode,
+  # 46 t/s prefill, 128K native context — same throughput as Bonsai with a
+  # far stronger model (Gemma 4 family: thinking, tool-calling, 128K).
+  # q8_0 KV: turbo4/turbo3 measured identical speed on this model, q8_0
+  # keeps quality headroom on the 6GB card.
+  gemmaE2BSentry = mkIf (host == "sentry") {
+    systemd.services."gemma-e2b-sentry" = {
+      description = "Gemma 4 E2B — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "simple";
+        User = "bonsai";
+        RuntimeDirectory = "gemma-e2b-sentry";
+        ExecStart =
+          "${getExe forkVulkanBinary} -m /srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf --host 0.0.0.0 --port 8003 -ngl 99 --fit off --cache-type-k q8_0 --cache-type-v q8_0 -c 131072 --flash-attn on -t 8 -tb 8 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias gemma-4-e2b";
+        Restart = "on-failure";
+        RestartSec = "10";
+        StandardOutput = "journal";
+        StandardError = "journal";
+        MemoryMax = "6G";
+        LimitNOFILE = 65536;
+        OOMScoreAdjust = 500;
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        ReadWritePaths = [ "/run/gemma-e2b-sentry" ];
+        ReadOnlyPaths = [ "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf" ];
+      };
+      environment = {
+        GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+        GGML_VULKAN_DEVICE = "0";
+        VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
+        # 2026-08-14 (2): DeviceLost crash-loop fix (upstream llama.cpp #21724
+        # + PR #24872) — same as bit1Sentry.
+        GGML_VK_MAX_NODES_PER_SUBMIT = "1";
+        # 2026-08-14 (3): RADV GTT-spill fix (upstream #24066 / Mesa #13282).
+        RADV_PERFTEST = "nogttspill";
+      };
+    };
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 8003 ];
+  };
+
   # 1-bit on krash3 CPU-only (no GPU available)
   bit1Krash3 = mkIf (host == "krash3") (mk1bitService {
     name = "krash3";
@@ -468,7 +515,12 @@ in {
     bit1Zephyr
     bit1Forge0
     bit1Forge1
-    bit1Sentry
+    # 2026-08-14: sentry now serves Gemma 4 E2B (gemmaE2BSentry) — the Bonsai
+    # 1-bit was replaced after benchmarking (E2B: 8.8 t/s decode, 128K ctx vs
+    # Bonsai: 9.4 t/s, 2x64K). Stronger model, same throughput. The old
+    # bit1Sentry unit definition is kept above (documented history) but is
+    # NOT enabled — do not re-add it to this list without re-checking VRAM.
+    gemmaE2BSentry
     bit1Krash3
   ];
 }
