@@ -17,6 +17,20 @@
   ciRunners = import ../../modules/services/ci-runners.nix {inherit lib pkgs;};
   runnerFragments = ciRunners {
     instances = {
+      nixos-config = {
+        user = "runner-nixos";
+        repo = "reverb256/nixos-config";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["nexus" "builder"];
+        runnerName = "nexus-runner";
+        # nixos-config CI (deploy/ci/flake-update/bump-peakminer) does nix
+        # builds via the nix daemon (not the runner cgroup); scope memory
+        # between the quill (16/24G) and hm (8/12G) runners.
+        memoryHigh = "12G";
+        memoryMax = "18G";
+      };
       quill = {
         user = "runner-quill";
         repo = "reverb256/quill";
