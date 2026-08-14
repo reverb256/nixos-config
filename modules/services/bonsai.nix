@@ -478,12 +478,10 @@ in {
     bit1Zephyr
     bit1Forge0
     bit1Forge1
-    # 2026-08-14: sentry now serves Gemma 4 E2B (gemmaE2BSentry) — the Bonsai
-    # 1-bit was replaced after benchmarking (E2B: 8.8 t/s decode, 128K ctx vs
-    # Bonsai: 9.4 t/s, 2x64K). Stronger model, same throughput. The old
-    # bit1Sentry unit definition is kept above (documented history) but is
-    # NOT enabled — do not re-add it to this list without re-checking VRAM.
-    gemmaE2BSentry
+    # 2026-08-14: sentry serves Gemma 4 E2B via llama-swap (see
+    # llama-swap-cluster.nix sentry.yaml, swapId gemma-e2b, proxy :21764).
+    # The old bit1Sentry unit definition is kept above (documented history)
+    # but is NOT enabled — do not re-add it without re-checking VRAM.
     bit1Krash3
   ];
 }
