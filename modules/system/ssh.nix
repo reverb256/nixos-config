@@ -42,15 +42,10 @@ in {
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
 
-      # Cluster SSH CA (2026-08-14): accept CA-signed user certs cluster-wide.
-      # The private key lives sops-encrypted at secrets/infra/cluster-ssh-ca-key.yaml
-      # (age recipients cluster_age + zephyr_age_v2); the public half is committed
-      # at certs/cluster-ssh-ca.pub and installed to /etc/ssh/cluster-ssh-ca.pub
-      # via environment.etc below. Any identity signed by this CA (principals
-      # j_kro, runner-siteagency, ...) authenticates without an authorized_keys
-      # entry — rotation-safe: revoke by expiry, re-sign, never touch per-host
-      # authorized_keys. Replaces the ad-hoc SENTRY_SSH_KEY deploy key.
-      TrustedUserCAKeys = "/etc/ssh/cluster-ssh-ca.pub";
+      # CA trust is centralized in modules/system/ssh-ca.nix (legacy module,
+      # enabled by default; TrustedUserCAKeys lists cluster-CA@zephyr + YubiKey
+      # ECDSA + clusterCaPublicKey). Do NOT add another TrustedUserCAKeys here —
+      # OpenSSH merges multiple lines but warns on duplicates.
 
       Ciphers = [
         "chacha20-poly1305@openssh.com"
@@ -239,9 +234,6 @@ in {
   systemd.tmpfiles.rules = [
     "d ${userHome}/.ssh/sockets 0700 j_kro users -"
   ];
-
-  # Install the cluster SSH CA public key where sshd reads it (TrustedUserCAKeys).
-  environment.etc."ssh/cluster-ssh-ca.pub".source = ./../../certs/cluster-ssh-ca.pub;
 
   networking.firewall.interfaces = {
     tailscale0.allowedTCPPorts = lib.mkOptionDefault [22];
