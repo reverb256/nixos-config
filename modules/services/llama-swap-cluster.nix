@@ -33,12 +33,12 @@ with lib; let
   llamaSwap = pkgs.llama-swap;
 
   # Write a llama-swap catalog yaml for one host (system-level, /etc/llama-swap).
-  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; cacheK?; cacheV?; extraFlags? }
+  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; fa?; cacheK?; cacheV?; extraFlags? }
   #
   # Each model is emitted as a 2-space-indented YAML block, built from explicit
   # string lines (no nested ''-string indentation stripping) so the emitted YAML
   # stays correctly nested regardless of the module's surrounding indentation.
-  # (\${PORT} is llama-swap's own runtime substitution, escaped from Nix.)
+  # (\\${PORT} is llama-swap's own runtime substitution, escaped from Nix.)
   modelYaml = m:
     concatStringsSep "\n" [
       "  \"${m.id}\":"
@@ -56,7 +56,7 @@ with lib; let
       "        GGML_CUDA_ENABLE_UNIFIED_MEMORY=0 \\"
       "        ${unifiedLlama}/bin/llama-server \\"
       "        -m ${m.model} \\"
-      "        --host 127.0.0.1 --port \${PORT} -ngl 99 -fa on -c ${toString (m.ctx or 262144)} \\"
+      "        --host 127.0.0.1 --port \${PORT} -ngl 99 -fa ${m.fa or "on"} -c ${toString (m.ctx or 262144)} \\"
       "        ${
         if m.extraFlags or "" == ""
         then "--cache-type-k ${m.cacheK or "turbo4"} --cache-type-v ${m.cacheV or "turbo4"} --fit off \\"
@@ -201,20 +201,21 @@ in {
       })
     ]))
 
-    # ── sentry: AMD RX 5600 XT (Vulkan) — /srv/models, smaller ctx ──
+    # ── sentry: AMD RX 5600 XT (Vulkan) — Gemma 4 E2B (replaces Bonsai 1-bit) ──
     (mkIf (host == "sentry" && cfg.enable) (mkMerge [
       {
         environment.etc = mkCatalog {
           fileName = "sentry.yaml";
           models = [
             {
-              id = "bonsai-1bit";
-              name = "Bonsai 1bit 8k q4_0";
-              model = "/srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
+              id = "gemma-e2b";
+              name = "Gemma 4 E2B 128k";
+              model = "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf";
               vkDevice = "0";
-              ctx = 8192;
-              cacheK = "q4_0";
-              cacheV = "q4_0";
+              ctx = 131072;
+              fa = "off"; # RDNA1: -fa on costs 10x decode (2026-08-14, measured 84 t/s)
+              cacheK = "q8_0";
+              cacheV = "f16"; # quantized V requires FA
             }
           ];
         };
