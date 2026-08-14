@@ -26,18 +26,6 @@
 #
 # Dependency on the aagl flake module is safe: this file only overrides
 # `programs.<launcher>.package`, which the aagl module defines.
-#
-# 3. NETWORK BLOCK BREAKS THE GAME (2026-08-14, yaagl #706): the aagl
-#    module sets networking.mihoyo-telemetry.block = true whenever any
-#    launcher is enabled (module/aagl.nix, agl.nix, hl.nix). That injects
-#    hkrpg-log-upload-os.hoyoverse.com and sg-public-data-api.hoyoverse.com
-#    (plus 16 more domains) into /etc/hosts -> 0.0.0.0. The game's
-#    anti-cheat (HoYoKProtect.sys) must reach hoyoverse servers during
-#    initDriver; blocked, it aborts with "initDriver Failed: Error
-#    [4,1114,0]" (ERROR_DLL_INIT_FAILED) and the game dies silently ~10s
-#    after launch with no window. mkForce overrides the aagl plain
-#    `= true`. Telemetry uploads are the accepted trade for a playable
-#    game on the desktop host (zephyr).
 
 { config, lib, pkgs, ... }:
 
@@ -133,13 +121,6 @@ in
   # missing". mkIf on a NON-EXISTENT option still errors — must gate the option
   # presence, not just `enable or false`.
   config = lib.mkMerge [
-    # The aagl module forces mihoyo-telemetry.block = true when a launcher
-    # is enabled, which injects hoyoverse domains into /etc/hosts at
-    # 0.0.0.0 and kills the game's anti-cheat initDriver handshake
-    # ([4,1114,0] silent crash, yaagl #706). Un-block on desktop hosts.
-    (lib.mkIf (config ? networking.mihoyo-telemetry.block) {
-      networking.mihoyo-telemetry.block = lib.mkForce false;
-    })
     (lib.mkIf (config ? programs.anime-game-launcher && config.programs.anime-game-launcher.enable or false) {
       programs.anime-game-launcher.package = wrapLauncherEnv pkgs.anime-game-launcher;
     })
