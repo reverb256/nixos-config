@@ -170,9 +170,12 @@
           backend=$(${pkgs.jq}/bin/jq -r .backend <<< "$entry")
           kind=$(${pkgs.jq}/bin/jq -r .kind <<< "$entry")
           if [[ "$backend" == "openrgb" ]]; then
-            count=$(printf '%s\n' "$openrgb_devices" | grep -iF "$hint" | wc -l)
+            # grep returns 1 on no match; under `set -euo pipefail` that aborts the
+            # whole script mid-loop (missing hint => missing metric => exit 1).
+            # Absorb the no-match exit so a visibility gap is recorded, not fatal.
+            count=$(printf '%s\n' "$openrgb_devices" | grep -iF "$hint" | wc -l || true)
           elif [[ "$backend" == "openrazer" ]]; then
-            count=$(printf '%s\n' "$openrazer_devices" | grep -iF "$hint" | wc -l)
+            count=$(printf '%s\n' "$openrazer_devices" | grep -iF "$hint" | wc -l || true)
           elif [[ "$backend" == "drm" ]]; then
             count=$drm_gpu_count
           elif [[ "$backend" == "pci" ]]; then
