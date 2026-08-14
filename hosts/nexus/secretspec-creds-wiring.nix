@@ -229,6 +229,13 @@
     path = "/run/secrets/garage-rpc-secret";
     file = "storage/garage-rpc-secret.yaml";
     owner = "root";
+    # garage.service runs ExecStartPre as User=garage (serviceConfig.User
+    # applies to preStart too) and the generator reads this secret with cat.
+    # root-only 0400 made it Permission denied -> config not regenerated ->
+    # server crashed with stale/missing config (2026-08-14). Group garage,
+    # group-readable only.
+    group = "garage";
+    mode = "0440";
   };
   GARAGE_ACCESS_KEY = {
     path = "/run/secrets/garage-s3-access-key-id";
