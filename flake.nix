@@ -162,8 +162,12 @@
     # secretspec 0.17.0 with native sops provider is available directly.
 
     # gitlawb - local option-4 flake: packages + overlay + NixOS module
+    # Fetched as a subdirectory of this repo (dir=). A plain path:./pkgs/gitlawb
+    # input breaks when the flake is fetched remotely (deploy-nexus fetches
+    # origin/main -> 'cannot fetch input ... relative path' blocked every
+    # host eval 2026-08-14). dir= resolves from GitHub in both contexts.
     gitlawb = {
-      url = "path:./pkgs/gitlawb";
+      url = "git+https://github.com/reverb256/nixos-config?dir=pkgs/gitlawb";
     };
 
     # preservation - ephemeral-root persistence (sentry/nexus /persistent symlinks).
