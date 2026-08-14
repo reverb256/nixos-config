@@ -195,9 +195,14 @@ in {
       type = lib.types.listOf lib.types.str;
       default = [
         "/etc/nixos"
-        "/data/shared"
       ];
-      description = "Paths to include in backups";
+      description = ''
+        Paths to include in backups. Default is config-only (/etc/nixos):
+        /data/shared only exists on nexus and hosts without it broke the
+        mount namespace (NAMESPACE 226). Hosts should declare their own
+        valuable-but-bounded sources (never huge regenerable mounts like
+        /data or ~/.cache — 2026-08-14 zephyr tar'd 173G to a full disk).
+      '';
     };
   };
 

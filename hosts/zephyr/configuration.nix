@@ -382,9 +382,14 @@
       # zephyr has /data but NOT /data/shared (that is nexus storage). The
       # module default includes /data/shared which broke the mount namespace
       # (NAMESPACE 226, 2026-08-14) — declare the real source explicitly.
+      # IMPORTANT: /data on zephyr holds games + models (hundreds of GB,
+      # regenerable). It must NEVER be a backup source — 2026-08-14 the
+      # job tar+gzip'd all of /data to /tmp on the same 99%-full disk for
+      # ~3h, filling the disk and thrashing btrfs. Config-only backups.
       backupPaths = [
         "/etc/nixos"
-        "/data"
+        "/home/j_kro/Projects"
+        "/home/j_kro/.hermes"
       ];
     };
 
