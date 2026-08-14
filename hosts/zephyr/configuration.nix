@@ -85,23 +85,26 @@
   # Zephyr carries ~/Projects/secretspec-core (cachix-fork with sops
   # subprocess provider) and ~/Projects/secretspec/provider-rust (NDJSON
   # dispatcher fork). `cluster.localSealSupport` was REMOVED 2026-07-25
-  # (vestigial after Phase 1a), and the old "impure-eval relax + local-fork
-  # probe" coupling is DISPROVEN: pure-eval is now enabled cluster-wide
-  # (`nix.settings.pure-eval = true`, modules/system/nix-config.nix) and all
-  # four hosts' toplevels + home-manager eval cleanly under
-  # `nix eval --pure-eval` (verified 2026-08-13). No explicit declaration
-  # needed; see .plans/2026-07-25-cluster-localSealSupport-scope.md for the
-  # cluster-wide semantic.
+  # (vestigial after Phase 1a). 2026-08-13 the deploy scripts briefly added
+  # a GLOBAL `nix.settings.pure-eval = true` (claiming "home-manager eval
+  # cleanly under pure-eval") — that claim was FALSE: home-manager's news
+  # step does a NIX_PATH `<home-manager/...>` lookup which pure mode forbids
+  # (`cannot look up '<home-manager/home-manager/build-news.nix>' in pure
+  # evaluation mode`), breaking every `home-manager switch`. Removed
+  # 2026-08-14 in modules/system/nix-config.nix. Pure-eval is opt-in per
+  # command now; the secretspec fork path already forces
+  # `--option pure-eval false` in the justfile where it needs impure eval.
+  # See .plans/2026-07-25-cluster-localSealSupport-scope.md.
   # ============================================================================
 
   # Validator is auto-coupled to services.sops-secrets-registry.enable (set below in
   # the services block) — no explicit services.secretspec-validator block needed.
   # → enable defaults to true (coupled) + production defaults to true.
-  # Eval-mode note (2026-08-13): pure-eval is enabled cluster-wide and verified
-  # working — see the modules/system/secretspec-validator.nix header. There is
-  # NO impure-eval coupling requirement; cluster.localSealSupport was removed
-  # and no host needs it. See .plans/2026-07-25-cluster-localSealSupport-scope.md
-  # for the historical cluster-wide toggle decision.
+  # Eval-mode note (2026-08-14): the global pure-eval experiment (2026-08-13)
+  # was REVERTED in modules/system/nix-config.nix — it broke home-manager
+  # switch (news NIX_PATH lookup fails in pure mode). No host requires
+  # cluster.localSealSupport; the secretspec fork build path forces
+  # `--option pure-eval false` in the justfile where needed.
 
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};

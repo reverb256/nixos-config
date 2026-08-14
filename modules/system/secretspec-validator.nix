@@ -4,13 +4,11 @@
 # Runtime schema validation of /etc/nixos/secretspec.toml (`secretspec check`)
 # as a systemd one-shot on multi-user.target, decrypted against the age key.
 #
-# EVAL-MODE (2026-08-13): pure-eval is enabled cluster-wide
-# (`nix.settings.pure-eval = true` + `eval-cache = true` in
-# modules/system/nix-config.nix), and verified working — all four hosts'
-# toplevels + home-manager + apps.colmena eval cleanly under
-# `nix eval --pure-eval`. The historical "impure-eval coupling requirement"
-# (eval-time age-key decrypt gated on cluster.localSealSupport) is DISPROVEN:
-# this module never touches the eval path — secrets are decrypted at runtime
+# EVAL-MODE (2026-08-14): the global `nix.settings.pure-eval = true`
+# (added 2026-08-13 with `eval-cache = true`) was REVERTED in
+# modules/system/nix-config.nix — it broke home-manager switch (the news
+# step's NIX_PATH `<home-manager/...>` lookup fails in pure mode). This
+# module never touches the eval path — secrets are decrypted at runtime
 # by secretspec-creds into /run/secrets, and the validator only reads those
 # runtime paths. `cluster.localSealSupport` was removed 2026-07-25 (vestigial
 # after Phase 1a; see modules/system/secretspec-cluster-mode.nix).
