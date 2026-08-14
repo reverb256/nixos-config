@@ -89,7 +89,8 @@
         3900
         3901
         9100 # Prometheus node-exporter
-      ]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
+        9900 # Hermes A2A gateway (hermes-sentry agent card + calls)
+      ]; # SSH + Kubelet API + Loki + Garage + A2A (merges with cluster defaults)
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
           from = 30000;
