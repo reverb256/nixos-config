@@ -43,6 +43,12 @@
       url = "git+https://github.com/reverb256/home-manager-config";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+      # Align HM-layer inputs with the NixOS layer to avoid double-compilation
+      inputs.niri.follows = "niri";
+      inputs.stylix.follows = "stylix";
+      inputs.inir.follows = "inir";
+      inputs.nur.follows = "nur";
+      inputs.flake-parts.follows = "flake-parts";
     };
     aagl = {
       url = "git+https://github.com/ezKEa/aagl-gtk-on-nix";
@@ -168,6 +174,15 @@
     # host eval 2026-08-14). dir= resolves from GitHub in both contexts.
     gitlawb = {
       url = "git+https://github.com/reverb256/nixos-config?dir=pkgs/gitlawb";
+    };
+
+    # iNiR - Quickshell-based desktop shell for Niri (github:snowarch/iNiR).
+    # Layered ON TOP of Noctalia v5 + HDR niri fork on zephyr. Module is
+    # consumed via the standalone HM flake (home-manager-config) which
+    # follows nixpkgs for dependency alignment. See issue #580.
+    inir = {
+      url = "git+https://github.com/snowarch/iNiR";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # preservation - ephemeral-root persistence (sentry/nexus /persistent symlinks).
