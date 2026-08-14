@@ -415,8 +415,39 @@ in {
     "d /root/.ssh 0700 root root -"
     "d /root/.ssh/sockets 0700 root root -"
     "d /etc/nixos/ssh 0755 root root -"
-    "d /var/cache/ccache 0755 root root -"
+    # ccache dir must be WRITABLE by nixbld build users or ccache silently
+    # misses every build (nixpkgs #140410). 0770 root:nixbld matches the
+    # programs.ccache module's own rule.
+    "d /var/cache/ccache 0770 root nixbld -"
     "f /var/log/ccache.log 0644 root root -"
     "f /var/log/cachix-push.log 0644 root root -"
+  ] ++ lib.optional (currentHost == "nexus") "d /var/lib/nix-cache-key 0700 root root -";
+  # The environment.variables CCACHE_* above point compilers at
+  # /var/cache/ccache, but nothing wrapped the derivation with ccacheStdenv —
+  # every llama.cpp patch recompiled all 967 units from scratch (30-40 min).
+  # programs.ccache re-overrides the named packages with ccacheStdenv
+  # (compilers wrapped by ccache); measured rebuild speedup ~89% (nixpkgs
+  # PR #7082). Gated to the builder hosts (nexus/sentry): zephyr never
+  # builds (max-jobs=0) and forge is the GPU miner.
+  programs.ccache = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
+    enable = true;
+    cacheDir = "/var/cache/ccache";
+    owner = "root";
+    group = "nixbld";
+    # The unified llama.cpp is the expensive derivation (CUDA + Vulkan +
+    # webui); cache its compiles so fork bumps and patch iterations become
+    # near-instant rebuilds instead of full recompiles.
+    packageNames = ["llama-cpp-unified" "llama-cpp-unified-vulkan"];
+  };
+
+  # ── nexus as a signed substituter ──
+  # The post-build-hook above already copies built paths to nexus; making
+  # nexus a trusted substituter lets zephyr/colmena PULL a path it already
+  # built instead of re-dispatching it (and rebuilding its deps locally
+  # first). The signing key lives on nexus (/etc/nixos/ssh or the key file
+  # referenced by secret-key-files); the public half is trusted cluster-wide
+  # via cache-policy.nix (nexus-cache-1 key) — see the module comment.
+  nix.settings.secret-key-files = lib.mkIf (currentHost == "nexus") [
+    "/var/lib/nix-cache-key/nexus-cache-1.sec"
   ];
 }

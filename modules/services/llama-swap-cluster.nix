@@ -126,7 +126,14 @@ in {
   config = mkMerge [
     # ── nexus: RTX 3060 Ti (CUDA) — Bonsai 1bit (always-on) + Nemotron 30B-A3B
     #    MoE via --n-cpu-moe (concurrent with miner; experts stream from RAM).
-    #    262K ctx per devtoolsfeed measurement (3060 Ti 8GB + 30B-A3B + n-cpu-moe 2).
+    #    VERIFIED 2026-08-13 on the unified (turboquant) binary:
+    #      IQ3_M + -ngl 25 --n-cpu-moe 40 --no-mmap --mlock --fit off
+    #      -> loads on 8 GB alongside gamescope/ComfyUI/miner (6.5 GB VRAM),
+    #      6.9 tok/s, generation verified. CRITICAL: --fit off is REQUIRED
+    #      with --n-cpu-moe (fit planner aborts: "tensor_buft_overrides
+    #      already set"); --split-mode row BREAKS single-GPU; -ngl 25 (not 99)
+    #      is what frees room for compute buffers. turbo4/turbo3 KV compresses
+    #      the cache so 262K ctx fits while the miner holds the card.
     #    llama-swap unloads Bonsai first when Nemotron loads (unload-first swap).
     (mkIf (host == "nexus" && cfg.enable) (mkMerge [
       {
@@ -141,14 +148,13 @@ in {
             }
             {
               id = "nemotron-30b-a3b";
-              name = "Nemotron 3.5 Lightning 30B-A3B";
-              model = "/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-Q4_K_S.gguf";
+              name = "Nemotron 3.5 Lightning 30B-A3B (IQ3_M)";
+              model = "/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ3_M.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
               ctx = 262144;
-              # MoE experts -> CPU RAM; attention+KV stay on GPU. Note: --fit is
-              # NOT emitted on the extraFlags path (defaults off in llama.cpp), so
-              # --n-cpu-moe / --split-mode row ordering stays as authored here.
-              extraFlags = "--n-cpu-moe 2 --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --split-mode row";
+              # Verified recipe (2026-08-13). --fit off + -ngl 25 are NOT
+              # optional: without them the MoE offload OOMs on 8 GB.
+              extraFlags = "--n-cpu-moe 40 --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --fit off -ngl 25";
             }
           ];
         };

@@ -482,11 +482,11 @@
         "nixpkgs-lib": "nixpkgs-lib_3"
       },
       "locked": {
-        "lastModified": 1730504689,
-        "narHash": "sha256-hgmguH29K2fvs9szpq2r3pz2/8cJd2LPS+b4tfNFCwE=",
+        "lastModified": 1785627969,
+        "narHash": "sha256-4dtXQk/NMePegK/nWp5NSeuZKLATItOq61lpEvmXqGw=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "506278e768c2a08bec68eb62932193e341f55c90",
+        "rev": "427bf4bd9435fdf21321c8cc628c24efc14c0f7a",
         "type": "github"
       },
       "original": {
@@ -873,19 +873,19 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1777834420,
-        "narHash": "sha256-K00cn0BftUBI9L2Asv3nT6wgWzvgkCQ6tIXR2dTAxWM=",
-        "ref": "prism",
-        "rev": "176bc4fda2ed8bdc0d2f1d863c51b918980d046d",
-        "revCount": 9384,
+        "lastModified": 1786591927,
+        "narHash": "sha256-9nrC+xePFoXkOmh0axg89RENsa0HEU724rHVYqAHKkg=",
+        "ref": "feature/turboquant-kv-cache",
+        "rev": "fca3093c9e6544476bbb2a139a25e17dd63627e1",
+        "revCount": 10465,
         "type": "git",
-        "url": "https://github.com/retroheim/prism-ml-llama.cpp"
+        "url": "https://github.com/TheTom/llama-cpp-turboquant"
       },
       "original": {
-        "ref": "prism",
-        "rev": "176bc4fda2ed8bdc0d2f1d863c51b918980d046d",
+        "ref": "feature/turboquant-kv-cache",
+        "rev": "fca3093c9e6544476bbb2a139a25e17dd63627e1",
         "type": "git",
-        "url": "https://github.com/retroheim/prism-ml-llama.cpp"
+        "url": "https://github.com/TheTom/llama-cpp-turboquant"
       }
     },
     "llm-agents": {
@@ -1235,14 +1235,17 @@
     },
     "nixpkgs-lib_3": {
       "locked": {
-        "lastModified": 1730504152,
-        "narHash": "sha256-lXvH/vOfb4aGYyvFmZK/HlsNsr/0CVWlwYvo2rxJk3s=",
-        "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/cc2f28000298e1269cea6612cd06ec9979dd5d7f.tar.gz"
+        "lastModified": 1785031560,
+        "narHash": "sha256-OmshNvn2vupOFpYinLUu+1Dnpu4n7Q5N3ggGVNHpkUI=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "0e79af5e3d4dcfcd676ab5ba3f95d2e3352e078c",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/cc2f28000298e1269cea6612cd06ec9979dd5d7f.tar.gz"
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
       }
     },
     "nixpkgs-lib_4": {
@@ -1380,11 +1383,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1732014248,
-        "narHash": "sha256-y/MEyuJ5oBWrWAic/14LaIr/u5E0wRVzyYsouYY3W6w=",
+        "lastModified": 1786599213,
+        "narHash": "sha256-yNJd40f11EzXBjSByCB7IPpeFFAdeoSKKM67dGkfFoU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "23e89b7da85c3640bbc2173fe04f4bd114342367",
+        "rev": "0e251e24a4f24e036a084b6b4b2d2491af4167f4",
         "type": "github"
       },
       "original": {
