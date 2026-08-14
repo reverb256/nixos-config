@@ -28,7 +28,7 @@
         memoryMax = "12G";
       };
       site-agency = {
-        user = "runner";
+        user = "runner-siteagency";
         repo = "reverb256/site-agency";
         patFile = "/run/secrets/github-runner-pat";
         autoStart = true;
