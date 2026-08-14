@@ -313,12 +313,14 @@ in {
           "--kube-apiserver-arg=audit-log-maxbackup=10"
         ];
 
+      # NVIDIA runtime is provided by the nixpkgs k3s module's
+      # hardware.nvidia-container-toolkit integration (generates the quoted
+      # "nvidia" + nvidia-cdi runtimes). The previous unquoted `runtimes.nvidia`
+      # template here DUPLICATED it -> containerd died on every start:
+      #   "failed to unmarshal TOML: toml: table nvidia already exists"
+      # (2026-08-14 nexus k3s stuck activating, API 503, deploy error code 4).
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
-        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
-          runtime_type = "io.containerd.runc.v2"
-          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
-            BinaryName = "${pkgs.nvidia-container-toolkit.tools}/bin/nvidia-container-runtime"
       '';
 
       extraKubeletConfig = {
