@@ -311,23 +311,6 @@ in {
       generateCasdoorApps = true;
     };
 
-    # GitHub Actions self-hosted runner for CI/CD
-    services.ci-runner = {
-      enable = true;
-      repo = "reverb256/nixos-config";
-      # 2026-08-11: was tokenFile, which passed the raw PAT straight to
-      # config.sh --token -> GitHub 404 ("Bad credentials" on registration).
-      # patFile makes the setup script exchange the PAT for a fresh
-      # registration token via POST /actions/runners/registration-token
-      # (verified: HTTP 201 + "√ Successfully replaced the runner").
-      patFile = "/run/secrets/github-runner-pat";
-      autoStart = true;
-      # Issue #474: pin trusted CI jobs to the Nexus builder explicitly.
-      # Heavy workflows require [self-hosted, nixos, nexus, builder]; a job
-      # never lands on an unlabelled runner by accident.
-      extraLabels = ["nexus" "builder"];
-    };
-
     services.k8s-secret-sync = {
       enable = true;
       # MapleSpike/Quill Stripe + JWT secret mappings removed 2026-08-08: the
