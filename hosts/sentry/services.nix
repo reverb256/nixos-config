@@ -47,9 +47,6 @@ in {
   # (the 2026-08-14 fix: plain `runnerFragments //` dropped the fragments).
   config = lib.mkMerge [
     runnerFragments
-    {
-      # Firewall: runner needs outbound to github.com only (no inbound needed).
-      services.cluster-mesh.enable = lib.mkDefault true;
-    }
+    {}
   ];
 }
