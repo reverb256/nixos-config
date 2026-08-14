@@ -138,6 +138,7 @@ with lib; let
     cacheTypeK ? "turbo4",
     cacheTypeV ? "turbo4",
     memoryMax ? "6G",
+    parallel ? 1,
     specType ? null,
     specDraftNMax ? null,
     draftModel ? null,
@@ -151,7 +152,7 @@ with lib; let
         User = "bonsai";
         RuntimeDirectory = "bonsai-1bit-${name}";
         ExecStart =
-          "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias bonsai-27b-1bit-${name}"
+          "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel ${toString parallel} --alias bonsai-27b-1bit-${name}"
           + optionalString (specType != null) " --spec-type ${specType}"
           + optionalString (specDraftNMax != null) " --spec-draft-n-max ${toString specDraftNMax}"
           + optionalString (draftModel != null) " -md ${draftModel}";
@@ -334,12 +335,16 @@ with lib; let
     };
     # 2026-08-14: 8K was pinned for 6GB VRAM safety, but agents send 37-48K
     # token prompts (rejected daily) and Hermes requires 64K minimum. The
-    # turboquant fork supports turbo4 KV (~4-bit, kv-offload default on),
-    # same config as forge's 256K. Weights 3.8G + turbo4 KV stays within
-    # 6GB VRAM with kv-offload; q4_0 KV at 256K would need 9G and OOM.
-    contextSize = "262144";
+    # turboquant fork supports turbo4 KV (~4-bit, kv-offload default on).
+    # 2026-08-14 (2): --parallel 2 -c 131072 — two 128K slots = same total
+    # KV as one 256K slot (2.4G), no new VRAM risk, but concurrent requests
+    # (gateway + cron) stop queueing behind each other. 128K/slot still 2x
+    # the Hermes 64K minimum. 256K/slot at parallel 2 would need 4.8G KV
+    # and OOM the 6GB card.
+    contextSize = "131072";
     cacheTypeK = "turbo4";
     cacheTypeV = "turbo4";
+    parallel = 2;
     memoryMax = "6G";
   });
 
