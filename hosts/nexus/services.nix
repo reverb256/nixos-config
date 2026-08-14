@@ -59,14 +59,22 @@
       };
     };
   };
-in
-  runnerFragments
-  // {
-    systemd.tmpfiles.rules = [
-      "R /var/lib/etcd - - - - -"
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
+in {
+  # config = lib.mkMerge so ci-runners' mkMerge fragments and this file's
+  # plain attrsets compose as a NixOS MODULE. Previously the top-level return
+  # was `runnerFragments // {...}` where runnerFragments = lib.mkMerge [...]
+  # — a `_type = "merge"` value, NOT a module. The module system silently
+  # dropped the ENTIRE file: garage-cluster, nexus-exec, keepalived-vip and
+  # the nexus runner all fell back to defaults (garage never started,
+  # nexus-runner offline). Fixed 2026-08-14.
+  config = lib.mkMerge [
+    runnerFragments
+    {
+      systemd.tmpfiles.rules = [
+        "R /var/lib/etcd - - - - -"
+        "d /data/hermes 0775 j_kro j_kro -"
+        "d /data/pi 0775 j_kro j_kro -"
+      ];
 
     services = {
       # k3s-cluster config is in configuration.nix (canonical host config)
@@ -325,4 +333,6 @@ in
     };
     # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
     services.k8s-nix-deploy.tokenFile = lib.mkForce null;
-  }
+    }
+  ];
+}
