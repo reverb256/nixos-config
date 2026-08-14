@@ -326,6 +326,11 @@ with lib; let
     extraEnv = {
       GGML_VULKAN_DEVICE = "0";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
+      # 2026-08-14: force turbo4 K — auto-asymmetric upgraded K to q8_0
+      # (GQA 6:1) which doubled K-cache cost; on 6GB VRAM prefill crawled
+      # at 23 t/s and a trivial prompt hung 100+s. turbo4 K keeps 256K
+      # usable on the 5600 XT (forge can afford q8_0 K on 8GB, sentry can't).
+      TURBO_AUTO_ASYMMETRIC = "0";
     };
     # 2026-08-14: 8K was pinned for 6GB VRAM safety, but agents send 37-48K
     # token prompts (rejected daily) and Hermes requires 64K minimum. The
