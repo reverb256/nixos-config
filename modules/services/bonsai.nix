@@ -340,6 +340,13 @@ with lib; let
       # submissions so none exceeds the kernel watchdog; upstream measured
       # no perf regression.
       GGML_VK_MAX_NODES_PER_SUBMIT = "1";
+      # 2026-08-14 (3): RADV GTT-spill fix (upstream llama.cpp #24066 / #13765,
+      # Mesa #13282). RADV misallocates buffers to GTT (system RAM) even when
+      # VRAM is free, collapsing throughput 3-6x. RADV_PERFTEST=nogttspill
+      # (Mesa 25.2+) forces VRAM-first allocation and restored full speed in
+      # upstream bisects (pp 207->2807, tg 51->136 on RX 7900 XTX). Mesa on
+      # sentry is 26.1.5, flag supported.
+      RADV_PERFTEST = "nogttspill";
     };
     # 2026-08-14: 8K was pinned for 6GB VRAM safety, but agents send 37-48K
     # token prompts (rejected daily) and Hermes requires 64K minimum. The
