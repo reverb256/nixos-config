@@ -995,8 +995,13 @@
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
-    lsfg-vk # Lossless Scaling frame-gen Vulkan layer (nixpkgs 2.0.0-dev, Steam app 993090)
-    lsfg-vk-ui # lsfg-vk config GUI
+    # lsfg-vk / lsfg-vk-ui REMOVED 2026-08-14 — ROOT ISSUE of the swapchain
+    # failures: 2.0.0-dev installs VkLayer_LSFGVK_frame_generation.json as a
+    # GLOBAL implicit layer that loads into EVERY Vulkan app and fails init
+    # ("lsfg-vk: unsupported configuration version" in PoE2, llama.cpp,
+    # upscayl). A dev-build implicit layer breaking every Vulkan process is
+    # unacceptable. Frame-gen, if ever wanted again, must be a per-game opt-in
+    # (VK_INSTANCE_LAYERS in a wrapper), never system-global.
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
