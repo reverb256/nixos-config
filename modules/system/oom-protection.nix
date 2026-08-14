@@ -38,7 +38,7 @@
     pkgs.writeShellScript "desktop-oom-protect" (
       builtins.concatStringsSep "\n" (map (proc: "
 # Protect ${proc}
-for pid in \$(pgrep -x ${proc} 2>/dev/null || true); do
+for pid in \$(${pkgs.procps}/bin/pgrep -x ${proc} 2>/dev/null || true); do
   echo -500 > /proc/\$pid/oom_score_adj 2>/dev/null || true
 done
 ") protectedDesktopProcesses)
