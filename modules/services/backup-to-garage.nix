@@ -65,27 +65,35 @@
         fi
 
         log_info "Starting backup: $BACKUP_DATE"
-        backup_dir="/tmp/garage-backup-$BACKUP_DATE"
-        archive_file="/tmp/cluster-backup-$BACKUP_DATE.tar.gz"
-
-        mkdir -p "$backup_dir"
-
+        # STREAM to Garage — never buffer full tarballs in /tmp. The old
+        # implementation tar'd every source into /tmp/garage-backup-*/ then
+        # re-tar'd into a second archive before uploading, which filled the
+        # root volume (PrivateTmp=true puts it on /) — 2026-08-14 wedge:
+        # 173G partial tarball, root at 100%, system went read-only.
+        # Now each source streams: tar | aws s3 cp - (S3 multipart stdin).
+        s3_key="$BACKUP_PREFIX/$BACKUP_DATE/"
         log_info "Backing up NixOS configuration..."
         if [ -d /etc/nixos ]; then
-            tar -czf "$backup_dir/nixos-config.tar.gz" -C /etc nixos 2>/dev/null || true
-            log_success "NixOS configuration backed up"
+            log_info "  Streaming nixos-config to s3://$BACKUP_BUCKET/$s3_key"
+            tar -czf - -C /etc nixos 2>/dev/null \
+              | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/${s3_key}nixos-config.tar.gz" --checksum-algorithm CRC32 \
+              && log_success "  nixos-config backed up" \
+              || log_warn "  nixos-config backup failed"
         fi
 
         log_info "Backing up shared data..."
         for source in "''${BACKUP_SOURCES[@]}"; do
             if [ -d "$source" ]; then
                 dirname=$(basename "$source")
-                log_info "  Archiving $source..."
-                tar -czf "$backup_dir/$dirname.tar.gz" -C "$(dirname "$source")" "$dirname" 2>/dev/null || log_warn "    (some files skipped)"
+                log_info "  Streaming $source..."
+                tar -czf - -C "$(dirname "$source")" "$dirname" 2>/dev/null \
+                  | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/${s3_key}${dirname}.tar.gz" --checksum-algorithm CRC32 \
+                  && log_success "  $dirname backed up" \
+                  || log_warn "  $dirname backup failed (some files may be in use)"
             fi
         done
 
-        cat > "$backup_dir/metadata.json" <<EOF
+        cat > /tmp/garage-backup-metadata-$$.json <<EOF
     {
       "backup_date": "$BACKUP_DATE",
       "hostname": "$(hostname)",
@@ -93,38 +101,24 @@
       "created_at": "$(date -Iseconds)",
       "created_by": "$(whoami)"
     }
-    EOF
-
-        log_info "Creating final archive..."
-        tar -czf "$archive_file" -C "$backup_dir" .
-        archive_size=$(du -h "$archive_file" | cut -f1)
-        log_success "Archive created: $archive_file ($archive_size)"
-
-        log_info "Uploading to Garage S3..."
-        s3_key="$BACKUP_PREFIX/cluster-backup-$BACKUP_DATE.tar.gz"
-
-        if aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp "$archive_file" "s3://$BACKUP_BUCKET/$s3_key" --checksum-algorithm CRC32; then
-            log_success "Backup uploaded: s3://$BACKUP_BUCKET/$s3_key"
-        else
-            log_error "Upload failed"
-            rm -f "$archive_file"
-            rm -rf "$backup_dir"
-            exit 1
-        fi
-
-        rm -f "$archive_file"
-        rm -rf "$backup_dir"
+EOF
+        aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp /tmp/garage-backup-metadata-$$.json "s3://$BACKUP_BUCKET/${s3_key}metadata.json" --checksum-algorithm CRC32 >/dev/null 2>&1 || true
+        rm -f /tmp/garage-backup-metadata-$$.json
+        log_success "Backup uploaded: s3://$BACKUP_BUCKET/$s3_key"
 
         log_info "Rotating backups older than $RETENTION_DAYS days..."
         cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y%m%d 2>/dev/null || date -v-"$RETENTION_DAYS"d +%Y%m%d)
 
-        aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" --recursive 2>/dev/null | while read -r line; do
-            filename=$(echo "$line" | awk '{print $4}')
-            file_date=$(echo "$filename" | grep -oP '\d{8}-\d{6}' | head -1 | cut -d- -f1)
+        # Streaming layout: s3://bucket/$BACKUP_PREFIX/<YYYYMMDD-HHMMSS>/<source>.tar.gz
+        # Rotate by directory prefix date.
+        aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" 2>/dev/null | while read -r line; do
+            prefix=$(echo "$line" | awk '{print $2}')
+            [ -z "$prefix" ] && continue
+            dir_date=$(echo "$prefix" | grep -oE '^[0-9]{8}' | head -1)
 
-            if [ -n "$file_date" ] && [ "$file_date" -lt "$cutoff_date" ]; then
-                log_info "  Deleting old backup: $filename"
-                aws --endpoint-url "$GARAGE_ENDPOINT" s3 rm "s3://$BACKUP_BUCKET/$filename"
+            if [ -n "$dir_date" ] && [ "$dir_date" -lt "$cutoff_date" ]; then
+                log_info "  Deleting old backup: $prefix"
+                aws --endpoint-url "$GARAGE_ENDPOINT" s3 rm --recursive "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/$prefix"
             fi
         done
 
@@ -244,10 +238,11 @@ in {
         EnvironmentFile = "/etc/backup-to-garage/credentials";
         User = "root";
         Group = "root";
-        PrivateTmp = true;
+        # No PrivateTmp: the old tar-to-/tmp approach filled the root volume
+        # (2026-08-14 wedge — 173G tarball). Streaming to Garage needs no
+        # private temp; keep the sandbox tight instead.
         NoNewPrivileges = true;
         ReadOnlyPaths = cfg.backupPaths;
-        ReadWritePaths = ["/tmp"];
       };
     };
 
