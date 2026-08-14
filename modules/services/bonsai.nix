@@ -363,58 +363,15 @@ with lib; let
     memoryMax = "6G";
   });
 
-  # Gemma 4 E2B on sentry (2026-08-14): replaces the Bonsai 1-bit on 8003.
-  # The 26B-A4B MoE experiment failed on sentry (Zen 1 CPU + Vulkan = 2.3
-  # t/s CPU-expert streaming); the E4B dense+PLE is too heavy for Navi 10
-  # (3.8 t/s). E2B (3.1 GB) is fully GPU-resident: measured 8.8 t/s decode,
-  # 46 t/s prefill, 128K native context — same throughput as Bonsai with a
-  # far stronger model (Gemma 4 family: thinking, tool-calling, 128K).
-  # 2026-08-14 (2): --flash-attn OFF is the RDNA1 decode lever. The Vulkan
-  # scoreboard (#10879) measured -fa on as 3x SLOWER for decode on RDNA1
-  # (Llama 2 7B Q4_0: 70.7 -> 23.2 t/s); on E2B the penalty measured even
-  # worse — 8.8 t/s with FA on vs 89.8 t/s with FA off (10x). Quantized V
-  # requires FA, so V must be f16 when FA is off (K stays q8_0).
-  gemmaE2BSentry = mkIf (host == "sentry") {
-    systemd.services."gemma-e2b-sentry" = {
-      description = "Gemma 4 E2B — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "simple";
-        User = "bonsai";
-        RuntimeDirectory = "gemma-e2b-sentry";
-        ExecStart =
-          "${getExe forkVulkanBinary} -m /srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf --host 0.0.0.0 --port 8003 -ngl 99 --fit off --cache-type-k q8_0 --cache-type-v f16 -c 131072 --flash-attn off -t 8 -tb 8 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias gemma-4-e2b";
-        Restart = "on-failure";
-        RestartSec = "10";
-        StandardOutput = "journal";
-        StandardError = "journal";
-        MemoryMax = "6G";
-        LimitNOFILE = 65536;
-        OOMScoreAdjust = 500;
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        ReadWritePaths = [ "/run/gemma-e2b-sentry" ];
-        ReadOnlyPaths = [ "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf" ];
-      };
-      environment = {
-        GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
-        GGML_VULKAN_DEVICE = "0";
-        VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
-        # 2026-08-14 (3): NO GGML_VK_MAX_NODES_PER_SUBMIT and NO
-        # RADV_PERFTEST here — both were measured to kill FA-off decode on
-        # RDNA1 (93.7 t/s clean vs 6.4 with nodes=1 vs 9.6 with nogttspill).
-        # The DeviceLost fix was zero-cost only on Bonsai's FA-on graph; the
-        # FA-off graph has far more nodes so forcing 1-node submits
-        # serializes it. Watch for vk::Queue::submit: ErrorDeviceLost on
-        # long prefills + cancellation; if it recurs, re-enable nodes=1 and
-        # accept ~6 t/s or move E2B back to FA on.
-      };
-    };
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 8003 ];
-  };
+  # Gemma 4 E2B on sentry — served via llama-swap (see
+  # llama-swap-cluster.nix sentry.yaml, swapId gemma-e2b, proxy :21764).
+  # 2026-08-14 history: the direct unit was the first E2B deployment (port
+  # 8003, FA off, f16 V + q8_0 K, 128K). It measured 84-94 t/s decode.
+  # REMOVED 2026-08-14 (2): all models must live in the llama-swap catalog
+  # (harmonization) — a direct unit outside the swap cannot be unloaded by
+  # the swap, causing VRAM contention when the catalog loads. The gateway
+  # now points at the sentry swap proxy 127.0.0.1:21764. Do NOT re-add a
+  # direct unit here.
 
   # 1-bit on krash3 CPU-only (no GPU available)
   bit1Krash3 = mkIf (host == "krash3") (mk1bitService {
