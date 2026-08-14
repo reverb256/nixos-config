@@ -856,19 +856,16 @@
   programs = {
     scopebuddy = {
       enable = true;
+      # 2026-08-14: ALL autoDetect off. scb.conf (home-manager
+      # zephyr-gaming-hdr.nix) hard-codes 4K60/HDR — it is the single source of
+      # truth. The autoDetect exports (SCB_AUTO_RES/HDR/HZ/SCALE=1) contradict
+      # the hard-coded scb.conf and leak into every process env; on niri they
+      # can force a lower logical resolution (Samsung TV 4K @ scale 1.5 →
+      # 2560x1440) and refresh changes.
       autoDetect = {
-        resolution = true;
-        hdr = true;
-        # 2026-07-28: VRR disabled on zephyr. Niri output config has
-        # variable-refresh-rate = false already, but scopebuddy would still
-        # apply VRR-capable profiles on connect. Keep scopebuddy itself
-        # active for HDR/resolution auto-detection.
+        resolution = false;
+        hdr = false;
         vrr = false;
-        # 2026-08-14: refreshRate/scaling auto-detect leak SCB_AUTO_HZ=1 and
-        # SCB_AUTO_SCALE=1 into the global session env (scopebuddy.nix exports
-        # them), telling every game to auto-detect refresh/scaling — on niri
-        # auto-scaling can force a lower logical resolution (Samsung TV 4K @
-        # scale 1.5 → 2560x1440). scb.conf hard-codes 4K60; kill the leak.
         refreshRate = false;
         scaling = false;
       };
