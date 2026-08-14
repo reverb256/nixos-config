@@ -128,6 +128,19 @@
     priority = 999; # Prefer zram over disk swap
   };
 
+  # Disk-backed swapfile as overflow behind zram (2026-08-14).
+  # zram alone (15.6G, priority 999) had NO fallback: at 100% it OOM-killed
+  # herdr/llama-server/freebuff via earlyoom. 16G swapfile on the btrfs root
+  # subvolume (175G free) with CoW disabled — created once by hand with
+  # chattr +C (btrfs swapfiles need nocow), then declared here so NixOS
+  # keeps it enabled across rebuilds.
+  swapDevices = [
+    {
+      device = "/swapfile";
+      size = 16384;
+    }
+  ];
+
   # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
   kernel-hardening.zswap.enable = false;
 
