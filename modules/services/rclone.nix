@@ -34,7 +34,7 @@
       ++ f "access_key_id" remote.accessKeyId
       ++ f "secret_access_key" remote.secretAccessKey
       ++ ["region = ${remote.region or "us-east-1"}"]
-      ++ lib.optional (remote.forcePathStyle) "force_path_style = true";
+      ++ lib.optional remote.forcePathStyle "force_path_style = true";
 
     tokenOpt = remote.token;
     oauthToken =
@@ -74,16 +74,16 @@
     # Fields per backend (excluding the common `type` line, prepended below).
     # `http` shares webdav's shape (url = endpoint).
     perType = {
-      s3 = s3;
+      inherit s3;
       onedrive = oauthToken;
       dropbox = oauthToken;
-      b2 = b2;
-      drive = drive;
-      mega = mega;
+      inherit b2;
+      inherit drive;
+      inherit mega;
       ftp = ftpSftp;
       sftp = ftpSftp;
-      webdav = webdav;
-      box = box;
+      inherit webdav;
+      inherit box;
       http = webdav;
     };
   in
@@ -152,38 +152,59 @@
       log_info "Destination: $DEST"
       log_info "Mode: $SYNC_MODE"
 
-      if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
-        --config "${cfg.configFile}" \
-        --progress \
-        --transfers ${toString job.transfers or 4} \
-        --checkers ${toString job.checkers or 8} \
-        ${
-        if job.exclude != null
-        then "--exclude=${job.exclude}"
-        else ""
-      } \
-        ${
-        if job.excludeFrom != null
-        then "--exclude-from=${job.excludeFrom}"
-        else ""
-      } \
-        ${
-        if job.include != null
-        then "--include=${job.include}"
-        else ""
-      } \
-        ${
-        if job.includeFrom != null
-        then "--include-from=${job.includeFrom}"
-        else ""
-      } \
-        ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
-        $OPTIONS; then
-        log_success "Job '${job.name}' completed"
-      else
-        log_error "Job '${job.name}' failed"
-        exit 1
-      fi
+      # Single-remote modes (ls, lsd, lsl, lsf, md5sum, sha1sum, cat, size, etc.)
+      # take exactly ONE remote argument — passing $DEST too makes rclone fail
+      # with "Command ls needs 1 arguments maximum". Detect those modes and
+      # invoke with only $SOURCE. (2026-08-14: garage-list was failing with
+      # "you provided 2 non flag arguments: [garage: garage:]" every run.)
+      case "$SYNC_MODE" in
+        ls|lsd|lsl|lsf|md5sum|sha1sum|catsize|size|cat|checksum)
+          if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" \
+            --config "${cfg.configFile}" \
+            --progress \
+            ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
+            $OPTIONS; then
+            log_success "Job '${job.name}' completed"
+          else
+            log_error "Job '${job.name}' failed"
+            exit 1
+          fi
+          ;;
+        *)
+          if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
+            --config "${cfg.configFile}" \
+            --progress \
+            --transfers ${toString job.transfers or 4} \
+            --checkers ${toString job.checkers or 8} \
+            ${
+            if job.exclude != null
+            then "--exclude=${job.exclude}"
+            else ""
+          } \
+            ${
+            if job.excludeFrom != null
+            then "--exclude-from=${job.excludeFrom}"
+            else ""
+          } \
+            ${
+            if job.include != null
+            then "--include=${job.include}"
+            else ""
+          } \
+            ${
+            if job.includeFrom != null
+            then "--include-from=${job.includeFrom}"
+            else ""
+          } \
+            ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
+            $OPTIONS; then
+            log_success "Job '${job.name}' completed"
+          else
+            log_error "Job '${job.name}' failed"
+            exit 1
+          fi
+          ;;
+      esac
     '';
 in {
   options.services.rclone-sync = {

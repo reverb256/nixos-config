@@ -20,11 +20,11 @@
     };
 
   json = pkgs.writeText "rgb-inventory-${hostName}.json" (builtins.toJSON {
-    schemaVersion = inventory.schemaVersion;
-    interfaceVersion = inventory.interfaceVersion;
+    inherit (inventory) schemaVersion;
+    inherit (inventory) interfaceVersion;
     inherit hostName;
-    expected = hostInventory.expected;
-    controlDevices = hostInventory.controlDevices;
+    inherit (hostInventory) expected;
+    inherit (hostInventory) controlDevices;
   });
 
   paletteJson = pkgs.writeText "stylix-rgb-palette-${hostName}.json" (builtins.toJSON {
@@ -94,17 +94,18 @@
         if [[ -z "$pci_output" ]]; then
           scan_success=0
         fi
-        if (( openrgb_available )) && [[ -z "$openrgb_devices" ]]; then
-          # An installed backend with no response is a failed discovery, not a
-          # healthy empty inventory. Hosts without OpenRGB remain valid scans.
-          scan_success=0
-        fi
 
         # Discovery only. Never invoke OpenRGB profiles, device writes, initialize,
         # PWM, fan, or controller setup operations here.
         openrgb_devices=""
         if (( openrgb_available )); then
           openrgb_devices=$(openrgb --client 127.0.0.1:6742 --list-devices 2>/dev/null || true)
+        fi
+
+        if (( openrgb_available )) && [[ -z "$openrgb_devices" ]]; then
+          # An installed backend with no response is a failed discovery, not a
+          # healthy empty inventory. Hosts without OpenRGB remain valid scans.
+          scan_success=0
         fi
 
         cat > "$tmp" <<JSON
