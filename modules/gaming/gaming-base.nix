@@ -8,7 +8,12 @@
 #
 # VR configuration lives in ./gaming-vr.nix (gated by services.gaming.vr.enable).
 { config, lib, pkgs, ... }:
-with lib; let cfg = config.services.gaming;
+with lib; let
+  cfg = config.services.gaming;
+  # scopebuddy package (flake input) — needed in the Steam FHS sandbox so the
+  # PoE2 launch option `scopebuddy -- gamemoderun %command%` resolves. May be
+  # null on hosts without the flake input wired.
+  scopebuddyPkg = config.programs.scopebuddy.package or null;
 in mkIf cfg.enable {
   # ASSERTIONS
   assertions = [
@@ -63,6 +68,7 @@ in mkIf cfg.enable {
           softrealtime = "auto";
           renice = 15;
           ioprio = 1;
+          reaprocess = true;
         };
         custom = {
           start = "${pkgs.writeShellScript "gamemode-start" ''
@@ -98,14 +104,15 @@ in mkIf cfg.enable {
       };
     };
     # Cyberpunk 2077 (appid 1091500) — launch options REQUIRED on this host:
-    #   PROTON_ENABLE_WAYLAND=1 VKD3D_VULKAN_DEVICE=0 %command% --launcher-skip -skipStartScreen
+    #   PROTON_ENABLE_WAYLAND=1 VKD3D_VULKAN_DEVICE=1 %command% --launcher-skip -skipStartScreen
     # Rationale (2026-08-03, NVIDIA 610.43.x + Wayland):
     #   - Without --launcher-skip, REDprelauncher -> game chain crashes on NixOS
     #     (nixpkgs #162036). Skipping the launcher is the #1 documented Linux fix.
     #   - PROTON_ENABLE_WAYLAND=1 gives vkd3d-proton a native Wayland surface
     #     instead of XWayland (swapchain "Failed to initialize viewport" class).
-    #   - VKD3D_VULKAN_DEVICE=0 pins the RTX 3090 (display-attached) on this
-    #     dual-GPU host. Matches the PoE2 (2694490) recipe in Steam userdata.
+    #   - VKD3D_VULKAN_DEVICE=1 pins the RTX 3090 (display-attached) on this
+    #     dual-GPU host: nvidia-smi orders 3060 Ti as device 0 and 3090 as
+    #     device 1. Matches the PoE2 (2694490) recipe in Steam userdata.
     # These are per-game Steam user state (localconfig.vdf), so they cannot be
     # declared here — set them in Steam: Properties -> Launch Options.
     steam = {
@@ -132,7 +139,10 @@ in mkIf cfg.enable {
         mangohud
         libXcursor libXi libXinerama libXScrnSaver libpng libpulseaudio libvorbis
         stdenv.cc.cc.lib libkrb5 keyutils
-      ];
+      ] ++ optional (scopebuddyPkg != null) scopebuddyPkg;
+      # NOTE: scopebuddy's own deps (gamescope/jq/wlr-randr/perl) are resolved
+      # via absolute store paths in its wrapper, so the /nix bind-mount covers
+      # them — only scopebuddy itself needs to be on the sandbox PATH.
       extraCompatPackages = [
         pkgs.proton-ge-bin
         pkgs.proton-ge-rtsp
@@ -157,14 +167,12 @@ in mkIf cfg.enable {
           export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
           export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
           export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
-          # HDR env is gated by services.gaming.hdr.enable (declared in
-          # gaming-hdr.nix) so single-GPU SDR hosts like nexus get a clean
-          # Vulkan/WSI baseline instead of HDR vars forced on unconditionally.
-          ${lib.optionalString cfg.hdr.enable ''
-            export ENABLE_GAMESCOPE_WSI=1
-            export DXVK_HDR=1
-            export PROTON_ENABLE_HDR=1
-          ''}
+          # NOTE: ENABLE_GAMESCOPE_WSI / DXVK_HDR / PROTON_ENABLE_HDR are NOT
+          # exported here. They belong inside the gamescope wrapper (set via
+          # programs.gamescope.env in gaming-hdr.nix) and scopebuddy's per-game
+          # conf, not globally. Exporting them globally forced the FROG WSI
+          # layer into every non-gamescope game and produced the
+          # "Creating swapchain for non-Gamescope swapchain" dialog.
         '';
       };
     };
@@ -185,7 +193,10 @@ in mkIf cfg.enable {
         # HDR env vars (ENABLE_GAMESCOPE_WSI, DXVK_HDR) moved to gaming-hdr.nix,
         # gated by services.gaming.hdr.enable.
       };
-      args = [
+      # mkDefault: gaming-hdr.nix overrides args wholesale for HDR hosts
+      # (hdrArgs ++ baseArgs). Without mkDefault, list-merge concatenates the
+      # two definitions and the args are DUPLICATED in the gamescope command.
+      args = lib.mkDefault [
         "--immediate-flips"
         "--rt"
         "--steam"
@@ -266,6 +277,10 @@ in mkIf cfg.enable {
       # Pin DXVK/DXVK-NVAPI to the display GPU on multi-GPU hosts (zephyr).
       # Left null on single-GPU hosts (nexus) for normal loader discovery.
       DXVK_FILTER_DEVICE_NAME = cfg.gpuFilter;
+      # DX12 (vkd3d-proton) reads its own filter, not DXVK's. Without this,
+      # DX12 games default to Vulkan device 0 (3060 Ti) instead of the display
+      # 3090 (device 1). Per-game VKD3D_VULKAN_DEVICE still overrides this.
+      VKD3D_FILTER_DEVICE_NAME = cfg.gpuFilter;
       PROTON_ENABLE_NVAPI = "1";
       DXVK_ENABLE_NVAPI = "1";
     };
