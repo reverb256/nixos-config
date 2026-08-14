@@ -17,6 +17,10 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
+    # GitHub Actions runners (site-agency + nixos-config) — imported 2026-08-14
+    # (was dead code; sentry had no runner, site-agency CI queued forever).
+    ./services.nix
+
     # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
