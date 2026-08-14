@@ -31,8 +31,8 @@ if [ "$NO_FETCH" -eq 0 ]; then
 fi
 
 FAIL=0
-CANONICAL=$(git rev-parse --short origin/main 2>/dev/null || echo "UNKNOWN")
-LOCAL=$(git rev-parse --short HEAD 2>/dev/null || echo "UNKNOWN")
+CANONICAL=$(git rev-parse origin/main 2>/dev/null || echo "UNKNOWN")
+LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "UNKNOWN")
 
 log "=== Preflight: deploy consistency gate ==="
 log "  canonical origin/main = $CANONICAL"
@@ -61,11 +61,11 @@ log "  checking remote hosts..."
 HOSTS="nexus"
 
 for HOST in $HOSTS; do
-  REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
+  REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
   if [ "$REMOTE_HEAD" != "$CANONICAL" ]; then
     log "  ⚠ $HOST ($REMOTE_HEAD) != origin/main ($CANONICAL) — self-healing"
     ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch origin main 2>&1 | tail -1 && git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
-    REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
+    REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
     if [ "$REMOTE_HEAD" = "$CANONICAL" ]; then
       pass "$HOST synced"
     else
