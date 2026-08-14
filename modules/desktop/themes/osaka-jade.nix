@@ -20,5 +20,14 @@
     base0D = "#509475";
     base0E = "#D2689C";
     base0F = "#D7C995";
+    # base24 extension (tinted-theming spec) — true bright variants.
+    base10 = "#0d1512"; # darker bg shade
+    base11 = "#0a100e"; # darkest bg shade
+    base12 = "#ff8b80"; # bright red
+    base13 = "#f5e066"; # bright yellow
+    base14 = "#7ddb9a"; # bright green
+    base15 = "#7ff0dc"; # bright cyan
+    base16 = "#8fd0b0"; # bright blue
+    base17 = "#e89ac4"; # bright magenta
   };
 }
