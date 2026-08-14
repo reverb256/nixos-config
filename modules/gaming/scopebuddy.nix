@@ -280,7 +280,7 @@ in {
       // optionalAttrs cfg.autoDetect.resolution {
         SCB_AUTO_RES = "1";
       }
-      // optionalAttrs scopebuddyCfg.hdr.enable {
+      // optionalAttrs cfg.autoDetect.hdr {
         SCB_AUTO_HDR = "1";
       }
       // optionalAttrs cfg.autoDetect.vrr {
