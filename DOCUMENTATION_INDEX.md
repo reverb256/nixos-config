@@ -38,6 +38,7 @@ for the authority boundaries and `just health`/`just provenance` for live claims
 | **Current state** | Checked-in architecture and documentation authority boundaries | `docs/current-state.md` |
 | **AI stack analysis** | Current AI architecture, provider policy, and benchmark baseline | [`docs/AI_STACK_ANALYSIS.md`](docs/AI_STACK_ANALYSIS.md) |
 | **AI stack refactor plan** | Proposed local/NVIDIA/Hermes/NemoClaw migration stages | [`docs/ai-stack-refactor-plan-2026-08-12.md`](docs/ai-stack-refactor-plan-2026-08-12.md) |
+| **Ops postmortem 2026-08-14** | Backup wedge (173G), deploy-chain failures, SSH CA pitfalls, dendritic eval quirk, gitlawb input fix | [`docs/ops-postmortem-2026-08-14.md`](docs/ops-postmortem-2026-08-14.md) |
 | **STATUS.md** | Generated status snapshot; verify its timestamp before relying on it | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
 | **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
