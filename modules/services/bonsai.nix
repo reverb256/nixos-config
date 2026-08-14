@@ -327,10 +327,15 @@ with lib; let
       GGML_VULKAN_DEVICE = "0";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
     };
-    contextSize = "8192";
-    cacheTypeK = "q4_0";
-    cacheTypeV = "q4_0";
-    memoryMax = "8G";
+    # 2026-08-14: 8K was pinned for 6GB VRAM safety, but agents send 37-48K
+    # token prompts (rejected daily) and Hermes requires 64K minimum. The
+    # turboquant fork supports turbo4 KV (~4-bit, kv-offload default on),
+    # same config as forge's 256K. Weights 3.8G + turbo4 KV stays within
+    # 6GB VRAM with kv-offload; q4_0 KV at 256K would need 9G and OOM.
+    contextSize = "262144";
+    cacheTypeK = "turbo4";
+    cacheTypeV = "turbo4";
+    memoryMax = "6G";
   });
 
   # 1-bit on krash3 CPU-only (no GPU available)
