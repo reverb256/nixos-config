@@ -489,6 +489,10 @@ in {
             User = cfg.user;
             Group = cfg.group;
             ExecStart = "${syncScript job}/bin/rclone-${job.name}";
+            # Dead/misconfigured endpoints (e.g. garage down, 2026-08-14) hang
+            # rclone forever with no TCP response — the unit sat in
+            # "activating" indefinitely. Fail the job fast instead.
+            TimeoutStartSec = "300";
             Environment =
               ["PATH=/run/current-system/sw/bin" "RCLONE_CONFIG=${cfg.configFile}"]
               ++ cfg.preRun;
