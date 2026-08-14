@@ -44,7 +44,7 @@ with lib; let
       "  \"${m.id}\":"
       "    name: \"${m.name}\""
       "    cmd: |"
-      "      setsid env -i \\"
+      "      /run/current-system/sw/bin/setsid env -i \\"
       "        HOME=/home/j_kro USER=j_kro \\"
       "        PATH=/run/current-system/sw/bin:/usr/bin:/bin \\"
       "        LD_LIBRARY_PATH=${unifiedLlama}/lib:/run/opengl-driver/lib \\"
