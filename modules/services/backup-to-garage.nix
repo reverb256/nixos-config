@@ -11,7 +11,7 @@
         set -euo pipefail
 
         # Get zephyr IP from cluster config (fallback to localhost)
-        ZEPHYR_IP=cluster.hosts.zephyr.ip
+        ZEPHYR_IP=${cluster.hosts.zephyr.ip}
         GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://$ZEPHYR_IP:3900}"
         GARAGE_REGION="''${GARAGE_REGION:-garage}"
         GARAGE_SECRET_KEY="''${GARAGE_SECRET_KEY:-}"
@@ -20,8 +20,11 @@
         BACKUP_PREFIX="cluster-backup"
         RETENTION_DAYS="''${RETENTION_DAYS:-30}"
 
+        # Use the declarative backupPaths option (was hardcoded /data/shared,
+        # which does not exist on zephyr — mount-namespace NAMESPACE 226
+        # failure 2026-08-14).
         BACKUP_SOURCES=(
-          "/data/shared"
+          ${builtins.concatStringsSep "\n" (map (p: "\"${p}\"") cfg.backupPaths)}
         )
 
         RED='\033[0;31m'
