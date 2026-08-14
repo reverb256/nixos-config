@@ -60,6 +60,7 @@
 
         report=${stateDir}/report.json
         metrics=${textfileDir}/rgb_inventory.prom
+        hostName=${hostName}
         tmp=$(mktemp "''${report}.XXXXXX")
         metrics_tmp=$(mktemp "''${metrics}.XXXXXX")
         trap 'rm -f "$tmp" "$metrics_tmp"' EXIT
