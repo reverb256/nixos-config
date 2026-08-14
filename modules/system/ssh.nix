@@ -42,6 +42,15 @@ in {
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
 
+      # Cluster SSH CA (2026-08-14): accept CA-signed user certs cluster-wide.
+      # The private key lives sops-encrypted at secrets/infra/cluster-ssh-ca-key.yaml
+      # (age recipients cluster_age + zephyr_age_v2); the public half is committed
+      # at certs/cluster-ssh-ca.pub. Any identity signed by this CA (principals
+      # j_kro, runner-siteagency, ...) authenticates without an authorized_keys
+      # entry — rotation-safe: revoke by expiry, re-sign, never touch per-host
+      # authorized_keys. Replaces the ad-hoc SENTRY_SSH_KEY deploy key.
+      TrustedUserCAKeys = ./../../certs/cluster-ssh-ca.pub;
+
       Ciphers = [
         "chacha20-poly1305@openssh.com"
         "aes256-gcm@openssh.com"
