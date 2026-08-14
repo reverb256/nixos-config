@@ -864,6 +864,13 @@
         # apply VRR-capable profiles on connect. Keep scopebuddy itself
         # active for HDR/resolution auto-detection.
         vrr = false;
+        # 2026-08-14: refreshRate/scaling auto-detect leak SCB_AUTO_HZ=1 and
+        # SCB_AUTO_SCALE=1 into the global session env (scopebuddy.nix exports
+        # them), telling every game to auto-detect refresh/scaling — on niri
+        # auto-scaling can force a lower logical resolution (Samsung TV 4K @
+        # scale 1.5 → 2560x1440). scb.conf hard-codes 4K60; kill the leak.
+        refreshRate = false;
+        scaling = false;
       };
     };
 
