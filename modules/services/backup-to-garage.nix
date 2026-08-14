@@ -75,10 +75,11 @@
         log_info "Backing up NixOS configuration..."
         if [ -d /etc/nixos ]; then
             log_info "  Streaming nixos-config to s3://$BACKUP_BUCKET/$s3_key"
-            tar -czf - -C /etc nixos 2>/dev/null \
-              | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/${s3_key}nixos-config.tar.gz" --checksum-algorithm CRC32 \
-              && log_success "  nixos-config backed up" \
-              || log_warn "  nixos-config backup failed"
+            if tar -czf - -C /etc nixos 2>/dev/null | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/''${s3_key}nixos-config.tar.gz" --checksum-algorithm CRC32; then
+                log_success "  nixos-config backed up"
+            else
+                log_warn "  nixos-config backup failed"
+            fi
         fi
 
         log_info "Backing up shared data..."
@@ -86,10 +87,11 @@
             if [ -d "$source" ]; then
                 dirname=$(basename "$source")
                 log_info "  Streaming $source..."
-                tar -czf - -C "$(dirname "$source")" "$dirname" 2>/dev/null \
-                  | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/${s3_key}${dirname}.tar.gz" --checksum-algorithm CRC32 \
-                  && log_success "  $dirname backed up" \
-                  || log_warn "  $dirname backup failed (some files may be in use)"
+                if tar -czf - -C "$(dirname "$source")" "$dirname" 2>/dev/null | aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp - "s3://$BACKUP_BUCKET/''${s3_key}''${dirname}.tar.gz" --checksum-algorithm CRC32; then
+                    log_success "  $dirname backed up"
+                else
+                    log_warn "  $dirname backup failed (some files may be in use)"
+                fi
             fi
         done
 
@@ -102,7 +104,7 @@
       "created_by": "$(whoami)"
     }
 EOF
-        aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp /tmp/garage-backup-metadata-$$.json "s3://$BACKUP_BUCKET/${s3_key}metadata.json" --checksum-algorithm CRC32 >/dev/null 2>&1 || true
+        aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp /tmp/garage-backup-metadata-$$.json "s3://$BACKUP_BUCKET/''${s3_key}metadata.json" --checksum-algorithm CRC32 >/dev/null 2>&1 || true
         rm -f /tmp/garage-backup-metadata-$$.json
         log_success "Backup uploaded: s3://$BACKUP_BUCKET/$s3_key"
 

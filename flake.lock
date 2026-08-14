@@ -710,14 +710,19 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-btm5JzQbCZfdjr+GG8YWHuEKiRJ+nWQRPEq/J3B3aek=",
-        "path": "./pkgs/gitlawb",
-        "type": "path"
+        "dir": "pkgs/gitlawb",
+        "lastModified": 1786698257,
+        "narHash": "sha256-IcpdTtpjolCLATIhhb6qOgUizjrM9kUAg0Qa47+Su/4=",
+        "ref": "refs/heads/main",
+        "rev": "5b1df49b0a56ac36fa2c1ad8ee0b0f3b3b95add8",
+        "revCount": 6341,
+        "type": "git",
+        "url": "https://github.com/reverb256/nixos-config"
       },
       "original": {
-        "path": "./pkgs/gitlawb",
-        "type": "path"
+        "dir": "pkgs/gitlawb",
+        "type": "git",
+        "url": "https://github.com/reverb256/nixos-config"
       }
     },
     "gnome-shell": {
