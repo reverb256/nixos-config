@@ -13,6 +13,12 @@
   # Backed up encrypted at secrets/infra/yubikey-ca-key-backup.age
   yubikeyCaPublicKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEa3NkzrDIEecwgki4V5pSGaH3cgqhSJIw9+KRsKDwmmIQyZORa7vwul6BT7j57lsw6UeQWhlb9+m3N+phe8ml4=";
 
+  # Cluster SSH CA (2026-08-14, sops key at secrets/infra/cluster-ssh-ca-key.yaml,
+  # pub committed at certs/cluster-ssh-ca.pub). Signs the site-agency deploy
+  # identity (principals j_kro,runner-siteagency). Added here so all cluster
+  # CAs live in ONE TrustedUserCAKeys list (was a duplicate in ssh.nix).
+  clusterCaPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF2gn846NCojtn2x1Q0LLpHl";
+
   # Canonical host table for signing host-cert principals (mirrors ssh.nix).
   # Certs must list every name a host is reached by (hostname, .lan, IP,
   # tailscale) or clients connecting via the alternate name will reject it.
@@ -36,7 +42,13 @@
   };
 
   hostName = config.networking.hostName;
-  myHost = hosts.${hostName} or {ip = ""; tailscale = "";};
+  myHost =
+    hosts.${
+      hostName
+    } or {
+      ip = "";
+      tailscale = "";
+    };
   # Principals as a comma-separated list: host,host.lan,ip,tailscale
   principals = lib.concatStringsSep "," (lib.filter (s: s != "") [
     hostName
@@ -95,7 +107,7 @@ in {
 
   config = mkIf config.services.ssh-ca.enable {
     services.openssh.extraConfig = ''
-      TrustedUserCAKeys ${pkgs.writeText "ssh-ca.pub" (caPublicKey + "\n" + yubikeyCaPublicKey)}
+      TrustedUserCAKeys ${pkgs.writeText "ssh-ca.pub" (caPublicKey + "\n" + yubikeyCaPublicKey + "\n" + clusterCaPublicKey)}
 
       AuthorizedPrincipalsFile ${pkgs.writeText "authorized_principals" ''
         j_kro
