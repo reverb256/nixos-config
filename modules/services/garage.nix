@@ -50,7 +50,7 @@
   provisionScript = pkgs.writeShellScript "garage-provision-keys" ''
     set -euo pipefail
     GARAGE=${lib.getExe pkgs.garage}
-    CONF=-c /run/garage/garage.toml
+    CONF="-c /run/garage/garage.toml"
     ID="$(cat ${toString cfg.s3AccessKeyFile})"
     SECRET="$(cat ${toString cfg.s3SecretKeyFile})"
     if ! $GARAGE $CONF key info "$ID" >/dev/null 2>&1; then
@@ -267,6 +267,11 @@ in {
             User = "garage";
             Group = "garage";
             RemainAfterExit = true;
+            # Own RuntimeDirectory so /run/garage exists even if the main
+            # service is mid-restart when this oneshot fires (activation race
+            # observed 2026-08-14: script hit "Permission denied" on
+            # /run/garage/garage.toml because the dir was absent).
+            RuntimeDirectory = "garage";
             ExecStart = provisionScript;
           };
         };

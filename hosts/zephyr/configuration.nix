@@ -379,6 +379,13 @@
       secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00"; # 2 AM daily
+      # zephyr has /data but NOT /data/shared (that is nexus storage). The
+      # module default includes /data/shared which broke the mount namespace
+      # (NAMESPACE 226, 2026-08-14) — declare the real source explicitly.
+      backupPaths = [
+        "/etc/nixos"
+        "/data"
+      ];
     };
 
     # RCLONE — declarative cloud storage sync (Garage S3 on nexus).
