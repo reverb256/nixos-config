@@ -28,6 +28,7 @@
     "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
     "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
     "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
+    "nexus-cache-1:8WNO4GB+UQRYme8rH75qlg1owuyRI52AklG7Ll9hOSw="
   ];
 
   # Names are intentionally explicit: these derivations are not expected to

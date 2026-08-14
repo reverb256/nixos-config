@@ -1,0 +1,106 @@
+---
+name: Bump Peakminer
+
+on:
+  schedule:
+    # Weekly Wednesday 6am UTC: check for new peakminer releases.
+    - cron: '0 6 * * 3'
+  workflow_dispatch:
+
+concurrency:
+  group: peakminer-bump
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-peakminer:
+    name: Bump peakminer to latest release
+    # Self-hosted runner (nexus): needs nix build + the flake with local
+    # inputs. Matches flake-update.yml.
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Setup Cachix
+        # pin:cachix/cachix-action@v17
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
+        with:
+          name: reverb-os
+          cachixBin: /run/current-system/sw/bin/cachix
+          skipAddingSubstituter: true
+          skipPush: true
+          useDaemon: false
+
+      - name: Detect latest release
+        id: bump
+        run: |
+          set -euo pipefail
+
+          PKG=pkgs/peakminer.nix
+          PINNED=$(grep -oP 'version = "\K[0-9.]+' "$PKG" | head -1)
+          # Latest release tag from the official repo: peakminer/peakminer
+          # (v2.9.1 -> 2.9.1). The older kryptex-miners-org mirror stopped
+          # shipping peakminer releases; this is the live source.
+          LATEST=$(curl -s -m 20 "https://api.github.com/repos/peakminer/peakminer/releases/latest" \
+            | jq -r '.tag_name' | sed 's/^v//')
+
+          echo "pinned=$PINNED latest=$LATEST"
+          echo "PINNED=$PINNED" >> $GITHUB_ENV
+          echo "LATEST=$LATEST" >> $GITHUB_ENV
+
+          if [ "$PINNED" = "$LATEST" ]; then
+            echo "CHANGED=false" >> $GITHUB_ENV
+            echo "Already current."
+            exit 0
+          fi
+
+          # Download the Linux tarball, compute the SRI hash.
+          TARBALL="peakminer-$LATEST.tar.gz"
+          curl -sL -o "/tmp/$TARBALL" \
+            "https://github.com/peakminer/peakminer/releases/download/v$LATEST/$TARBALL"
+          HASH=$(nix hash convert --to sri --type sha256 "$(nix hash file --type sha256 "/tmp/$TARBALL")")
+
+          echo "hash=$HASH"
+          echo "HASH=$HASH" >> $GITHUB_ENV
+          echo "CHANGED=true" >> $GITHUB_ENV
+
+      - name: Rewrite package file
+        if: env.CHANGED == 'true'
+        run: |
+          python3 scripts/peakminer-bump.py pkgs/peakminer.nix "$LATEST" "$HASH"
+          grep -n 'version = \|hash = ' pkgs/peakminer.nix | head -4
+
+      - name: Build peakminer
+        if: env.CHANGED == 'true'
+        run: |
+          set -euo pipefail
+          # Build via the overlay through a host config (package isn't a flake
+          # output; hosts consume it via overlays/system.nix). nexus's config
+          # is the lightest host to eval.
+          nix build --impure '.#nixosConfigurations.nexus.config.systemd.services.peakminer-nexus-3060ti.serviceConfig.ExecStart' --no-link
+
+      - name: Create PR
+        if: env.CHANGED == 'true'
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        with:
+          title: "chore(miner): bump peakminer ${{ env.PINNED }} -> ${{ env.LATEST }}"
+          body: |
+            Automated peakminer version bump.
+
+            - **Pinned:** `${{ env.PINNED }}`
+            - **Latest:** `${{ env.LATEST }}`
+            - Source: `peakminer/peakminer` releases (v${{ env.LATEST }})
+            - Hash: `${{ env.HASH }}`
+
+            The package builds on the self-hosted runner (verified in this workflow).
+            Review, then the normal deploy chain (deploy.yml) ships it to
+            zephyr / nexus / forge. The Windows host (krash2, NSSM) must be
+            updated manually or via the windows-peakminer-ops flow.
+          branch: bump/peakminer-${{ env.LATEST }}
+          commit-message: "chore(miner): bump peakminer ${{ env.PINNED }} -> ${{ env.LATEST }}"
+          delete-branch: true

@@ -173,13 +173,15 @@
     preservation = {
       url = "git+https://github.com/nix-community/preservation";
     };
-    # llama-cpp-turboquant - retroheim prism fork: PrismML Bonsai weights
-    # (Q1_0/Q2_0) + TheTom TurboQuant KV (turbo2/3/4 + TQ3_1S/TQ4_1S) in one
-    # llama.cpp. TriAttention removed upstream (176bc4fd) - it truncated the
-    # effective context window below --ctx-size on Bonsai inference.
-    # Pinned: 2026-05-03 "Remove TriAttention entirely".
+    # llama-cpp-turboquant - TheTom/llama-cpp-turboquant fork: TurboQuant KV
+    # (turbo2/3/4 + TQ3_1S/TQ4_1S) + ALL fleet archs in one tree — Bonsai
+    # (granite-hybrid Q1_0/Q2_0), Nemotron Lightning (nemotron_h_moe), Muse
+    # Glimmer (muse_glimmer), DSpark draft, n-cpu-moe, web UI (LLAMA_BUILD_WEBUI).
+    # This SUPERSEDES retroheim/prism-ml-llama.cpp (176bc4f) which lacked
+    # nemotron_h_moe + muse_glimmer and stalled on the Nemotron 30B tensor set.
+    # Pinned: 2026-08-13 "Merge pull request #283 from jasstrong/tq3-fused-hip".
     llama-cpp-turboquant = {
-      url = "git+https://github.com/retroheim/prism-ml-llama.cpp?ref=prism&rev=176bc4fda2ed8bdc0d2f1d863c51b918980d046d";
+      url = "git+https://github.com/TheTom/llama-cpp-turboquant?ref=feature/turboquant-kv-cache&rev=fca3093c9e6544476bbb2a139a25e17dd63627e1";
     };
   };
 
