@@ -40,7 +40,9 @@
     # home-manager-config - standalone Home Manager configuration (Layer 2)
     # Migrated from modules/home-manager/ to separate flake per 3-layer model.
     home-manager-config = {
-      url = "git+https://github.com/reverb256/home-manager-config";
+      # TEMP (issue #580): pin to feature branch until PR merges to master.
+      # Revert to bare URL (or bump rev) after merge.
+      url = "git+https://github.com/reverb256/home-manager-config?ref=issue-580-inir-shell";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
       # Align HM-layer inputs with the NixOS layer to avoid double-compilation

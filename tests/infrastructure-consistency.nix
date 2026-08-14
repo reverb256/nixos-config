@@ -89,12 +89,19 @@
   # ── HW-5: Multilib builds are Nexus-only ──
   # Nexus is the sole builder and must accept i686 Steam/VR derivations;
   # Zephyr, Forge, and Sentry must not be advertised as build targets.
+  # NOTE: the old check used `currentHost == "sentry"` / `hostName = "sentry"`
+  # as proxies, which false-positived on the per-host cores/max-jobs logic
+  # and sentry's (x86_64-only) machine entry. The real invariant: exactly one
+  # `systems = [...]` declaration in the machines file advertises i686-linux.
   distributedBuilds = readFile ./../modules/system/distributed-builds.nix;
   nexusSupportsMultilib = hasInfix "systems = [\"x86_64-linux\" \"i686-linux\"];" distributedBuilds;
-  noOtherMultilibBuilder =
-    !(hasInfix "currentHost == \"sentry\"" distributedBuilds)
-    && !(hasInfix "hostName = \"sentry\"" distributedBuilds)
-    && !(hasInfix "hostName = \"forge\"" distributedBuilds);
+  # Count systems declarations that include i686-linux; must be exactly 1 (nexus).
+  multilibSystemsDecls = builtins.length (
+    filter
+    (l: hasInfix "i686-linux" l && hasInfix "systems =" l)
+    (lib.splitString "\n" distributedBuilds)
+  );
+  noOtherMultilibBuilder = multilibSystemsDecls == 1;
   hasNoInvalidPlatform = nexusSupportsMultilib && noOtherMultilibBuilder;
 
   # ── HW-6: No duplicate option declarations ──
