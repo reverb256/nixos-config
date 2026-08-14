@@ -99,6 +99,12 @@ in {
         dataDir = "/data/shared/garage";
         replicationFactor = 1;
         consistencyMode = "consistent";
+        # Import the sops S3 keys into garage + allow the backups bucket so
+        # backup-to-garage / rclone clients can authenticate (garage-provision
+        # -keys oneshot, idempotent).
+        s3AccessKeyFile = "/run/secrets/garage-s3-access-key-id";
+        s3SecretKeyFile = "/run/secrets/garage-s3-secret-key";
+        provisionBuckets = ["backups" "logs" "projects"];
       };
     };
 
