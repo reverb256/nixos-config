@@ -24,17 +24,25 @@
     "zen-twilight"
     "zen"
     "vesktop"
+    # herdr coordinator + MCP bridge (2026-08-14): herdr runs as a plain user
+    # process (alacritty->fish) with NO systemd unit, so it inherits the
+    # default user@.service oom_score_adj=100 (kill-favoring). earlyoom
+    # --avoid covers earlyoom's own scoring; this covers the kernel killer.
+    # comm names are truncated to 15 chars: herdr-simple-mcp -> herdr-simple-mc
+    "herdr"
+    "herdr-simple-mc"
   ];
 
   # Build a shell script that sets oom_score_adj for each process
-  desktopOomProtectScript = pkgs.writeShellScript "desktop-oom-protect" (
-    builtins.concatStringsSep "\n" (map (proc:"
+  desktopOomProtectScript =
+    pkgs.writeShellScript "desktop-oom-protect" (
+      builtins.concatStringsSep "\n" (map (proc: "
 # Protect ${proc}
 for pid in \$(pgrep -x ${proc} 2>/dev/null || true); do
   echo -500 > /proc/\$pid/oom_score_adj 2>/dev/null || true
 done
 ") protectedDesktopProcesses)
-  );
+    );
 in {
   # ── System service OOMPolicy ────────────────────────────────────────
   # Protect container runtime (k3s bundles containerd)
@@ -66,7 +74,6 @@ in {
     };
     # Only run on hosts with a graphical session
     wantedBy = lib.mkIf config.services.xserver.enable ["graphical-session.target"];
-
   };
 
   # Repeating timer: re-apply every 30s to catch newly spawned processes
