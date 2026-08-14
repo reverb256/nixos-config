@@ -332,6 +332,14 @@ with lib; let
       # at 23 t/s and a trivial prompt hung 100+s. turbo4 K keeps 256K
       # usable on the 5600 XT (forge can afford q8_0 K on 8GB, sentry can't).
       TURBO_AUTO_ASYMMETRIC = "0";
+      # 2026-08-14 (2): DeviceLost crash-loop fix (upstream llama.cpp #21724
+      # + PR #24872). AMD RADV resets the compute ring when one vkQueueSubmit
+      # batch (default 100 nodes) exceeds amdgpu.lockup_timeout (2000ms).
+      # Sentry was crash-looping with vk::Queue::submit: ErrorDeviceLost on
+      # long prefills + request cancellation. Max nodes per submit = 1 splits
+      # submissions so none exceeds the kernel watchdog; upstream measured
+      # no perf regression.
+      GGML_VK_MAX_NODES_PER_SUBMIT = "1";
     };
     # 2026-08-14: 8K was pinned for 6GB VRAM safety, but agents send 37-48K
     # token prompts (rejected daily) and Hermes requires 64K minimum. The
