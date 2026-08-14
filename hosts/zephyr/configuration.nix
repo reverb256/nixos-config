@@ -979,6 +979,7 @@
     slirp4netns # Required for Spacebot/Podman networking
     podman-compose # Docker Compose compatibility for Podman
     localsend # Local network file sharing (AirDrop alternative)
+    grsync # GTK rsync frontend — visual manual sync between hosts/drives (2026-08-14)
 
     # Deployment
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
