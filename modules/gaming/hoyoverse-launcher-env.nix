@@ -31,23 +31,6 @@
 
 let
   icdPath = "/etc/xdg/vulkan/icd.d/nvidia_icd.json";
-  hdrEnabled = config.services.gaming.hdr.enable or false;
-
-  # Gamescope HDR args (mirrors gaming-hdr.nix baseArgs ++ hdrArgs, without
-  # the duplicate-baseArgs bug: gaming-base.nix and gaming-hdr.nix both append).
-  # --backend sdl + --hdr-enabled are required for HDR; --expose-wayland is
-  # required for nested-under-niri. Verified recipe 2026-08-10 (zephyr PoE2).
-  hdrGamescopeArgs = [
-    "--immediate-flips"
-    "--rt"
-    "--steam"
-    "--xwayland-count 2"
-    "--force-composition"
-    "--expose-wayland"
-    "--backend sdl"
-    "--hdr-enabled"
-    "--hdr-itm-enabled"
-  ];
 
   # Wrap an aagl launcher package so it always exports the correct
   # NVIDIA Vulkan ICD and drops the gamescope WSI layer before exec.
@@ -65,23 +48,23 @@ let
   # the original .desktop whose Exec= hits the UNWRAPPED binary — the env fix
   # would be silently bypassed on desktop launches, reproducing the original
   # gamescope/ICD bugs).
+  # IMPORTANT (2026-08-14): NEVER run the launcher itself inside gamescope.
+  # gamescope cannot work inside the launcher's bwrap sandbox (capability
+  # failure: "failed to inherit capabilities: Operation not permitted") and
+  # the WSI layer poisons every Vulkan process when gamescope is not
+  # actually compositing. The launcher is a GTK app that must open as a
+  # normal niri window; only the GAME (wine64 child) is a candidate for
+  # gamescope, and it is NOT wrapped here. Regression ab39b63b wrapped the
+  # launcher in gamescope when services.gaming.hdr.enable was on, which
+  # trapped the launcher window in a gamescope session and re-broke Vulkan
+  # for the game.
   wrapLauncherEnv = launcherPkg:
     let
-      # When HDR is enabled (services.gaming.hdr.enable), run the launcher
-      # INSIDE gamescope so the WSI layer has a live surface to hook — the
-      # game (wine64 child) inherits the gamescope composited surface and
-      # ENABLE_GAMESCOPE_WSI/DXVK_HDR find a gamescope to talk to. When HDR
-      # is off, run directly and drop the HDR vars (they would trigger the
-      # swapchain dialog with no gamescope present).
-      wrapper = pkgs.writeShellScriptBin launcherPkg.pname (if hdrEnabled then ''
-        export VK_DRIVER_FILES=${icdPath}
-        export ENABLE_GAMESCOPE_WSI=1 DXVK_HDR=1 PROTON_ENABLE_HDR=1
-        exec ${pkgs.gamescope}/bin/gamescope ${lib.concatStringsSep " " hdrGamescopeArgs} -- ${launcherPkg}/bin/${launcherPkg.pname} "$@"
-      '' else ''
+      wrapper = pkgs.writeShellScriptBin launcherPkg.pname ''
         export VK_DRIVER_FILES=${icdPath}
         unset ENABLE_GAMESCOPE_WSI DXVK_HDR PROTON_ENABLE_HDR
         exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
-      '');
+      '';
       # Reuse the original package's desktop entry and icon data, but rewrite
       # Exec= to point at the env-fixing wrapper so desktop launches get the
       # fix. Original .desktop lives at share/applications/<pname>.desktop;
