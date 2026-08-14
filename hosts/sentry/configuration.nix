@@ -82,7 +82,10 @@
   networking = {
     # Kubernetes worker firewall rules
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [
+      # mkForce: the plain mkOptionDefault list was silently dropping to [22]
+      # in the dendritic eval (2026-08-14) — 10250/3100/3900/3901/9100/9900
+      # never merged; only ssh's [22] survived. Forcing the full list.
+      allowedTCPPorts = lib.mkForce [
         22
         10250
         3100
