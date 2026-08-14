@@ -19,19 +19,16 @@
 #     wrapper consistency, not just desktop hosts.
 #   - llm-agents.overlays.shared-nixpkgs, self.overlays.default, and
 #     inputs.lsfg-vk-nix.overlays.default stay in common-modules-list.nix  #     because Krig and ai-gateway pipelines run on nexus / forge /
-
 #     sentry too.
 #
 # To add a 5th host: just add it to `hosts` in flake.nix with
 # `extraModules = []` for headless, or
 # `extraModules = [ ./modules/desktop/desktop-modules.nix ]` for desktop.
-{
-  inputs,
-  ...
-}: {
+{inputs, ...}: {
   imports = [
     inputs.aagl.nixosModules.default
     ./aagl.nix
+    ../gaming/hoyoverse-launcher-env.nix
     ./alacritty-system.nix
 
     {
