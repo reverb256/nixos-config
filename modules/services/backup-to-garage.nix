@@ -112,17 +112,21 @@ EOF
         cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y%m%d 2>/dev/null || date -v-"$RETENTION_DAYS"d +%Y%m%d)
 
         # Streaming layout: s3://bucket/$BACKUP_PREFIX/<YYYYMMDD-HHMMSS>/<source>.tar.gz
-        # Rotate by directory prefix date.
-        aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" 2>/dev/null | while read -r line; do
+        # Rotate by directory prefix date. Capture the listing FIRST so the
+        # pipeline can't kill the script under `set -euo pipefail` when the
+        # ls fails (2026-08-14: rotation exit-1 after a successful backup).
+        backup_listing=$(aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" 2>/dev/null || true)
+        while read -r line; do
+            [ -z "$line" ] && continue
             prefix=$(echo "$line" | awk '{print $2}')
             [ -z "$prefix" ] && continue
             dir_date=$(echo "$prefix" | grep -oE '^[0-9]{8}' | head -1)
 
             if [ -n "$dir_date" ] && [ "$dir_date" -lt "$cutoff_date" ]; then
                 log_info "  Deleting old backup: $prefix"
-                aws --endpoint-url "$GARAGE_ENDPOINT" s3 rm --recursive "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/$prefix"
+                aws --endpoint-url "$GARAGE_ENDPOINT" s3 rm --recursive "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/$prefix" || log_warn "  Failed to delete old backup: $prefix"
             fi
-        done
+        done <<< "$backup_listing"
 
         log_success "Backup completed successfully"
   '';
