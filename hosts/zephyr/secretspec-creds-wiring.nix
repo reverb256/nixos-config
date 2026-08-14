@@ -127,4 +127,26 @@
     owner = "j_kro";
     group = "users";
   };
+
+  # ── storage (garage S3) ────────────────────────────────────
+  # backup-to-garage reads these to authenticate to nexus garage
+  # (missing on zephyr -> GARAGE_ACCESS_KEY: unbound variable, 2026-08-14).
+  GARAGE_ACCESS_KEY = {
+    path = "/run/secrets/garage-s3-access-key-id";
+    file = "storage/garage-s3-access-key-id.yaml";
+    key = "data";
+    owner = "root";
+    # backup-to-garage wrapper runs as root; the garage system user/group
+    # only exists on nexus (garage-cluster.enable). root:root 0440 is enough.
+    group = "root";
+    mode = "0440";
+  };
+  GARAGE_SECRET_KEY = {
+    path = "/run/secrets/garage-s3-secret-key";
+    file = "storage/garage-s3-secret-key.yaml";
+    key = "data";
+    owner = "root";
+    group = "root";
+    mode = "0440";
+  };
 }
