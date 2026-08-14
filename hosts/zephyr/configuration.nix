@@ -1188,18 +1188,19 @@
   services.unbound-common.enable = true;
 
   # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD.
-  # 2026-08-13: VK_DRIVER_FILES must point at the DECLARATIVE /etc/xdg link
-  # (nvidia-common.nix 7f3318e5). The old target
-  # /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json does NOT
-  # exist: the tmpfiles L+ rule raced the /run/opengl-driver population at
-  # boot and the symlink was never created, so every Vulkan process died
-  # with "Found no drivers" (PoE2/DX12 instant engine-init crash, launch
-  # options irrelevant). The /etc/xdg link is nix-managed and immune to the
-  # race. Verified: VK_DRIVER_FILES=/etc/xdg/vulkan/icd.d/nvidia_icd.json
-  # enumerates RTX 3090 + 3060 Ti.
-  environment.sessionVariables = {
-    VK_DRIVER_FILES = "/etc/xdg/vulkan/icd.d/nvidia_icd.json";
-  };
+  # 2026-08-14 (permanent): NO global VK_DRIVER_FILES. The Vulkan loader
+  # discovers the ICD automatically: nixpkgs builds it with
+  # SYSTEM_SEARCH_PATH=/run/opengl-driver/share (KhronosLoader PR #195) and
+  # hardware.graphics sets XDG_DATA_DIRS to include /run/opengl-driver/share;
+  # the /etc/xdg/vulkan/icd.d/nvidia_icd.json link (nvidia-wayland.nix) covers
+  # tools that only search /etc. A global VK_DRIVER_FILES REPLACES that
+  # discovery with a single brittle path — the previous value
+  # (/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json) never
+  # existed on disk (tmpfiles race at boot), so EVERY Vulkan process died
+  # ("Found no drivers" / pressure-vessel "Failed to load Vulkan ICD";
+  # PoE2/DX12 engine-init crash, VRChat swapchain errors under Steam).
+  # Verified 2026-08-14: env -u VK_DRIVER_FILES vulkaninfo --summary
+  # enumerates RTX 3090 + 3060 Ti. Do not re-add this variable.
   # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
 
   # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
