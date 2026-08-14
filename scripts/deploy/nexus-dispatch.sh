@@ -76,24 +76,53 @@ executor() {
     exit 1
   }
 
+  # ── Per-host flock: different targets deploy in PARALLEL; same-target and
+  #    --target all serialize. colmena handles multi-host parallelism itself
+  #    (--eval-node-limit/--parallel); this lock only prevents two dispatches
+  #    racing the same host's switch-to-configuration or the shared checkout.
+  #    flock auto-releases on process exit (no stale locks).
+  LOCK_DIR="/run/nexus-dispatch"
+  mkdir -p "$LOCK_DIR"
+  LOCK_HOSTS=()
+  if [[ "$TARGET" == "all" ]]; then
+    LOCK_HOSTS=(zephyr nexus forge sentry)
+  else
+    LOCK_HOSTS=("$TARGET")
+  fi
+  LOCK_FDS=()
+  for h in $(printf '%s\n' "${LOCK_HOSTS[@]}" | sort); do
+    exec {fd}>"$LOCK_DIR/$h.lock" || { echo "lock open failed: $h" >&2; exit 1; }
+    flock -n "$fd" || {
+      echo "Another dispatch to '$h' is running (or --target all). Try again later." >&2
+      exit 1
+    }
+    LOCK_FDS+=("$fd")
+  done
+
   cd "$FLAKE"
   # colmena apply-local --sudo evaluates the flake as root and can create
   # root-owned objects in .git, which then breaks the NEXT deploy's fetch
   # (git unpack-objects: insufficient permission). Normalize before fetching.
-  # colmena apply-local --sudo evaluates the flake as root and can create
-  # root-owned files in the flake dir (e.g. .git objects, flake.lock), which
-  # breaks the NEXT deploy's fetch/eval (insufficient permission). Normalize
-  # the whole flake dir before fetching.
+  # (The shared checkout is only fetched here; the actual build/deploy runs
+  # from a per-dispatch worktree below, so root-owned objects can't poison it.)
   REPO_OWNER="$(stat -c %U "$FLAKE")"
   REPO_GROUP="$(stat -c %G "$FLAKE")"
   if [[ -n "$REPO_OWNER" ]] && [[ "$(find "$FLAKE" -not -user "$REPO_OWNER" 2>/dev/null | head -1)" ]]; then
     sudo chown -R "$REPO_OWNER":"$REPO_GROUP" "$FLAKE" 2>/dev/null || true
   fi
   git fetch origin main
-  git reset --hard origin/main
 
+  # ── Per-dispatch worktree: immutable snapshot at origin/main. Two
+  #    concurrent executors each build from their OWN tree — no shared
+  #    checkout to reset under each other (the old `git reset --hard`
+  #    raced: a second dispatch could yank the first's build mid-eval).
+  WORKTREE="/tmp/nexus-dispatch-$$"
+  git worktree add --detach "$WORKTREE" origin/main
+  cd "$WORKTREE"
   CANONICAL="$(git rev-parse --short HEAD)"
-  echo "Nexus deployment executor at origin/main: $CANONICAL"
+  echo "Nexus deployment executor at origin/main: $CANONICAL (worktree $WORKTREE)"
+  # Cleanup the worktree on exit (plain return, not exec, so the trap fires).
+  trap 'cd /; git -C "$FLAKE" worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
 
   NIX_CMD=(
     nix run
@@ -109,7 +138,8 @@ executor() {
     echo "Deploying local node: nexus (apply-local)"
     # NOTE: apply-local does NOT accept --evaluator (verified); only the
     # remote `apply` path below gets the streaming evaluator.
-    exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
+    "${NIX_CMD[@]}" apply-local --sudo --node nexus
+    return
   fi
 
   CMD=(
@@ -130,7 +160,7 @@ executor() {
     echo "Deploying local node: nexus (apply-local)"
     # NOTE: apply-local does NOT accept --evaluator (verified); only the
     # remote `apply` path below gets the streaming evaluator.
-    exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
+    "${NIX_CMD[@]}" apply-local --sudo --node nexus
   fi
 }
 
