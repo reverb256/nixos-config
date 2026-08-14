@@ -371,6 +371,12 @@
           # zephyr's home-manager runs). System-layer package for the cluster
           # llama-swap services on nexus/forge/sentry.
           packages.llama-swap = pkgs.llama-swap;
+          # chatterbox-tts — neural TTS wrapper script (POSTs to the chatterbox
+          # container on forge :8004). Exposed as a flake package so Layer 2
+          # (home-manager-config) can install it via home.packages with a real
+          # store dependency (GC-safe) — previously a hand-placed ~/.local/bin
+          # symlink lost its closure to nix-collect-garbage (exit 127).
+          packages.chatterbox-tts = pkgs.chatterbox-tts;
           # CONTAINER IMAGES (for Kubernetes deployment)
 
           # Claude Code container image for Kubernetes deployment

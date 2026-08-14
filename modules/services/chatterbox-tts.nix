@@ -37,8 +37,8 @@ in {
       "${cfg.voiceRefsDir}" = {
         d = {
           mode = "755";
-          user = cfg.user;
-          group = cfg.group;
+          inherit (cfg) user;
+          inherit (cfg) group;
         };
       };
     };
@@ -79,8 +79,8 @@ in {
                       -v ${cfg.voiceRefsDir}:/app/reference_audio:Z \
                       -e NVIDIA_VISIBLE_DEVICES=all \
                       -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-                      --device nvidia.com/gpu=all \
-                      localhost/chatterbox-tts:v1.0.0''; # Local build (podman)
+                      --device nvidia.com/gpu=all \\
+                      localhost/chatterbox-tts:latest''; # Local build (podman); image on forge is tagged :latest
         # Server listens on 8004 inside; host networking exposes on 0.0.0.0:8004
 
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore chatterbox-tts";
