@@ -37,11 +37,53 @@ let
   # The original package is the symlinkJoin with the steam-run wrapper;
   # we wrap THAT, so the exported env flows through steam-run →
   # launcher → wine → game.
-  wrapLauncherEnv = launcherPkg: pkgs.writeShellScriptBin launcherPkg.pname ''
-    export VK_DRIVER_FILES=${icdPath}
-    unset ENABLE_GAMESCOPE_WSI DXVK_HDR PROTON_ENABLE_HDR
-    exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
-  '';
+  # IMPORTANT (2026-08-14 regression): a bare writeShellScriptBin drops the
+  # original package's share/ tree, which carries the launcher .desktop
+  # entries (and pixmap icons via the separate -icon output). That made the
+  # desktop entries dangle in generations after commit 61882e092. Use
+  # symlinkJoin to keep share/ intact while overriding bin/ with the
+  # env-fixing wrapper.
+  # Build the env-fixing wrapper AND regenerate the .desktop entries so
+  # Exec= points at the wrapper (a symlinkJoin of the original package keeps
+  # the original .desktop whose Exec= hits the UNWRAPPED binary — the env fix
+  # would be silently bypassed on desktop launches, reproducing the original
+  # gamescope/ICD bugs).
+  wrapLauncherEnv = launcherPkg:
+    let
+      wrapper = pkgs.writeShellScriptBin launcherPkg.pname ''
+        export VK_DRIVER_FILES=${icdPath}
+        unset ENABLE_GAMESCOPE_WSI DXVK_HDR PROTON_ENABLE_HDR
+        exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
+      '';
+      # Reuse the original package's desktop entry and icon data, but rewrite
+      # Exec= to point at the env-fixing wrapper so desktop launches get the
+      # fix. Original .desktop lives at share/applications/<pname>.desktop;
+      # the icon/name fields are read from it rather than guessed from meta.
+      desktopSrc = launcherPkg + "/share/applications/" + launcherPkg.pname + ".desktop";
+      desktopName = launcherPkg.pname + "-wrapped";
+    in
+    pkgs.runCommand desktopName { } ''
+      mkdir -p $out/bin $out/share/applications
+      ln -s ${wrapper}/bin/${launcherPkg.pname} $out/bin/${launcherPkg.pname}
+      # Copy ALL share data (pixmaps, icons, etc.) from the original package.
+      # -L dereferences symlinks: the store share/ tree uses symlinks to the
+      # -icon/.desktop outputs; copying them as symlinks leaves read-only
+      # store targets that the awk rewrite below cannot overwrite.
+      cp -rL ${launcherPkg}/share/* $out/share/ 2>/dev/null || true
+      # Regenerate the desktop file with Exec= pointed at the wrapper,
+      # preserving the original Name/Icon fields. Remove the copied file
+      # first — cp -rL preserves the store's read-only mode (444), so a
+      # shell redirect onto it fails with Permission denied.
+      if [ -f ${desktopSrc} ]; then
+        rm -f $out/share/applications/${launcherPkg.pname}.desktop
+        ${pkgs.gawk}/bin/awk -v exe="${wrapper}/bin/${launcherPkg.pname}" '
+          /^Exec=/ { print "Exec=" exe; next }
+          { print }
+        ' ${desktopSrc} > $out/share/applications/${launcherPkg.pname}.desktop
+      else
+        echo "WARNING: no original .desktop for ${launcherPkg.pname}" >&2
+      fi
+    '';
 in
 {
   # aagl launcher options only exist on hosts importing the aagl flake module
