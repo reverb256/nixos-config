@@ -17,13 +17,13 @@
 
     db_engine = "lmdb"
 
-    rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
+    rpc_bind_addr = "0.0.0.0:${toString cfg.rpcPort}"
     rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
     rpc_secret = "@RPC_SECRET@"
 
     [s3_api]
     s3_region = "garage"
-    api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
+    api_bind_addr = "0.0.0.0:${toString cfg.s3ApiPort}"
     root_domain = ".s3.garage.cluster"
 
     [admin]
