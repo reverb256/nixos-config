@@ -87,7 +87,7 @@
                 "id": "moonshotai/kimi-k2.5",
                 "name": "Kimi K2.5 (NVIDIA NIM)",
                 "reasoning": true,
-                "input": ["text" "image" "video"],
+                "input": ["text", "image", "video"],
                 "contextWindow": 262144,
                 "maxTokens": 262144,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
