@@ -90,6 +90,13 @@ with lib; let
             then "21761"
             else "21762"
           }
+          # CRITICAL (2026-08-14): startPort must NOT equal the proxy --listen
+          # port. Models bind startPort+idx; the proxy owns its own listen port.
+          # nexus listen=21759 / startPort=21760 (models 21760+);
+          # forge  listen=21763 / startPort=21761 (models 21761+);
+          # sentry listen=21764 / startPort=21762 (models 21762+).
+          # Equal ports -> every model spawn dies: "couldn't bind HTTP server
+          # socket, port: N" -> llama-swap cooldown -> 429 -> crash loop.
           models:
         ''
         + concatMapStringsSep "\n" modelYaml models
@@ -142,9 +149,15 @@ in {
           models = [
             {
               id = "bonsai-1bit";
-              name = "Bonsai 1bit 256k Turbo4";
+              name = "Bonsai 1bit 256k q4_0";
               model = "/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
+              # 2026-08-14: KV fix for Crash A. mkCatalog defaults cacheK/V to
+              # turbo4; on nexus 8 GB that overflowed @ 262144 -> illegal access.
+              # q4_0/q4_0 matches zephyr (serves, spills to RAM). Keep turbo4 only
+              # on >=24 GB cards (zephyr 3090 ternary uses q8_0, not turbo4).
+              cacheK = "q4_0";
+              cacheV = "q4_0";
             }
             {
               id = "nemotron-30b-a3b";
@@ -161,7 +174,7 @@ in {
       }
       (mkService {
         name = "nexus";
-        port = 21760;
+        port = 21759; # proxy listen; models bind 21760+ (startPort)
         yamlFile = "nexus.yaml";
       })
     ]))
@@ -183,7 +196,7 @@ in {
       }
       (mkService {
         name = "forge";
-        port = 21761;
+        port = 21763; # proxy listen; models bind 21761+ (startPort)
         yamlFile = "forge.yaml";
       })
     ]))
@@ -208,7 +221,7 @@ in {
       }
       (mkService {
         name = "sentry";
-        port = 21762;
+        port = 21764; # proxy listen; models bind 21762+ (startPort)
         yamlFile = "sentry.yaml";
       })
     ]))
