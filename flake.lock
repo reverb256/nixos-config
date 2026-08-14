@@ -1455,11 +1455,11 @@
         "zen-browser": "zen-browser_3"
       },
       "locked": {
-        "lastModified": 1786748464,
-        "narHash": "sha256-wimM6FHe2gZt3O6A+InN0/0mrmSSxKouNbbwhLpeWao=",
+        "lastModified": 1786748655,
+        "narHash": "sha256-AWvFVE00g7C/hXBEnNS+kzaevNcsUhe2j2YgancMhno=",
         "ref": "issue-580-inir-shell",
-        "rev": "3af515de5d0823a2c649506210e3c2fd82b39e70",
-        "revCount": 104,
+        "rev": "39a5591ab0a96b3b0e0d8973f9359ef69b58bff3",
+        "revCount": 105,
         "type": "git",
         "url": "https://github.com/reverb256/home-manager-config"
       },
