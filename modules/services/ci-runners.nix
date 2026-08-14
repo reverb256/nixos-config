@@ -15,7 +15,7 @@
 }: {instances ? {}}: let
   mkRunner = name: inst: let
     user = inst.user or "runner";
-    repo = inst.repo;
+    inherit (inst) repo;
     tokenFile = inst.tokenFile or null;
     patFile = inst.patFile or null;
     autoStart = inst.autoStart or false;
@@ -86,6 +86,11 @@
         Environment = [
           "PATH=/run/current-system/sw/bin:/run/current-system/sw/sbin:${runnerHome}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
           "RUNNER_ROOT=${runnerHome}"
+          # Explicit HOME so action shells (deploy workflows writing ~/.ssh,
+          # venvs, caches) resolve the runner home instead of a broken '~'
+          # under ProtectSystem=strict (2026-08-14: site-agency deploy's
+          # ~/.ssh key write failed — 'Permission denied' — without it).
+          "HOME=${runnerHome}"
           "LANG=C.UTF-8"
         ];
         ProtectSystem = "strict";
