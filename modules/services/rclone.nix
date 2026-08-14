@@ -152,7 +152,7 @@
       log_info "Destination: $DEST"
       log_info "Mode: $SYNC_MODE"
 
-      ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
+      if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
         --config "${cfg.configFile}" \
         --progress \
         --transfers ${toString job.transfers or 4} \
