@@ -403,11 +403,14 @@ with lib; let
         GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
         GGML_VULKAN_DEVICE = "0";
         VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
-        # 2026-08-14 (2): DeviceLost crash-loop fix (upstream llama.cpp #21724
-        # + PR #24872) — same as bit1Sentry.
-        GGML_VK_MAX_NODES_PER_SUBMIT = "1";
-        # 2026-08-14 (3): RADV GTT-spill fix (upstream #24066 / Mesa #13282).
-        RADV_PERFTEST = "nogttspill";
+        # 2026-08-14 (3): NO GGML_VK_MAX_NODES_PER_SUBMIT and NO
+        # RADV_PERFTEST here — both were measured to kill FA-off decode on
+        # RDNA1 (93.7 t/s clean vs 6.4 with nodes=1 vs 9.6 with nogttspill).
+        # The DeviceLost fix was zero-cost only on Bonsai's FA-on graph; the
+        # FA-off graph has far more nodes so forcing 1-node submits
+        # serializes it. Watch for vk::Queue::submit: ErrorDeviceLost on
+        # long prefills + cancellation; if it recurs, re-enable nodes=1 and
+        # accept ~6 t/s or move E2B back to FA on.
       };
     };
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 8003 ];
