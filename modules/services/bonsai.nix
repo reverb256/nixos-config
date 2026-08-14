@@ -274,12 +274,11 @@ with lib; let
   });
 
   # 1-bit on nexus 3060 Ti (8 GB)
-  bit1Nexus = mkIf (host == "nexus" && true) (mk1bitService {
-    name = "nexus";
-    desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235) turbo4 KV 256k";
-    port = 1235;
-    contextSize = "262144";
-  });
+  # REMOVED 2026-08-14: llama-swap on nexus owns Bonsai now (q4_0 KV @ 256K,
+  # /etc/llama-swap/nexus.yaml catalog, swap proxy :21759, model :21760).
+  # The direct unit crash-looped (MemoryMax=6G cgroup OOM at 262144 ctx) and
+  # fought the swap for VRAM. The deployed unit was masked imperatively; this
+  # definition is deleted so no future nixos-rebuild regenerates it.
 
   # NOTE: ternary on nexus was REMOVED (2026-08-12). The 3060 Ti is an 8 GB
   # card shared with ComfyUI + peakminer + gamescope (~3 GB busy); ternary
@@ -437,7 +436,6 @@ in {
     })
     ternaryZephyr
     bit1Zephyr
-    bit1Nexus
     bit1Forge0
     bit1Forge1
     bit1Sentry
