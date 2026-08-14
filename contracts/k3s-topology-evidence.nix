@@ -28,8 +28,9 @@
     oddServerQuorum = true;
   };
 
-  # Repository observations captured on 2026-08-01. These are evidence to be
-  # reconciled; they are not a second source of truth for host configuration.
+  # Repository observations captured on 2026-08-01; sentry re-observed
+  # 2026-08-13 (role agent after the nexus-outage rejoin). These are evidence
+  # to be reconciled; they are not a second source of truth for host config.
   observedNix = {
     nexus = {
       enabled = true;
@@ -51,7 +52,7 @@
     };
     sentry = {
       enabled = true;
-      role = "server";
+      role = "agent";
       clusterInit = false;
       serverAddr = "https://10.1.1.120:6443";
       nodeIP = "10.1.1.140";
@@ -72,7 +73,7 @@
   observedMetadata = {
     nexus = { enabled = true; role = "server"; nodeName = "nexus"; source = "hosts/metadata/nexus.json"; };
     forge = { enabled = true; role = "server"; nodeName = "forge"; source = "hosts/metadata/forge.json"; };
-    sentry = { enabled = true; role = "server"; nodeName = "sentry"; source = "hosts/metadata/sentry.json"; };
+    sentry = { enabled = true; role = "agent"; nodeName = "sentry"; source = "hosts/metadata/sentry.json"; };
     zephyr = { enabled = false; role = "disabled"; nodeName = "zephyr"; source = "hosts/metadata/zephyr.json"; };
   };
 

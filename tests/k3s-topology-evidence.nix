@@ -74,16 +74,18 @@
       && lib.strings.hasInfix "nodeName = \"forge\";" nixSources.forge;
     sentry =
       contract.observedNix.sentry.enabled
-      && contract.observedNix.sentry.role == "server"
+      && contract.observedNix.sentry.role == "agent"
       && !contract.observedNix.sentry.clusterInit
       &&      contract.observedNix.sentry.serverAddr == "https://10.1.1.120:6443"
       && contract.observedNix.sentry.nodeIP == "10.1.1.140"
       && lib.strings.hasInfix "k3s-cluster = {" nixSources.sentry
       && lib.strings.hasInfix "enable = true;" nixSources.sentry
-      && lib.strings.hasInfix "role = \"server\";" nixSources.sentry
+      # Sentry rejoined as an AGENT on 2026-08-08 (nexus-outage recovery);
+      # the k3s module derives nodeName from networking.hostName by default,
+      # so no explicit nodeName declaration is grepped for here.
+      && lib.strings.hasInfix "role = \"agent\";" nixSources.sentry
       && lib.strings.hasInfix "serverAddr = \"https://10.1.1.120:6443\";" nixSources.sentry
-      && lib.strings.hasInfix "nodeIP = \"10.1.1.140\";" nixSources.sentry
-      && lib.strings.hasInfix "nodeName = \"sentry\";" nixSources.sentry;
+      && lib.strings.hasInfix "nodeIP = \"10.1.1.140\";" nixSources.sentry;
     zephyr =
       !contract.observedNix.zephyr.enabled
       && contract.observedNix.zephyr.role == "disabled"
@@ -155,8 +157,11 @@
     observed_sources_are_present = sourcePathsExist;
     observed_nix_matches_sources = builtins.all (value: value) (builtins.attrValues observedNixMatchesSources);
     metadata_matches_contract = metadataMatchesContract;
+    # 2026-08-13: forge + sentry metadata serverAddr corrected to the direct
+    # nexus join endpoint (https://10.1.1.120:6443), matching their configs.
+    # No metadata/config endpoint drift remains.
     metadata_endpoint_drift_is_explicit =
-      lib.sort builtins.lessThan metadataEndpointDrift == [ "forge" "sentry" ];
+      lib.sort builtins.lessThan metadataEndpointDrift == [];
     candidate_and_observed_topology_differ =
       contract.candidate.agentHosts != [ "zephyr" ]
       || contract.observedNix.zephyr.enabled

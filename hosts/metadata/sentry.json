@@ -17,13 +17,13 @@
   },
   "firewall": {
     "allowedTCPPorts": [
-     22,
-     10250,
-     3100,
-     3900,
-     3901,
-     9100,
-     9900
+      22,
+      10250,
+      3100,
+      3900,
+      3901,
+      9100,
+      9900
     ],
     "allowedTCPPortRanges": [
       {
@@ -50,13 +50,13 @@
   },
   "k3s": {
     "enable": true,
-    "role": "server",
+    "role": "agent",
     "nvidia": {
       "enable": false
     },
     "clusterInit": false,
     "nodeName": "sentry",
-    "serverAddr": "https://10.1.1.100:6443",
+    "serverAddr": "https://10.1.1.120:6443",
     "tokenFile": "/run/secrets/k3s-cluster-token",
     "nodeIP": "10.1.1.140",
     "calico": {

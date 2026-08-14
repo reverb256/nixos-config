@@ -21,9 +21,13 @@
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
     && lib.strings.hasInfix "then 0" distributedBuilds;
 
-  sharedForcesNexusSix =
+  # Nexus is the primary builder (12 physical cores). Max-jobs was 6 before
+  # the 2026-08-13 over-sell tuning; it is now 2 (12 cores x 2 jobs = 24 SMT
+  # threads, "never over-sold" per nix.dev manual) and the machines file
+  # entry maxJobs=2 mirrors it. Assert the CURRENT value, not the stale 6.
+  sharedForcesNexusTwo =
     lib.strings.hasInfix "currentHost == \"nexus\"" distributedBuilds
-    && lib.strings.hasInfix "then 6" distributedBuilds;
+    && lib.strings.hasInfix "then 2 # 12 cores x 2 jobs" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 
@@ -34,7 +38,7 @@
     zephyrHasNoSettingsAttrsetOverride = !hasSettingsAttrsetOverride;
     inherit
       sharedForcesZephyrZero
-      sharedForcesNexusSix
+      sharedForcesNexusTwo
       sharedBuildersUseSubstitutes
       ;
   };
