@@ -174,7 +174,7 @@
       "--prefer"
       "(Web Content|Isolated Web|nix)"
       "--avoid"
-      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire|steam|GameThread|REDprelauncher)"
+      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|herdr|herdr-simple-mc|Xwayland|pipewire|steam|GameThread|REDprelauncher)"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ];
   };
