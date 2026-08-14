@@ -1116,7 +1116,11 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
-    telegram-desktop
+    # telegram-desktop intentionally NOT in system packages (2026-08-14):
+    # HM's opencode module installs it into ~/.nix-profile (opencode.nix
+    # programs.opencode.telegramDesktop, default true). A system copy
+    # duplicated the org.telegram.desktop DBus service -> dbus-broker
+    # "Ignoring duplicate name" warnings on every session start.
     # Freebuff Desktop — packaged from the AppImage (appimageTools.wrapType2).
     # Installed system-wide so noctalia's systemd-run (PATH=/run/current-system/sw/bin)
     # can resolve `freebuff-desktop` for launcher clicks (was only in ~/.local/bin).
