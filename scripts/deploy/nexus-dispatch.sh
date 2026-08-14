@@ -81,8 +81,10 @@ executor() {
   #    (--eval-node-limit/--parallel); this lock only prevents two dispatches
   #    racing the same host's switch-to-configuration or the shared checkout.
   #    flock auto-releases on process exit (no stale locks).
-  LOCK_DIR="/run/nexus-dispatch"
-  mkdir -p "$LOCK_DIR"
+  #    Executor runs as j_kro (non-root): /run is root-only, so use the
+  #    user-runtime dir (systemd) with /tmp fallback.
+  LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}/nexus-dispatch"
+  mkdir -p "$LOCK_DIR" 2>/dev/null || { echo "cannot create lock dir $LOCK_DIR" >&2; exit 1; }
   LOCK_HOSTS=()
   if [[ "$TARGET" == "all" ]]; then
     LOCK_HOSTS=(zephyr nexus forge sentry)
