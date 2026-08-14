@@ -42,6 +42,22 @@
       ${garageConfigTemplate} > /run/garage/garage.toml
     chmod 600 /run/garage/garage.toml
   '';
+
+  # Idempotent S3 key + bucket provisioning (2026-08-14): imports the sops
+  # access key into garage if absent, then allows provisionBuckets on it.
+  # Written as a script derivation to avoid ''-string nesting; the bucket
+  # allow list is interpolated at build time.
+  provisionScript = pkgs.writeShellScript "garage-provision-keys" ''
+    set -euo pipefail
+    GARAGE=${lib.getExe pkgs.garage}
+    CONF=-c /run/garage/garage.toml
+    ID="$(cat ${toString cfg.s3AccessKeyFile})"
+    SECRET="$(cat ${toString cfg.s3SecretKeyFile})"
+    if ! $GARAGE $CONF key info "$ID" >/dev/null 2>&1; then
+      $GARAGE $CONF key import --name sops-s3-key "$ID" "$SECRET"
+    fi
+    ${builtins.concatStringsSep "\n" (map (b: "$GARAGE $CONF bucket allow --read --write --owner ${b} --key \"$ID\" || true") cfg.provisionBuckets)}
+  '';
 in {
   options.services.garage-cluster = {
     enable = lib.mkEnableOption "Garage S3-compatible object storage";
@@ -108,6 +124,30 @@ in {
       type = lib.types.str;
       default = "daily";
       description = "Systemd timer calendar format for backup interval (default: daily)";
+    };
+
+    # S3 access key provisioning (2026-08-14): the sops-nix storage secrets
+    # (garage-s3-access-key-id / garage-s3-secret-key) are used by
+    # backup-to-garage + rclone, but garage must have them imported as a key
+    # with bucket permissions BEFORE those clients can authenticate. A oneshot
+    # after garage.service imports the key idempotently (skip if present) and
+    # allows each provisionBuckets entry.
+    s3AccessKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "File containing the garage S3 access key id to import";
+    };
+
+    s3SecretKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "File containing the garage S3 secret key to import";
+    };
+
+    provisionBuckets = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = ["backups"];
+      description = "Buckets to allow the provisioned S3 key on";
     };
   };
 
@@ -208,6 +248,26 @@ in {
               cfg.backupDir
               cfg.dataDir
             ];
+          };
+        };
+
+        # Idempotent S3 key + bucket provisioning. Runs after garage starts;
+        # imports the sops S3 access key if not already present and allows the
+        # configured buckets on it. backup-to-garage / rclone clients fail auth
+        # until this has run (verified 2026-08-14: garage healthy but key not
+        # imported). Safe to re-run: `key info` exit != 0 -> import.
+        garage-provision-keys = lib.mkIf (cfg.s3AccessKeyFile != null && cfg.s3SecretKeyFile != null) {
+          description = "Import garage S3 access key and allow buckets";
+          after = ["garage.service"];
+          requires = ["garage.service"];
+          wantedBy = ["multi-user.target"];
+
+          serviceConfig = {
+            Type = "oneshot";
+            User = "garage";
+            Group = "garage";
+            RemainAfterExit = true;
+            ExecStart = provisionScript;
           };
         };
       };
