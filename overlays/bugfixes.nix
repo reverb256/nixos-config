@@ -86,6 +86,33 @@
       fetchSubmodules = true;
       hash = "sha256-FuQkKguW00yI2w5nCctcxz7e1ZUKSWJOCIS1UMJzsMA=";
     };
+    # 3.16.25-only patches: `shaders-path.patch` and `gamescopereaper.patch`
+    # target src/Utils/DirHelpers.cpp which DOES NOT EXIST in 3.16.22 (the
+    # GetUsrDir helper lives in src/reshade_effect_manager.cpp there). Drop
+    # them; replicate both fixes inline in postPatch below. Keep the two
+    # pending-upstream patches that apply cleanly to 3.16.22 (verified):
+    # 4ce1a91f (system libraries) + d49a2ade (stb_image_resize2 guard).
+    patches = [
+      (_final.fetchpatch {
+        url = "https://github.com/ValveSoftware/gamescope/commit/4ce1a91fb219f570b0871071a2ec8ac97d90c0bc.diff";
+        hash = "sha256-O358ScIIndfkc1S0A8g2jKvFWoCzcXB/g6lRJamqOI4=";
+      })
+      (_final.fetchpatch {
+        url = "https://github.com/ValveSoftware/gamescope/commit/d49a2aded261030e649fee42ad295f1ef56b736b.diff";
+        hash = "sha256-Uh08ZRaV912ZOsl1DMpbVLxIgh4jEXevgihQf2W9KFk=";
+      })
+    ];
+    # postPatch: replicate shaders-path.patch (GetUsrDir -> @out@ in
+    # reshade_effect_manager.cpp, not DirHelpers.cpp) + gamescopereaper.patch
+    # (absolute path in Process.cpp). DirHelpers.cpp does not exist in 3.16.22.
+    postPatch = ''
+      substituteInPlace src/reshade_effect_manager.cpp --replace-fail 'return "/usr";' 'return "@out@";'
+      substituteInPlace src/reshade_effect_manager.cpp --replace-fail "@out@" "$out"
+      substituteInPlace src/Utils/Process.cpp --replace-fail '"gamescopereaper"' '"@gamescopereaper@"'
+      substituteInPlace src/Utils/Process.cpp --subst-var-by "gamescopereaper" "$out/bin/gamescopereaper"
+      patchShebangs subprojects/libdisplay-info/tool/gen-search-table.py
+      patchShebangs default_extras_install.sh
+    '';
   });
 
   # 2026-08-10: xwayland 24.1.13 fails to build under GCC 15.3 — libunwind's
