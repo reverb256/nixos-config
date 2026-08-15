@@ -82,5 +82,11 @@ in {
       # Bonsai 27B local inference (llama-server) — cluster-internal only.
       # 8003 sentry (AMD Vulkan), 1235 nexus, 1236 zephyr, 8002/8006 forge.
       ip saddr { ${clusterSubnet} } tcp dport { 8003, 1235, 1236, 8002, 8006 } accept
+
+      # Garage (S3 object storage, nexus) — cluster-internal only.
+      # 3900 S3 API, 3901 admin API. Re-added 2026-08-15 (the original
+      # uncommitted patch was lost in a reset cycle; garage listens on
+      # 0.0.0.0 so without this rule the firewall drops all client access).
+      ip saddr { ${clusterSubnet} } tcp dport { 3900, 3901 } accept
   '';
 }
