@@ -206,6 +206,13 @@ in {
       # the script's bare `ssh-keygen` fails to resolve -> "no CA key
       # available, skipping" despite a valid key on disk.
       path = [ pkgs.openssh ];
+      # 2026-08-15: secretspec-creds is oneshot RemainAfterExit — after an
+      # activation re-provisions secrets (removes ssh-ca-key), the service
+      # does NOT re-write it. Force a fresh provisioning right before
+      # signing so a valid CA key is always present.
+      preStart = ''
+        ${pkgs.systemd}/bin/systemctl restart secretspec-creds.service
+      '';
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
