@@ -117,9 +117,11 @@
       script = ''
         rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
               "${runnerHome}/.credentials_rsaparams" \
+              "${runnerHome}/.runner_migrated" \
               "${runnerHome}/.github-runner/.runner" \
               "${runnerHome}/.github-runner/.credentials" \
-              "${runnerHome}/.github-runner/.credentials_rsaparams"
+              "${runnerHome}/.github-runner/.credentials_rsaparams" \
+              "${runnerHome}/.github-runner/.runner_migrated"
         ${getTokenCmd}
         ${runnerPkg}/bin/config.sh \
           --url "https://github.com/${repo}" \
