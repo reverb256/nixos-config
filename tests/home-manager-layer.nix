@@ -48,10 +48,17 @@ let
   # forgets to bump the lock, the next colmena deploy silently reverts Layer-2
   # to the stale pinned rev. The lock-sync guard lives in deploy.yml, but we
   # assert here that the input is at least present and rev-pinned.
+  #
+  # NOTE: parse the lock as JSON instead of regex-scanning the raw text.
+  # lib.strings.hasInfix -> builtins.match ".*..." stack-overflows on the
+  # ~130KB flake.lock in the pinned Nix (regex backtracking), which broke
+  # the Test Coverage job (2026-08-15).
   lockPath = ../flake.lock;
   lockContent = builtins.readFile lockPath;
-  lockHasHmInput = lib.strings.hasInfix "home-manager-config" lockContent;
-  lockHasRev = lockHasHmInput && lib.strings.hasInfix "\"rev\"" lockContent;
+  lockData = builtins.fromJSON lockContent;
+  lockHasHmInput = builtins.hasAttr "home-manager-config" lockData.nodes;
+  lockHasRev = lockHasHmInput
+    && (lockData.nodes."home-manager-config".locked ? rev);
 
   deployWorkflow = builtins.readFile ../.github/workflows/deploy.yml;
   hasDeploy = needle: lib.strings.hasInfix needle deployWorkflow;

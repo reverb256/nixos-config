@@ -124,9 +124,9 @@ NFS may still be used by explicitly configured storage workloads, but it is not 
 - **Host:** `nexus` (`10.1.1.120`)
 - **User:** `runner` system user
 - **Home/work directory:** `/var/lib/runner/` and `/var/lib/runner/_work/`
-- **Systemd service:** `github-actions-runner.service` (declaratively managed)
-- **Setup service:** `github-actions-runner-setup.service` refreshes registration using the configured token file
-- **Status check:** `ssh nexus systemctl is-active github-actions-runner`
+- **Systemd service:** `github-actions-runner-nixos-config.service` (per-repo runner, declaratively managed; sibling units exist for the other repos, e.g. `github-actions-runner-home-manager-config.service`)
+- **Setup service:** `github-actions-runner-setup-nixos-config.service` refreshes registration using the configured token file
+- **Status check:** `ssh nexus systemctl is-active github-actions-runner-nixos-config`
 
 ### Environment (NixOS-specific)
 The runner service has an explicit NixOS-safe PATH containing the system profile,
@@ -158,7 +158,7 @@ Tool packages available on nexus via `environment.systemPackages`:
 - `osv-scanner` — Vulnerability scanner (v2.3.3)
 
 ### Troubleshooting
-- **Runner not connecting:** Check `systemctl status github-actions-runner` and `github-actions-runner-setup.service`
+- **Runner not connecting:** Check `systemctl status github-actions-runner-nixos-config` and `github-actions-runner-setup-nixos-config.service`
 - **`cachix` not found:** Verify `cachix` is in `/run/current-system/sw/bin` and that the service PATH includes `/var/lib/runner/.nix-profile/bin`
 - **`startup_failure` with zero jobs:** Inspect the repository selected-action allowlist; third-party action namespaces must be allowed before GitHub can instantiate jobs
 - **dotnet ICU errors:** Ensure LD_LIBRARY_PATH and NIX_ICU_DATA are set in the environment
