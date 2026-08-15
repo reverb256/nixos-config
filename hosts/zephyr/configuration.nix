@@ -1348,4 +1348,9 @@
       }
     ];
   };
+
+  # A2A mesh: shared peer definitions + inbound gateway platform (port 9900)
+  # rendered from Nix by hermes-config-emit. Dendritic SPOC — peers live here,
+  # token values stay in the hermes-owned config.yaml.
+  services.hermes-a2a.enable = true;
 }

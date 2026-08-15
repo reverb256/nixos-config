@@ -163,6 +163,40 @@ in {
       description = "Ordered fallback chain matching `fallback_providers:` (list of {provider, model} dicts).";
     };
 
+    # A2A mesh peers — mirrors the `a2a_agents:` block in hermes config.yaml.
+    # Dendritic SPOC: peers come from Nix, never hand-edited (the emitter
+    # rewrites this key at boot). Each attr = one peer (name, url, auth,
+    # timeout, capabilities list). NOTE: capabilities must be a LIST, not a
+    # quoted string (see hermes-a2a-mesh skill — char-split rendering bug).
+    managedA2aAgents = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.attrsOf lib.types.anything);
+      default = {};
+      example = lib.literalExpression ''
+        {
+          hermes-nexus = {
+            url = "http://10.1.1.120:9900";
+            auth = { type = "bearer"; token = "REDACTED"; };
+            timeout = 300;
+            capabilities = [ "infra" "build" "ai" ];
+          };
+        }
+      '';
+      description = "A2A peer definitions mirroring the `a2a_agents:` block in hermes config.yaml.";
+    };
+
+    # gateway.platforms.a2a — enables the inbound A2A platform for this host.
+    managedGatewayA2a = lib.mkOption {
+      type = lib.types.attrsOf lib.types.anything;
+      default = null;
+      example = lib.literalExpression ''
+        {
+          enabled = true;
+          extra = { port = 9900; };
+        }
+      '';
+      description = "gateway.platforms.a2a section for hermes config.yaml (null = not managed).";
+    };
+
     voiceAutoStart = lib.mkOption {
       type = lib.types.bool;
       default = true;

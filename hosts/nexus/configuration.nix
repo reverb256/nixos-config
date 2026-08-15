@@ -223,6 +223,15 @@
     gpu-profile-manager.enable = lib.mkForce false;
     mining-coordinator.enable = lib.mkForce false;
 
+    # Hermes A2A mesh node: config.yaml sections rendered from Nix by
+    # hermes-config-emit; peers shared via services.hermes-a2a.
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      managedConfig = true;
+    };
+    hermes-a2a.enable = true;
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
