@@ -36,10 +36,14 @@ in {
     systemd.services.desktop-session-watchdog = {
       description = "Restart display-manager when the graphical session is wedged";
       wantedBy = ["multi-user.target"];
+      # procps for pgrep (greeter/session probes) — the default NixOS service
+      # PATH has no pgrep. Must be a sibling of serviceConfig: inside
+      # serviceConfig it renders as a lowercase `path=` directive that systemd
+      # ignores.
+      path = with pkgs; [procps gawk];
       serviceConfig = {
         Type = "oneshot";
         RuntimeDirectory = "desktop-session-watchdog";
-        path = with pkgs; [procps gawk];
         ExecStart = pkgs.writeShellScript "desktop-session-watchdog" ''
           set -euo pipefail
           DM=display-manager.service
