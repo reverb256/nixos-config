@@ -202,6 +202,10 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["secretspec-creds.service"];
       wants = ["secretspec-creds.service"];
+      # 2026-08-15: without this, the default service PATH lacks openssh and
+      # the script's bare `ssh-keygen` fails to resolve -> "no CA key
+      # available, skipping" despite a valid key on disk.
+      path = [ pkgs.openssh ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
