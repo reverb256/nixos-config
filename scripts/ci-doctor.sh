@@ -100,7 +100,7 @@ ISSUE
 # failure mode spawns a new issue per run (2026-08-15 triage: 143 duplicate
 # "NixOS CI: unknown — parse error" issues). Skip if an open issue with this
 # exact title already exists.
-if gh issue list --repo "$REPO" --search "state:open \"$TITLE\" in:title" --json number --jq 'length' 2>/dev/null | grep -q '^[1-9]'; then
+if gh issue list --repo "$REPO" --state all --search "\"$TITLE\" in:title" --json number --jq 'length' 2>/dev/null | grep -q '^[1-9]'; then
   echo "⏭️  Open issue already exists for: $TITLE — skipping"
   rm -rf "$TMPDIR"
   exit 0
