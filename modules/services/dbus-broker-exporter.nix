@@ -74,6 +74,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         User = "root";
+        path = with pkgs; [procps gawk];
         ExecStart = exporterScript;
         TimeoutStartSec = "15";
       };

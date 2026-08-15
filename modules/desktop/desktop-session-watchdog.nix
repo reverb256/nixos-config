@@ -39,6 +39,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RuntimeDirectory = "desktop-session-watchdog";
+        path = with pkgs; [procps gawk];
         ExecStart = pkgs.writeShellScript "desktop-session-watchdog" ''
           set -euo pipefail
           DM=display-manager.service
