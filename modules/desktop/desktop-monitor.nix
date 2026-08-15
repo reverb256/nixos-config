@@ -92,7 +92,8 @@
       # Log to the state file AND stderr so journald captures failures (the
       # old silent exit-1 crash-loop was invisible for weeks).
       log() {
-          local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+          local msg
+          msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
           echo "$msg" | tee -a "$LOGFILE" >&2
       }
       notify() {
