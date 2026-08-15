@@ -13,8 +13,11 @@
 # host configs that need a tighter ceiling (e.g. forge's mining slice capping
 # at MemoryUsedPercent=80) can still win.
 # ─────────────────────────────────────────────────────────────────────────────
-{ config, lib, ... }:
 {
+  config,
+  lib,
+  ...
+}: {
   config = {
     systemd.oomd = {
       enable = lib.mkDefault true;
@@ -27,6 +30,17 @@
       };
     };
 
+    # systemd-oomd reads /etc/systemd/oomd.conf ONLY at startup; a deploy
+    # rewrites the file but the running daemon keeps the previous limits
+    # (2026-08-15 audit: SwapUsedLimit=85% was on disk but nexus/forge/sentry
+    # daemons still enforced the old defaults). Restart the daemon whenever
+    # the generated config changes so OOM settings go live at switch time,
+    # not at the next boot. Upstream oomd.nix sets wantedBy on this service;
+    # adding restartTriggers merges with that definition.
+    systemd.services.systemd-oomd.restartTriggers = [
+      config.environment.etc."systemd/oomd.conf".source
+    ];
+
     # Sysctl tuning is owned by modules/system/vm-tuning.nix (predates this
     # module and is the canonical source for vm.* keys). The previous block
     # here (vm.watermark_scale_factor / vm.page-cluster / vm.vfs_cache_pressure)
@@ -37,7 +51,7 @@
 
     # fstrim was running per-boot on zephyr (20m 35s!). Switch to weekly.
     services.fstrim = {
-      enable   = lib.mkDefault true;
+      enable = lib.mkDefault true;
       interval = lib.mkDefault "weekly";
     };
 
@@ -46,8 +60,8 @@
     # blocking boot.
     nix.gc = {
       automatic = lib.mkDefault true;
-      dates      = lib.mkDefault "weekly";
-      options    = lib.mkDefault "--delete-older-than 30d";
+      dates = lib.mkDefault "weekly";
+      options = lib.mkDefault "--delete-older-than 30d";
     };
 
     # 2026-08-11: nix.gc.options only bounds store paths by AGE. It does NOT
