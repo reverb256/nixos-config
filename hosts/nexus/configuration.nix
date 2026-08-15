@@ -153,12 +153,18 @@
 
     # Nexus-specific firewall rules (in addition to cluster defaults)
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [
+      # mkForce: plain mkOptionDefault silently collapses to [22] in the
+      # dendritic eval (2026-08-14, sentry lesson) — must force the full list:
+      # base [22 6443] + host ports + 9900 A2A.
+      allowedTCPPorts = lib.mkForce [
+        22 # SSH
+        6443 # k3s API
         10250 # Kubelet API
         3900 # Garage S3 API
         3901 # Garage RPC
         8080 # llama-server for autoresearch LLM evaluation
         9100 # Prometheus node-exporter
+        9900 # Hermes A2A gateway (hermes-nexus agent card + calls)
       ];
       allowedTCPPortRanges = [
         {
