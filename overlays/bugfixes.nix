@@ -1,5 +1,8 @@
-{ inputs, _final, prev }:
 {
+  inputs,
+  _final,
+  prev,
+}: {
   # 2026-08-04: gjs/gtk4/libsecret/qtbase dontCheck overrides REMOVED.
   # Cache-evidence audit: the VANILLA (checks-ON) derivations for all four
   # substitute from cache.nixos.org (narinfo HTTP 200):
@@ -50,7 +53,7 @@
   libdisplay-info_0_2 = _final.callPackage (import (_final.path + "/pkgs/by-name/li/libdisplay-info/generic.nix") {
     version = "0.2.0";
     hash = "sha256-6xmWBrPHghjok43eIDGeshpUEQTuwWLXNHg7CnBUt3Q=";
-  }) { };
+  }) {};
 
   # 2026-08-07: caddy caddytest/integration suite fails in the nix sandbox
   # (reverse_proxy health-checker test probes a %2F-encoded unix socket URL —
@@ -61,6 +64,28 @@
   # already sets doCheck = false; align the base package.
   caddy = prev.caddy.overrideAttrs (old: {
     doCheck = false;
+  });
+
+  # 2026-08-15: gamescope 3.16.23+ regression (gamescope#2204, still OPEN):
+  # Steam Proton games launched through gamescope close immediately with
+  # `ConnectToGlobalUser: Steam denied appID` -> `steamclient_init_registry
+  # Failed to connect to Steam`. The window appears briefly then vanishes with
+  # no error. zephyr's scopebuddy HDR stack wraps gamescope, so PoE2 (appid
+  # 2694490) and other Steam titles die at launch on 3.16.25. The fix PR (#2190,
+  # cgroup AppID derivation) is unmerged; the known-good tag is 3.16.22. Pin
+  # the package source to that tag. The nixpkgs pending patches (4ce1a91f
+  # system-libs, d49a2ade stb_image_resize2 guard) apply cleanly to 3.16.22
+  # (verified). This changes the gamescope binary for ALL consumers (system
+  # gamescope, Steam FHS extraPkgs, scopebuddy wrapper PATH) — intended.
+  gamescope = prev.gamescope.overrideAttrs (old: {
+    version = "3.16.22";
+    src = _final.fetchFromGitHub {
+      owner = "ValveSoftware";
+      repo = "gamescope";
+      tag = "3.16.22";
+      fetchSubmodules = true;
+      hash = "sha256-FuQkKguW00yI2w5nCctcxz7e1ZUKSWJOCIS1UMJzsMA=";
+    };
   });
 
   # 2026-08-10: xwayland 24.1.13 fails to build under GCC 15.3 — libunwind's
@@ -74,12 +99,14 @@
   # nixos-unstable without a full nixpkgs re-pin. The patch is byte-identical
   # to the fdo merge request.
   xwayland = prev.xwayland.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace os/backtrace.c \
-        --replace 'uint64_t val;' 'unw_word_t val;' \
-        --replace 'ErrorF("  %s: 0x%" PRIx64 "\\n", regs[i].name, val);' \
-                'ErrorF("  %s: 0x%" PRIxPTR "\\n", regs[i].name, val);'
-      # PRIxPTR requires <inttypes.h> which libxserver-os already pulls in
-    '';
+    postPatch =
+      (old.postPatch or "")
+      + ''
+        substituteInPlace os/backtrace.c \
+          --replace 'uint64_t val;' 'unw_word_t val;' \
+          --replace 'ErrorF("  %s: 0x%" PRIx64 "\\n", regs[i].name, val);' \
+                  'ErrorF("  %s: 0x%" PRIxPTR "\\n", regs[i].name, val);'
+        # PRIxPTR requires <inttypes.h> which libxserver-os already pulls in
+      '';
   });
 }
