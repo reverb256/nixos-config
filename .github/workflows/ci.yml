@@ -119,16 +119,16 @@ jobs:
             echo "No changed Nix files; skip file lint."
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             for f in "${NIX_FILES[@]}"; do
-              nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c alejandra --check "$f"
+              nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c alejandra --check "$f"
               if [ "$f" = "flake.nix" ] || [ "$f" = "modules/services/bonsai.nix" ] || [ "$f" = "hosts/zephyr/configuration.nix" ]; then
                 echo "::notice::Skipping pre-existing Statix/Deadnix findings in $f; Alejandra remains enforced."
               else
-                nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c statix check "$f"
-                nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c deadnix --fail "$f"
+                nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c statix check "$f"
+                nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c deadnix --fail "$f"
               fi
             done
           else
-            nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix nixpkgs#just -c just lint
+            nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c just lint
           fi
 
   # ============================================================================
