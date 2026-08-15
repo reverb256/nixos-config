@@ -861,6 +861,16 @@
   programs = {
     scopebuddy = {
       enable = true;
+      # 2026-08-15: build scopebuddy against the OVERLAID gamescope (3.16.22
+      # pin from overlays/bugfixes.nix). The scopebuddy flake builds its own
+      # package with its own nixpkgs (no overlay), so without this override
+      # the wrapper PATH would still bake gamescope 3.16.25 — which has the
+      # gamescope#2204 regression (Steam Proton games close immediately:
+      # ConnectToGlobalUser: Steam denied appID). Align it with the pinned
+      # version so the HDR stack uses the fixed binary.
+      package =
+        (inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default)
+        .override {gamescope = pkgs.gamescope;};
       # 2026-08-14: ALL autoDetect off. scb.conf (home-manager
       # zephyr-gaming-hdr.nix) hard-codes 4K60/HDR — it is the single source of
       # truth. The autoDetect exports (SCB_AUTO_RES/HDR/HZ/SCALE=1) contradict
