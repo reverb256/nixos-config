@@ -19,7 +19,9 @@
       forge = "skylake"; # i5-9500, Coffee Lake
       sentry = "znver1"; # Ryzen 7 1700, Zen 1
     }
-    .${config.networking.hostName} or "x86-64-v3";
+    .${
+      config.networking.hostName
+    } or "x86-64-v3";
 in {
   nixpkgs.overlays = [
     (_final: prev: {
@@ -62,70 +64,72 @@ in {
       # two-arg with empty origArgs => "attribute 'pname' missing" in
       # mk-python-derivation.nix. Per-package overridePythonAttrs is the
       # stable, debuggable path until nixpkgs rolls forward.
-      pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
-        (py-final: py-prev: {
-          # aiohttp: proxy timeouts, IPv6 binding, py3.13 unraisable warnings
-          aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          # janus: sync/async queue tests fail under py3.13 sandbox
-          janus = py-prev.janus.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          # segments: network-dependent tests fail in sandbox
-          segments = py-prev.segments.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          # pytest-randomly: self-test flaky under py3.13
-          pytest-randomly = py-prev.pytest-randomly.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          # prometheus-client: http server tests fail in sandbox
-          prometheus-client = py-prev.prometheus-client.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          # python-socks: tests fail connecting to proxy at (::1, 7780)
-          python-socks = py-prev.python-socks.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          # httplib2: test_socks5_auth fails in sandbox (proxy at ::1:7780),
-          # cascades into google-api-python-client / frictionless / sentence-transformers
-          # (2026-08-02 sentry recovery: v5 build failed on python3.14-httplib2)
-          httplib2 = py-prev.httplib2.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          # Chain members (2026-08-02 sentry recovery): all transitive deps of
-          # the ai-inference-gateway python env; their pytest suites are
-          # network/sandbox-sensitive and we are not testing them ourselves.
-          google-api-python-client = py-prev.google-api-python-client.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          google-auth-httplib2 = py-prev.google-auth-httplib2.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          frictionless = py-prev.frictionless.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          csvw = py-prev.csvw.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          phonemizer = py-prev.phonemizer.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-          sentence-transformers = py-prev.sentence-transformers.overridePythonAttrs (old: {
-            dontUsePytestCheck = true;
-            dontCheck = true;
-          });
-        })
-      ];
+      pythonPackagesExtensions =
+        prev.pythonPackagesExtensions
+        ++ [
+          (py-final: py-prev: {
+            # aiohttp: proxy timeouts, IPv6 binding, py3.13 unraisable warnings
+            aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            # janus: sync/async queue tests fail under py3.13 sandbox
+            janus = py-prev.janus.overridePythonAttrs (old: {
+              dontCheck = true;
+            });
+            # segments: network-dependent tests fail in sandbox
+            segments = py-prev.segments.overridePythonAttrs (old: {
+              dontCheck = true;
+            });
+            # pytest-randomly: self-test flaky under py3.13
+            pytest-randomly = py-prev.pytest-randomly.overridePythonAttrs (old: {
+              dontCheck = true;
+            });
+            # prometheus-client: http server tests fail in sandbox
+            prometheus-client = py-prev.prometheus-client.overridePythonAttrs (old: {
+              dontCheck = true;
+            });
+            # python-socks: tests fail connecting to proxy at (::1, 7780)
+            python-socks = py-prev.python-socks.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            # httplib2: test_socks5_auth fails in sandbox (proxy at ::1:7780),
+            # cascades into google-api-python-client / frictionless / sentence-transformers
+            # (2026-08-02 sentry recovery: v5 build failed on python3.14-httplib2)
+            httplib2 = py-prev.httplib2.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            # Chain members (2026-08-02 sentry recovery): all transitive deps of
+            # the ai-inference-gateway python env; their pytest suites are
+            # network/sandbox-sensitive and we are not testing them ourselves.
+            google-api-python-client = py-prev.google-api-python-client.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            google-auth-httplib2 = py-prev.google-auth-httplib2.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            frictionless = py-prev.frictionless.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            csvw = py-prev.csvw.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            phonemizer = py-prev.phonemizer.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+            sentence-transformers = py-prev.sentence-transformers.overridePythonAttrs (old: {
+              dontUsePytestCheck = true;
+              dontCheck = true;
+            });
+          })
+        ];
 
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"
@@ -156,7 +160,7 @@ in {
   ];
 
   nix = {
-    package = (pkgs.lixPackageSets.lix_2_95.lix.overrideAttrs (old: {
+    package = pkgs.lixPackageSets.lix_2_95.lix.overrideAttrs (old: {
       # 2026-07-29: lix's FileTransfer unit tests fail in our sandbox with
       # errno 99 (Cannot assign requested address). Disable lix's own test
       # suite via its native enable-tests meson option.
@@ -165,7 +169,7 @@ in {
       # Lix exposes -Denable-tests=false as a meson build option (see
       # https://github.com/lix-project/lix/blob/main/meson.options).
       # This disables the test() calls in lix's meson.build entirely.
-      mesonFlags = (old.mesonFlags or []) ++ [ "-Denable-tests=false" ];
+      mesonFlags = (old.mesonFlags or []) ++ ["-Denable-tests=false"];
 
       # --- Performance tuning (homelab fork) ---
       # Tag the fork so `nix --version` and store paths are distinguishable
@@ -185,10 +189,17 @@ in {
       # 2. Linear-scan small attrsets in Bindings::get() before falling back
       #    to std::lower_bound. Most attrsets are tiny (let bindings, function
       #    args), where binary search's branch mispredictions dominate.
-      patches = (old.patches or []) ++ [
-        ../../patches/lix-gc-heap-cap.patch
-        ../../patches/lix-attr-linear-scan.patch
-      ];
+      # NOTE: the d31f5ebc "wip: pre-reconcile snapshot" commit referenced
+      # these patches but the FILES were lost (one never tracked, one deleted
+      # by b2cad1146), which broke every `just deploy` eval (getting status of
+      # ... No such file). Restored both patch files 2026-08-15 from git
+      # history (d31f5ebc tree).
+      patches =
+        (old.patches or [])
+        ++ [
+          ../../patches/lix-gc-heap-cap.patch
+          ../../patches/lix-attr-linear-scan.patch
+        ];
 
       # 3. Tune Lix to this host's CPU. This nixpkgs rev's cc-wrapper has a
       #    SINGLE compile-flag channel: NIX_CFLAGS_COMPILE is injected into both
@@ -199,24 +210,26 @@ in {
       #    clangStdenv (the upstream "-O3 angers a gcc bug" note is gcc-only);
       #    LTO is already enabled upstream via -Db_lto=true. Drop -O3 if it
       #    ever regresses a build.
-      env = (old.env or {}) // {
-        VERSION_SUFFIX = "-homelab-${microarch}";
-        NIX_CFLAGS_COMPILE = "${old.env.NIX_CFLAGS_COMPILE or ""} -march=${microarch} -O3";
-        # The Rust crates (lix-rs, lix-doc) build via cargo, which does NOT
-        # read NIX_CFLAGS_COMPILE. Give them the same per-host microarch.
-        # Append (not overwrite) so any nixpkgs default isn't clobbered.
-        #
-        # CAVEAT: RUSTFLAGS also applies to proc-macro / build-script crates
-        # that EXECUTE on the build host during compilation. If nexus (znver2)
-        # builds a host's znver3 Lix, a proc-macro emitting znver3-only
-        # instructions could SIGILL mid-build. Drop RUSTFLAGS (or build the
-        # per-host variant on that host) if the znver3-for-nexus build breaks.
-        RUSTFLAGS = "${old.env.RUSTFLAGS or ""} -C target-cpu=${microarch}";
-      };
-    }));
+      env =
+        (old.env or {})
+        // {
+          VERSION_SUFFIX = "-homelab-${microarch}";
+          NIX_CFLAGS_COMPILE = "${old.env.NIX_CFLAGS_COMPILE or ""} -march=${microarch} -O3";
+          # The Rust crates (lix-rs, lix-doc) build via cargo, which does NOT
+          # read NIX_CFLAGS_COMPILE. Give them the same per-host microarch.
+          # Append (not overwrite) so any nixpkgs default isn't clobbered.
+          #
+          # CAVEAT: RUSTFLAGS also applies to proc-macro / build-script crates
+          # that EXECUTE on the build host during compilation. If nexus (znver2)
+          # builds a host's znver3 Lix, a proc-macro emitting znver3-only
+          # instructions could SIGILL mid-build. Drop RUSTFLAGS (or build the
+          # per-host variant on that host) if the znver3-for-nexus build breaks.
+          RUSTFLAGS = "${old.env.RUSTFLAGS or ""} -C target-cpu=${microarch}";
+        };
+    });
 
     settings = {
-      experimental-features = ["nix-command" "flakes"];      # Canonical upstream/specialized cache policy. Public caches are
+      experimental-features = ["nix-command" "flakes"]; # Canonical upstream/specialized cache policy. Public caches are
       # preferred; cluster caches are fallback-only for intentional custom
       # derivations. See contracts/cache-policy.nix.
       substituters = lib.mkForce cachePolicy.substituters;
