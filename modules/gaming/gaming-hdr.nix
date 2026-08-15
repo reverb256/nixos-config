@@ -11,7 +11,6 @@ with lib; let
     "--immediate-flips"
     "--rt"
     "--steam"
-    "--xwayland-count 2"
     "--force-composition"
     "--expose-wayland"
   ];

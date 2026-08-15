@@ -861,13 +861,12 @@
   programs = {
     scopebuddy = {
       enable = true;
-      # 2026-08-15: build scopebuddy against the OVERLAID gamescope (3.16.22
-      # pin from overlays/bugfixes.nix). The scopebuddy flake builds its own
-      # package with its own nixpkgs (no overlay), so without this override
-      # the wrapper PATH would still bake gamescope 3.16.25 — which has the
-      # gamescope#2204 regression (Steam Proton games close immediately:
-      # ConnectToGlobalUser: Steam denied appID). Align it with the pinned
-      # version so the HDR stack uses the fixed binary.
+      # 2026-08-15: build scopebuddy against the SYSTEM gamescope (pkgs.gamescope).
+      # The scopebuddy flake builds its own package with its own nixpkgs (no
+      # overlay), so without this override the wrapper PATH would bake a
+      # different gamescope than the system. 2026-08-15 later: gamescope pin
+      # reverted to 3.16.25 (the 28h-working version) — 3.16.22 broke nested
+      # Xwayland on niri-hdr. This override now aligns scopebuddy with 3.16.25.
       package =
         (inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default)
         .override {gamescope = pkgs.gamescope;};
