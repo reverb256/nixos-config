@@ -26,12 +26,22 @@
 #
 # Dependency on the aagl flake module is safe: this file only overrides
 # `programs.<launcher>.package`, which the aagl module defines.
-
-{ config, lib, pkgs, ... }:
-
-let
-  icdPath = "/etc/xdg/vulkan/icd.d/nvidia_icd.json";
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  # 2026-08-15: NO VK_DRIVER_FILES here anymore. The steam-run FHS rootfs
+  # in the current nixpkgs ships the NVIDIA ICD at the standard
+  # /usr/share/vulkan/icd.d/nvidia_icd.json (verified present in the current
+  # gen's steam-run-1.0.0.87-fhsenv-rootfs). Setting VK_DRIVER_FILES was a
+  # band-aid for the launcher running a STALE rootfs (pre-deploy), and it
+  # actively broke when the sandbox mounted its own /etc/xdg (no vulkan dir)
+  # -> loader found no driver -> DXVK 'vkCreateInstance res=-9'. The loader
+  # finds the ICD normally inside the fixed FHS. If the ICD ever goes
+  # missing, rebuild (nixos-rebuild) and RESTART the launcher — do not
+  # re-add env hacks.
   # Wrap an aagl launcher package so it always exports the correct
   # NVIDIA Vulkan ICD and drops the gamescope WSI layer before exec.
   # The original package is the symlinkJoin with the steam-run wrapper;
@@ -58,21 +68,19 @@ let
   # launcher in gamescope when services.gaming.hdr.enable was on, which
   # trapped the launcher window in a gamescope session and re-broke Vulkan
   # for the game.
-  wrapLauncherEnv = launcherPkg:
-    let
-      wrapper = pkgs.writeShellScriptBin launcherPkg.pname ''
-        export VK_DRIVER_FILES=${icdPath}
-        unset ENABLE_GAMESCOPE_WSI DXVK_HDR PROTON_ENABLE_HDR
-        exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
-      '';
-      # Reuse the original package's desktop entry and icon data, but rewrite
-      # Exec= to point at the env-fixing wrapper so desktop launches get the
-      # fix. Original .desktop lives at share/applications/<pname>.desktop;
-      # the icon/name fields are read from it rather than guessed from meta.
-      desktopSrc = launcherPkg + "/share/applications/" + launcherPkg.pname + ".desktop";
-      desktopName = launcherPkg.pname + "-wrapped";
-    in
-    pkgs.runCommand desktopName { } ''
+  wrapLauncherEnv = launcherPkg: let
+    wrapper = pkgs.writeShellScriptBin launcherPkg.pname ''
+      unset ENABLE_GAMESCOPE_WSI DXVK_HDR PROTON_ENABLE_HDR
+      exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
+    '';
+    # Reuse the original package's desktop entry and icon data, but rewrite
+    # Exec= to point at the env-fixing wrapper so desktop launches get the
+    # fix. Original .desktop lives at share/applications/<pname>.desktop;
+    # the icon/name fields are read from it rather than guessed from meta.
+    desktopSrc = launcherPkg + "/share/applications/" + launcherPkg.pname + ".desktop";
+    desktopName = launcherPkg.pname + "-wrapped";
+  in
+    pkgs.runCommand desktopName {} ''
       mkdir -p $out/bin $out/share/applications
       ln -s ${wrapper}/bin/${launcherPkg.pname} $out/bin/${launcherPkg.pname}
       # Copy ALL share data (pixmaps, icons, etc.) from the original package.
@@ -94,8 +102,7 @@ let
         echo "WARNING: no original .desktop for ${launcherPkg.pname}" >&2
       fi
     '';
-in
-{
+in {
   # aagl launcher options only exist on hosts importing the aagl flake module
   # (zephyr desktop). `config ? programs.anime-game-launcher` short-circuits so
   # nexus/sentry/forge (no aagl module) eval without the package lookup.

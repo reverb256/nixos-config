@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   appimageTools,
   fetchurl,
 }:
@@ -90,8 +91,11 @@ in
     profile = ''
       # NVIDIA driver libraries
       export LD_LIBRARY_PATH="/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}"
-      # Vulkan ICD
-      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+      # Vulkan ICD: the .x86_64-suffixed filename does NOT exist on this
+      # host (real file is nvidia_icd.json, no arch suffix). Point at the
+      # nix store path which the FHS sandbox can reach via /nix, instead of
+      # /run/opengl-driver which the AppImage bwrap may shadow. 2026-08-15.
+      export VK_ICD_FILENAMES="${pkgs.linuxPackages.nvidia_x11}/share/vulkan/icd.d/nvidia_icd.json"
       # Wayland / Ozone
       export NIXOS_OZONE_WL=1
       export ELECTRON_OZONE_PLATFORM_HINT=wayland
