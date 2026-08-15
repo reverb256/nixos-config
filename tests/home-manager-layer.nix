@@ -1,5 +1,4 @@
-{ pkgs ? import <nixpkgs> { } }:
-let
+{pkgs ? import <nixpkgs> {}}: let
   inherit (pkgs) lib;
 
   hmDir = ../modules/home-manager;
@@ -38,7 +37,8 @@ let
     (lib.strings.hasInfix "fonts.${family} = {" stylixContent
       || lib.strings.hasInfix "${family} = {" stylixContent)
     && lib.strings.hasInfix "\"${name}\"" stylixContent;
-  fontChecks = lib.mapAttrs'
+  fontChecks =
+    lib.mapAttrs'
     (family: name: lib.nameValuePair "stylix-declares-${family}" (declaresFamily family name))
     expectedFonts;
 
@@ -57,24 +57,26 @@ let
   lockContent = builtins.readFile lockPath;
   lockData = builtins.fromJSON lockContent;
   lockHasHmInput = builtins.hasAttr "home-manager-config" lockData.nodes;
-  lockHasRev = lockHasHmInput
+  lockHasRev =
+    lockHasHmInput
     && (lockData.nodes."home-manager-config".locked ? rev);
 
   deployWorkflow = builtins.readFile ../.github/workflows/deploy.yml;
   hasDeploy = needle: lib.strings.hasInfix needle deployWorkflow;
 
-  checks = {
-    localCopyRemoved = localCopyRemoved;
-    shimRemoved = shimRemoved;
-    inherit lockHasHmInput lockHasRev;
-    deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
-    deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
-    deployStopsOnConfirmedDrift = hasDeploy "exit 1";
-    deployDocumentsOfflineSkip = hasDeploy "skipping lock-sync guard";
-  } // fontChecks;
-in
-rec {
+  checks =
+    {
+      localCopyRemoved = localCopyRemoved;
+      shimRemoved = shimRemoved;
+      inherit lockHasHmInput lockHasRev;
+      deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
+      deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
+      deployStopsOnConfirmedDrift = hasDeploy "exit 1";
+      deployDocumentsOfflineSkip = hasDeploy "skipping lock-sync guard";
+    }
+    // fontChecks;
+in rec {
   inherit checks;
   failures = builtins.attrNames (lib.filterAttrs (_: v: !v) checks);
-  passed = failures == [ ];
+  passed = failures == [];
 }
