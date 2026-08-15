@@ -14,6 +14,12 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # 2026-08-15: local-dns.conf is replaced at activation but unbound was
+    # never restarted -> .lan records NXDOMAIN until manual restart (hit on
+    # sentry + zephyr). Reload the service when the include file changes.
+    systemd.services.unbound.reloadTriggers =
+      [ config.environment.etc."unbound/local-dns.conf".source ];
+
     services.unbound = {
       enable = true;
 
