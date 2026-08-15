@@ -361,7 +361,7 @@ with lib; let
     binary = prismBinary;
     gpuLabel = "5700 XT-0";
     fa = "off";
-    contextSize = "131072";
+    contextSize = "32768";  # 2026-08-15: 128K compute buffers OOM'd forge (8GB GTT)
     # 2026-08-15 FIX: turbo4 KV forced host-visible/GTT (weights in system RAM
     # not VRAM: 11MB VRAM / 3.1GB GTT) + auto-enabled FA -> 13.7 t/s (PCIe-
     # bound, real speed ~80). q8_0 K + f16 V + FA off = sentry-verified RDNA1
