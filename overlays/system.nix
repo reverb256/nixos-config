@@ -1,5 +1,8 @@
-{ inputs, _final, prev }:
 {
+  inputs,
+  _final,
+  prev,
+}: {
   gputemps = prev.callPackage ../packages/gputemps.nix {};
   # Nexus cluster ingress uses the repository's Caddy build with rate-limit,
   # security, and cache modules. Expose it through the normal pkgs overlay so
@@ -18,8 +21,8 @@
   # for VRChat in-world video players. Consumed via
   # programs.steam.extraCompatPackages only (see modules/gaming/gaming-vr-unlock.nix).
   proton-ge-rtsp = prev.callPackage ../packages/proton-ge-rtsp.nix {};
-  niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix { inherit (prev) niri-unstable; };
-  assimp = prev.assimp.overrideAttrs (_old: { doCheck = false; });
+  niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix {inherit (prev) niri-unstable;};
+  assimp = prev.assimp.overrideAttrs (_old: {doCheck = false;});
   # 2026-08-04: cups notifier-permission fix REMOVED from build phase.
   # The build-time `overrideAttrs { postInstall = chmod notifier dirs }` forked
   # the cups derivation from the cached upstream path. Since cups is a transitive
@@ -36,6 +39,9 @@
     doCheck = false;
     nativeBuildInputs = (old.nativeBuildInputs or []) ++ [prev.cacert];
   });
+  # NOTE: nvidiaPackage for freebuff is NOT passed here — overlays cannot
+  # see config.hardware.nvidia.package. The host config (zephyr) overrides
+  # freebuff-desktop with the system driver in environment.systemPackages.
   freebuff-desktop = prev.callPackage ../packages/freebuff-desktop.nix {};
   herdr = prev.callPackage ../packages/herdr.nix {};
   llama-cpp = prev.callPackage ../packages/llama-cpp.nix {
@@ -64,7 +70,7 @@
   llama-cpp-vulkan = prev.callPackage ../packages/llama-cpp-vulkan.nix {};
   llama-cpp-vulkan-nocuda = prev.callPackage ../packages/llama-cpp-vulkan-nocuda.nix {};
   nixos-cluster-mcp = prev.callPackage ../packages/nixos-cluster-mcp {};
-  switchyard-server = prev.callPackage ../pkgs/switchyard-server { };
+  switchyard-server = prev.callPackage ../pkgs/switchyard-server {};
   privacy-filter = prev.callPackage ../packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };

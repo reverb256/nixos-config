@@ -3,6 +3,12 @@
   pkgs,
   appimageTools,
   fetchurl,
+  # 2026-08-15: absolute path to the NVIDIA Vulkan ICD to export. The host
+  # config computes it from config.hardware.nvidia.package (the system
+  # driver) so it matches the running driver; a nix store path is reachable
+  # inside the AppImage bwrap sandbox via /nix. Default keeps the standard
+  # /run/opengl-driver discovery for standalone builds.
+  nvidiaIcdPath ? "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json",
 }:
 # Freebuff desktop — Codebuff's free coding-agent GUI (Electron AppImage).
 #
@@ -95,7 +101,7 @@ in
       # host (real file is nvidia_icd.json, no arch suffix). Point at the
       # nix store path which the FHS sandbox can reach via /nix, instead of
       # /run/opengl-driver which the AppImage bwrap may shadow. 2026-08-15.
-      export VK_ICD_FILENAMES="${pkgs.linuxPackages.nvidia_x11}/share/vulkan/icd.d/nvidia_icd.json"
+      export VK_ICD_FILENAMES="${nvidiaIcdPath}"
       # Wayland / Ozone
       export NIXOS_OZONE_WL=1
       export ELECTRON_OZONE_PLATFORM_HINT=wayland
