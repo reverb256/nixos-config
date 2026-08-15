@@ -401,7 +401,7 @@ with lib; let
     binary = prismBinary;
     gpuLabel = "5700 XT-1";
     fa = "off";
-    contextSize = "131072";
+    contextSize = "32768";  # 2026-08-15: 128K compute buffers OOM'd forge (same fix as vk0)
     cacheTypeK = "q8_0";
     cacheTypeV = "f16";
     parallel = 2;
