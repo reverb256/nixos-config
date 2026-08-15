@@ -333,26 +333,36 @@ with lib; let
   });
 
   # 1-bit on forge AMD RX 5700 XT pair via Vulkan — DEDICATED inference cards.
-  # 2026-08-15 decision (bench-backed): the two 5700 XTs (Vulkan1/Vulkan2)
-  # measure 89 t/s prefill / 13.7 t/s decode on Bonsai 27B Q1_0 — faster than
-  # the 4060 CUDA path. The 4060s go back to 100% mining; the AMD pair serves
-  # bonsai always-on. RDNA1 playbook env (sentry 5600 XT, same gfx1010 family):
+  # 2026-08-15 decision: the 5700 XTs serve bonsai (13.7 t/s measured, but
+  # that was GTT/PCIe-bound — see below; real VRAM speed ~80 t/s). The 4060s
+  # go back to 100% mining; the AMD pair serves bonsai always-on. RDNA1
+  # playbook env (sentry 5600 XT, same gfx1010 family):
   #   GGML_VK_MAX_NODES_PER_SUBMIT=1 (DeviceLost fix, upstream #21724/#24872)
   #   RADV_PERFTEST=nogttspill (GTT-spill collapse, Mesa 25.2+)
   #   TURBO_AUTO_ASYMMETRIC=0 (auto-asymmetric upgraded K to q8_0 -> 2x cost)
   #   -fa off (Vulkan FA on RDNA1 = 3x slower decode)
+  # 2026-08-15 FIX: KV MUST be q8_0 K + f16 V, NOT turbo4. turbo4 on this fork
+  # forces host-visible/GTT weight placement (system RAM, not VRAM) and
+  # auto-enables FA — the measured 13.7 t/s was PCIe-bound, and each instance
+  # squatted ~3.1GB system RAM (the real cause of the OOM reboots). q8_0/f16
+  # + FA off allocates DEVICE memory (VRAM) — sentry's proven RDNA1 combo.
   #   VK_ICD_FILENAMES=radeon (device index = AMD-only; 0 and 1 are the 5700 XTs)
   #   2x 128K slots (parallel 2) like sentry — 256K/slot needs 4.8G KV, OOMs.
   bit1ForgeVk0 = mkIf (host == "forge" && cfg.enableForgeVk) (mk1bitService {
     name = "forge-vk0";
-    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-0 via Vulkan (port 8007) turbo4 KV 128K";
+    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-0 via Vulkan (port 8007) q8_0/f16 KV 128K";
     port = 8007;
     binary = prismBinary;
     gpuLabel = "5700 XT-0";
     fa = "off";
     contextSize = "131072";
-    cacheTypeK = "turbo4";
-    cacheTypeV = "turbo4";
+    # 2026-08-15 FIX: turbo4 KV forced host-visible/GTT (weights in system RAM
+    # not VRAM: 11MB VRAM / 3.1GB GTT) + auto-enabled FA -> 13.7 t/s (PCIe-
+    # bound, real speed ~80). q8_0 K + f16 V + FA off = sentry-verified RDNA1
+    # combo; allocates DEVICE memory (GGML_VK_MEMORY_LOGGER confirmed) and
+    # frees ~3.1GB system RAM per instance. (q8_0 V requires FA — use f16 V.)
+    cacheTypeK = "q8_0";
+    cacheTypeV = "f16";
     parallel = 2;
     # 15GB box: 2 instances -> 12G total cgroup cap. 8G each was > physical
     # and earlyoom killed vk0 during simultaneous load.
@@ -367,21 +377,21 @@ with lib; let
   });
 
   # 2026-08-15 (3): DISABLED by default — forge has 15GB system RAM. Two
-  # resident 3.5GB instances + k3s + miners + alloy = swap write errors on
+  # resident instances + k3s + miners + alloy = swap write errors on
   # /dev/zram0 -> kernel wedged -> auto-reboot (happened 3x in 20 min). The
-  # 5700 XT pair measures IDENTICAL single-card speed (13.7 t/s decode), so
-  # one instance (vk0) loses nothing. Re-enable only with a memory budget
-  # (e.g. --no-mmap or a bigger host).
+  # OOM cause was the turbo4 GTT squat (~3.1GB system RAM per instance);
+  # with q8_0/f16 (VRAM placement) both cards SHOULD fit — re-enable via
+  # enableForgeVk1 = true after verifying the new memory footprint.
   bit1ForgeVk1 = mkIf (host == "forge" && cfg.enableForgeVk1) (mk1bitService {
     name = "forge-vk1";
-    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-1 via Vulkan (port 8008) turbo4 KV 128K";
+    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-1 via Vulkan (port 8008) q8_0/f16 KV 128K";
     port = 8008;
     binary = prismBinary;
     gpuLabel = "5700 XT-1";
     fa = "off";
     contextSize = "131072";
-    cacheTypeK = "turbo4";
-    cacheTypeV = "turbo4";
+    cacheTypeK = "q8_0";
+    cacheTypeV = "f16";
     parallel = 2;
     # Stagger after vk0: model loads (2.1G peak each) must not overlap on 15GB.
     afterUnits = ["bonsai-1bit-forge-vk0.service"];
