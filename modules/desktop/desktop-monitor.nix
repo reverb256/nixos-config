@@ -1,19 +1,30 @@
 # Desktop graphical services (Niri hosts)
 #
 # gpu-ready, monitor auto-setup and Samsung TV power daemon. These are
-# compositor-agnostic: kscreen-doctor works under Niri, so zephyr's monitor
-# layout and TV power management run inside the niri-uwsm session.
+# compositor-agnostic: they talk to niri's own IPC (`niri msg`), so zephyr's
+# monitor layout and TV power management run inside the niri-uwsm session.
+#
+# 2026-08-14 rewrite: both scripts were shelling out to kscreen-doctor, but the
+# current kscreen build ships no kscreen-doctor binary (only hdrcalibrator),
+# and tv-monitor-daemon's unit PATH did not include `niri`, so under
+# `set -o pipefail` every run died with "niri: command not found" -> errexit
+# -> exit 1, crash-looping every 5s (hundreds of restarts, silent). kscreen is
+# gone from runtimeInputs; niri is the compositor and the source of truth.
 {
   lib,
   pkgs,
   config,
   ...
 }: let
+  # The niri binary used for `niri msg` IPC (the HDR fork on zephyr; resolved
+  # per-host so the scripts always talk to the compositor actually running).
+  # Resolves to nixpkgs niri on hosts without the programs.niri module.
+  niriPkg = if (config ? programs.niri) then config.programs.niri.package else pkgs.niri;
   monitorSetupScript = pkgs.writeShellApplication {
     name = "niri-monitor-setup";
-    runtimeInputs = with pkgs; [
-      kdePackages.kscreen
-      libnotify
+    runtimeInputs = [
+      niriPkg
+      pkgs.libnotify
     ];
     text = ''
       #!/usr/bin/env bash
@@ -28,7 +39,9 @@
           notify-send "Monitor Setup" "$1" -i video-display 2>/dev/null || true
       }
       log "=== Monitor setup started ==="
-      CONNECTED=$(kscreen-doctor -o 2>/dev/null || true)
+      # Snapshot of connected outputs from niri (the compositor is the source
+      # of truth; `niri msg outputs` lists only connected outputs).
+      CONNECTED=$(niri msg outputs 2>/dev/null || true)
       [ -z "$CONNECTED" ] && { log "No outputs detected"; exit 0; }
       PREVIOUS_FILE="$STATE_DIR/monitors-previous"
       PREVIOUS_CONNECTED=""
@@ -36,7 +49,7 @@
       # Resolve the CURRENT connector for a monitor EDID identity. Connector
       # names (DP-2/DP-1/DP-3/HDMI-A-1) renumber when the secondary GPU is
       # VFIO-toggled; identities are stable, so lookup the live connector
-      # each run from niri msg outputs, then drive kscreen-doctor with it.
+      # each run from niri msg outputs.
       resolve_connector() {
           niri msg outputs 2>/dev/null | grep -F "Output \"$1\"" | sed -E 's/.*\(([^)]*)\)/\1/' | head -1
       }
@@ -44,50 +57,19 @@
       ASUS=$(resolve_connector "ASUSTek COMPUTER INC ASUS VT229 KBLMTF011991")
       ACER=$(resolve_connector "Acer Technologies X203H LEV0C0254011")
       SAMSUNG=$(resolve_connector "Samsung Electric Company SAMSUNG 0x01000E00")
-      is_connected() {
-          echo "$CONNECTED" | awk -v output="$1" '
-          /^Output:/ { in_output=0 }
-          $0 ~ output { in_output=1 }
-          /connected/ && in_output { found=1; exit }
-          END { exit (found ? 0 : 1) }
-          '
-      }
       was_connected() {
           echo "$PREVIOUS_CONNECTED" | grep -q "$1"
       }
-      CMD_LIST=()
-      if [ -n "$ZOWIE" ] && is_connected "$ZOWIE"; then
-          was_connected "$ZOWIE" || log "[CONNECTED] $ZOWIE (Primary)"
-          CMD_LIST+=("output.$ZOWIE.enable" "output.$ZOWIE.mode.71" "output.$ZOWIE.position.0,349" "output.$ZOWIE.scale.1" "output.$ZOWIE.priority.1")
-      else
-          [ -n "$ZOWIE" ] && was_connected "$ZOWIE" && log "[DISCONNECTED] $ZOWIE (Primary)"
-      fi
-      if [ -n "$ASUS" ] && is_connected "$ASUS"; then
-          was_connected "$ASUS" || log "[CONNECTED] $ASUS (Top)"
-          CMD_LIST+=("output.$ASUS.enable" "output.$ASUS.mode.44" "output.$ASUS.position.1920,0" "output.$ASUS.scale.1" "output.$ASUS.priority.2")
-      else
-          [ -n "$ASUS" ] && was_connected "$ASUS" && log "[DISCONNECTED] $ASUS (Top)"
-      fi
-      if [ -n "$ACER" ] && is_connected "$ACER"; then
-          was_connected "$ACER" || log "[CONNECTED] $ACER (Bottom)"
-          CMD_LIST+=("output.$ACER.enable" "output.$ACER.mode.91" "output.$ACER.position.1920,1080" "output.$ACER.scale.1" "output.$ACER.priority.3")
-      else
-          [ -n "$ACER" ] && was_connected "$ACER" && log "[DISCONNECTED] $ACER (Bottom)"
-      fi
-      if [ -n "$SAMSUNG" ] && is_connected "$SAMSUNG"; then
-          was_connected "$SAMSUNG" || log "[CONNECTED] $SAMSUNG (TV) HDR enabled"
-          CMD_LIST+=("output.$SAMSUNG.enable" "output.$SAMSUNG.mode.1" "output.$SAMSUNG.position.10000,0" "output.$SAMSUNG.scale.1.5" "output.$SAMSUNG.priority.4" "output.$SAMSUNG.hdr.enable" "output.$SAMSUNG.sdr-brightness.900")
-      else
-          [ -n "$SAMSUNG" ] && was_connected "$SAMSUNG" && log "[DISCONNECTED] $SAMSUNG (TV)"
-      fi
-      if [ ''${#CMD_LIST[@]} -gt 0 ]; then
-          log "Applying configuration..."
-          if kscreen-doctor "''${CMD_LIST[@]}"; then
-              log "SUCCESS"
-          else
-              log "WARNING: Some settings failed"
+      # Presence in `niri msg outputs` == connected. niri's own config.kdl
+      # owns mode/position/scale/HDR; we only ensure outputs are enabled.
+      for spec in "$ZOWIE|ZOWIE (Primary)" "$ASUS|ASUS (Top)" "$ACER|ACER (Bottom)" "$SAMSUNG|SAMSUNG (TV) HDR enabled"; do
+          conn="''${spec%%|*}"
+          label="''${spec##*|}"
+          if [ -n "$conn" ]; then
+              was_connected "$conn" || log "[CONNECTED] $label"
+              niri msg output "$conn" on 2>/dev/null || log "WARNING: could not enable $conn"
           fi
-      fi
+      done
       echo "$CONNECTED" > "$PREVIOUS_FILE"
       log "=== Completed ==="
     '';
@@ -95,10 +77,10 @@
   # TV Monitor Daemon for automatic TV power management
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [
-      kdePackages.kscreen
-      libnotify
-      wireplumber
+    runtimeInputs = [
+      niriPkg
+      pkgs.libnotify
+      pkgs.wireplumber
     ];
     text = ''
       #!/usr/bin/env bash
@@ -107,39 +89,27 @@
       mkdir -p "$STATE_DIR"
       LOGFILE="$STATE_DIR/tv-monitor-daemon.log"
       TV_STATE_FILE="$STATE_DIR/tv-state"
-      # Resolve the CURRENT TV connector from its EDID identity (connector
-      # names renumber on GPU VFIO toggles; identity is stable).
-      resolve_tv_output() {
-          niri msg outputs 2>/dev/null | grep -F "Output \"Samsung Electric Company SAMSUNG 0x01000E00\"" | sed -E 's/.*\(([^)]*)\)/\1/' | head -1
-      }
-      HDMI_OUTPUT=$(resolve_tv_output)
+      # Log to the state file AND stderr so journald captures failures (the
+      # old silent exit-1 crash-loop was invisible for weeks).
       log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
+          local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+          echo "$msg" | tee -a "$LOGFILE" >&2
       }
       notify() {
           notify-send "TV Monitor" "$1" -i video-display 2>/dev/null || true
       }
-      # Get current TV connection state
-      is_tv_connected() {
-          kscreen-doctor -o 2>/dev/null | grep -q "$HDMI_OUTPUT.*connected"
-      }
-      # Get current TV enabled state
-      is_tv_enabled() {
-          kscreen-doctor -o 2>/dev/null | grep -A 3 "$HDMI_OUTPUT" | grep -q "enabled"
-      }
-      # Check if TV is actually ON (not just connected)
-      # A TV can be connected but in standby/power-save mode
-      is_tv_powered_on() {
-          # Check if the display is actually accepting signals
-          # We'll detect this by seeing if it's in the connected outputs
-          is_tv_connected && is_tv_enabled
+      # Resolve the CURRENT TV connector from its EDID identity (connector
+      # names renumber on GPU VFIO toggles; identity is stable). Presence in
+      # `niri msg outputs` means the connector is live. `|| true` keeps a
+      # transient niri failure from aborting the loop under `set -e`.
+      resolve_tv_output() {
+          niri msg outputs 2>/dev/null | grep -F "Output \"Samsung Electric Company SAMSUNG 0x01000E00\"" | sed -E 's/.*\(([^)]*)\)/\1/' | head -1 || true
       }
       # Disable TV output and switch audio away
       disable_tv() {
           log "TV DISABLING: Disabling $HDMI_OUTPUT and switching audio"
           notify "TV turned off - Disabling display and audio"
-          # Disable the TV output (atomic, no other displays affected)
-          kscreen-doctor "output.$HDMI_OUTPUT.disable" 2>/dev/null || true
+          niri msg output "$HDMI_OUTPUT" off 2>/dev/null || log "WARNING: niri could not disable $HDMI_OUTPUT"
           # Move default audio away from HDMI if it was default
           if wpctl status 2>/dev/null | grep -q "Default Sink:.*hdmi"; then
               # Find first non-HDMI audio sink
@@ -153,20 +123,12 @@
           echo "disabled" > "$TV_STATE_FILE"
           log "TV disabled successfully"
       }
-      # Enable and configure TV output
+      # Enable TV output — niri re-applies the configured output block
+      # (mode/position/scale/HDR) from config.kdl when the output turns on.
       enable_tv() {
-          log "TV ENABLING: Enabling and configuring $HDMI_OUTPUT"
+          log "TV ENABLING: Enabling $HDMI_OUTPUT"
           notify "TV turned on - Enabling display with HDR"
-          # Enable and configure TV with all settings atomically
-          kscreen-doctor \
-              "output.$HDMI_OUTPUT.enable" \
-              "output.$HDMI_OUTPUT.mode.1" \
-              "output.$HDMI_OUTPUT.position.3520,1080" \
-              "output.$HDMI_OUTPUT.scale.1.5" \
-              "output.$HDMI_OUTPUT.priority.4" \
-              "output.$HDMI_OUTPUT.hdr.enable" \
-              "output.$HDMI_OUTPUT.sdr-brightness.900" \
-              2>/dev/null || log "WARNING: TV configuration failed"
+          niri msg output "$HDMI_OUTPUT" on 2>/dev/null || log "WARNING: niri could not enable $HDMI_OUTPUT"
           # Note: We DON'T force audio to HDMI - let user choose
           # But we make sure audio isn't stuck on a disconnected sink
           echo "enabled" > "$TV_STATE_FILE"
@@ -184,17 +146,12 @@
       while true; do
           # Re-resolve the TV connector each iteration: a GPU VFIO toggle
           # can renumber connectors while the daemon is running.
-          HDMI_OUTPUT=$(resolve_tv_output)
+          HDMI_OUTPUT=$(resolve_tv_output || true)
           # No identity match = TV not enumerated; treat as off.
           if [ -z "$HDMI_OUTPUT" ]; then
               CURRENT_STATE="off"
           else
-          # Check if TV is connected AND enabled
-          if is_tv_powered_on; then
               CURRENT_STATE="on"
-          else
-              CURRENT_STATE="off"
-          fi
           fi
           # State machine
           if [ "$PREVIOUS_STATE" = "on" ] && [ "$CURRENT_STATE" = "off" ]; then
@@ -294,7 +251,7 @@ in {
       };
     }
     (lib.mkIf (config.networking.hostName != "sentry") {
-      # Monitor/TV user services run inside the niri-uwsm session (kscreen-doctor
+      # Monitor/TV user services run inside the niri-uwsm session (niri IPC
       # works under Niri; zephyr's tv-monitor-daemon runs on tty1). Gated on
       # desktop-ness instead so headless sentry doesn't pull kscreen -> pyside6
       # -> qtwebengine (Chromium) into its closure.
@@ -306,8 +263,7 @@ in {
             "graphical-session.target"
           ];
           # Only run when the session's VT is active (tty1). If the user switches
-          # to another VT, kscreen-doctor calls fail with
-          # "Atomic modeset test failed: Permission denied".
+          # to another VT, niri IPC calls can fail.
           serviceConfig.ExecCondition = pkgs.writeShellScript "niri-vt-check" ''
             ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
             [ "$ACTIVE_TTY" = "tty1" ]
@@ -322,8 +278,8 @@ in {
         # Disable KScreen backend launcher
         "kscreen_backend_launcher".enable = false;
         # TV Monitor Daemon - Auto manage TV power state
-        # Only active on the session's VT (tty1) - prevents kscreen-doctor
-        # spam when the user switches to another VT.
+        # Only active on the session's VT (tty1) - prevents niri IPC spam
+        # when the user switches to another VT.
         tv-monitor-daemon = {
           description = "Monitor TV power state and auto-disable/enable";
           wantedBy = ["graphical-session.target"];
