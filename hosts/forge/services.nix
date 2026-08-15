@@ -21,6 +21,10 @@ in {
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
+    # A2A mesh: shared peers + inbound gateway platform (port 9900) from Nix.
+    hermes-a2a = {
+      enable = true;
+    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
