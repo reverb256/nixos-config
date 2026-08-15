@@ -126,15 +126,16 @@ in
                     existing_gw["platforms"] = {**existing_plat, **managed_plat}
                     existing["gateway"] = existing_gw
                 elif k == "a2a_agents":
-                    # Deep-merge per-peer so token values (hermes-owned,
-                    # NEVER in Nix store) survive the emit while peer
-                    # structure (url/capabilities/timeout) is Nix-managed.
+                    # Deep-merge per-peer: Nix-managed structure (url,
+                    # capabilities, timeout) wins; token values (hermes-owned,
+                    # NEVER in Nix store) survive because managed entries
+                    # carry no auth key. Existing auth fields pass through.
                     existing_peers = existing.get("a2a_agents") or {}
                     merged_peers = {}
                     for peer, peer_cfg in v.items():
                         merged_peers[peer] = {
-                            **peer_cfg,
                             **existing_peers.get(peer, {}),
+                            **peer_cfg,
                         }
                     # peers removed from Nix no longer emit; keep any peers
                     # that were never managed (preserve unknown/legacy peers).
