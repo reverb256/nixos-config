@@ -15,24 +15,10 @@ in {
       priority = 90;
     };
 
-    hermes-cli = {
-      enable = true;
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
-      # Local Bonsai 27B 1-bit (GPU 0, port 8002) for gateway generation.
-      managedProviders = {
-        "bonsai-forge" = {
-          base_url = "http://127.0.0.1:8002/v1";
-          discover_models = true;
-          model = "bonsai-27b-1bit-forge-0";
-        };
-      };
-    };
-    # A2A mesh: shared peers + inbound gateway platform (port 9900) from Nix.
-    hermes-a2a = {
-      enable = true;
-    };
+    # NOTE: hermes-cli / hermes-a2a live in hosts/forge/configuration.nix
+    # (the live services attrset). THIS FILE IS NOT IMPORTED — see the
+    # k3s-cluster encryption-key comment there.
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;

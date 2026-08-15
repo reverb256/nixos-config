@@ -189,6 +189,28 @@
   # SERVICES CONFIGURATION
 
   services = {
+    # Hermes A2A mesh node: config.yaml sections rendered from Nix by
+    # hermes-config-emit; peers shared via services.hermes-a2a.
+    # NOTE: hosts/forge/services.nix is DEAD CODE (not imported) — this is
+    # the live services attrset (see the k3s encryption-key comment below).
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      managedConfig = true;
+      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
+      # Local Bonsai 27B 1-bit (GPU 0, port 8002) for gateway generation.
+      managedProviders = {
+        "bonsai-forge" = {
+          base_url = "http://127.0.0.1:8002/v1";
+          discover_models = true;
+          model = "bonsai-27b-1bit-forge-0";
+        };
+      };
+    };
+    hermes-a2a.enable = true;
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
