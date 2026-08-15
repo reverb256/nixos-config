@@ -86,7 +86,7 @@ if [[ -n "$REPO_OWNER" ]] && [[ "$(find . -not -user "$REPO_OWNER" 2>/dev/null |
 fi
 git fetch origin $(printf '%q' "$FETCH_REF") >/dev/null 2>&1
 git reset --hard FETCH_HEAD >/dev/null 2>&1
-nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel >$(printf '%q' "$STORE_PATH_FILE") 2>$(printf '%q' "/tmp/${TAG}-build-log")
+nix build --no-link --fallback --option pure-eval false --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel >$(printf '%q' "$STORE_PATH_FILE") 2>$(printf '%q' "/tmp/${TAG}-build-log")
 EOF
     )
     local REMOTE_SCRIPT_FILE="/tmp/${SERVICE}.sh"
