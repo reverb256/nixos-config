@@ -63,6 +63,9 @@ jobs:
           FAILED=0
           while IFS= read -r -d '' f; do
             [ -z "$f" ] && continue
+            # Skip files deleted in the PR — the diff lists them but they no
+            # longer exist in the checkout (breaks nix-instantiate --parse).
+            [ -f "$f" ] || continue
             if ! nix-instantiate --parse "$f" > /dev/null 2>&1; then
               echo "PARSE ERROR: $f"
               FAILED=1
@@ -119,6 +122,8 @@ jobs:
             echo "No changed Nix files; skip file lint."
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             for f in "${NIX_FILES[@]}"; do
+              # Skip deleted files (same reason as the parse step).
+              [ -f "$f" ] || continue
               nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c alejandra --check "$f"
               if [ "$f" = "flake.nix" ] || [ "$f" = "modules/services/bonsai.nix" ] || [ "$f" = "hosts/zephyr/configuration.nix" ]; then
                 echo "::notice::Skipping pre-existing Statix/Deadnix findings in $f; Alejandra remains enforced."
