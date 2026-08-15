@@ -256,7 +256,7 @@
     builtins.toJSON {
       mcpServers =
         lib.mapAttrs (
-          name: server:
+          _: server:
             lib.filterAttrs (_: v: v != null && v != []) {
               command = server.command or null;
               args =
@@ -301,12 +301,11 @@
     ["    ${name}:"]
     ++ (
       if server.type == "sse" || server.type == "http"
-      then
-        [
-          "      url: ${server.url}"
-          "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          "      timeout: ${toString (server.timeout or 60)}"
-        ]
+      then [
+        "      url: ${server.url}"
+        "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+        "      timeout: ${toString (server.timeout or 60)}"
+      ]
       else
         # stdio
         [
@@ -323,8 +322,8 @@
         ["      description: \"${lib.escape ["\\" "\""] server.description}\""]
     );
 
-  hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml"
-    (mkHermesMcpServers allServers);
+  hermesMcpYamlText = mkHermesMcpServers allServers;
+  hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml" hermesMcpYamlText;
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
@@ -547,7 +546,7 @@ in {
     lib.mcp-registry = {
       inherit allServers stdioServers sseServers httpServers localServers clusterServers;
       inherit mkClaudeCodeMcpServers mkHermesMcpServers mkNetworkPolicy;
-      inherit claudeCodeJson hermesMcpYaml networkPolicies;
+      inherit claudeCodeJson hermesMcpYaml hermesMcpYamlText networkPolicies;
     };
   };
 }
