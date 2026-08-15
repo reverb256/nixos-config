@@ -3,9 +3,6 @@
   lib,
   ...
 }: {
-  # 2026-08-15: GTT fix — suspended 2nd GPU pushes allocations to GTT (issue #5380).
-  boot.kernelParams = [ "amdgpu.runpm=0" ];
-
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;
