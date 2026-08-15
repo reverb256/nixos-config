@@ -49,6 +49,8 @@
     ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
     # NVIDIA Switchyard LLM routing proxy (routes.toml + systemd unit)
     ../../modules/services/switchyard.nix
 
