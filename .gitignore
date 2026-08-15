@@ -92,3 +92,4 @@ void-mklive/
 .worktrees/
 .yarn/*
 .yarn-integrity
+VP_VULKANINFO_*.json
