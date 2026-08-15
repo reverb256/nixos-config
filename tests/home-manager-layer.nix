@@ -66,9 +66,7 @@
 
   checks =
     {
-      localCopyRemoved = localCopyRemoved;
-      shimRemoved = shimRemoved;
-      inherit lockHasHmInput lockHasRev;
+      inherit localCopyRemoved shimRemoved lockHasHmInput lockHasRev;
       deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
       deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
       deployStopsOnConfirmedDrift = hasDeploy "exit 1";
