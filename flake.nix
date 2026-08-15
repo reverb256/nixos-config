@@ -22,7 +22,7 @@
     # new tip here. flake=false: we only consume the source tree; nixpkgs'
     # common-lix.nix build glue stays in charge.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=5cb85cafe0b2970fe7c5d0fa84ebbc0f8d00dbfa";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=880fec9d10c8874d787eb2588e65fbc218950009";
       flake = false;
     };
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for

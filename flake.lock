@@ -875,17 +875,17 @@
     "lix": {
       "flake": false,
       "locked": {
-        "lastModified": 1786789057,
-        "narHash": "sha256-WL05Uu/KQ3i0gWH+w40DBe78SxLzIHIQzrsGVMKLlzI=",
+        "lastModified": 1786800980,
+        "narHash": "sha256-fR0G2TCHSl+uRwqqz/AJWqkWRIFvA2l67DTsz+YnPiY=",
         "ref": "homelab/2.96",
-        "rev": "5cb85cafe0b2970fe7c5d0fa84ebbc0f8d00dbfa",
-        "revCount": 19474,
+        "rev": "880fec9d10c8874d787eb2588e65fbc218950009",
+        "revCount": 19478,
         "type": "git",
         "url": "https://github.com/reverb256/lix"
       },
       "original": {
         "ref": "homelab/2.96",
-        "rev": "5cb85cafe0b2970fe7c5d0fa84ebbc0f8d00dbfa",
+        "rev": "880fec9d10c8874d787eb2588e65fbc218950009",
         "type": "git",
         "url": "https://github.com/reverb256/lix"
       }
