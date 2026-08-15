@@ -66,59 +66,6 @@
     doCheck = false;
   });
 
-  # 2026-08-15: gamescope 3.16.23+ regression (gamescope#2204, still OPEN):
-  # Steam Proton games launched through gamescope close immediately with
-  # `ConnectToGlobalUser: Steam denied appID` -> `steamclient_init_registry
-  # Failed to connect to Steam`. The window appears briefly then vanishes with
-  # no error. zephyr's scopebuddy HDR stack wraps gamescope, so PoE2 (appid
-  # 2694490) and other Steam titles die at launch on 3.16.25. The fix PR (#2190,
-  # cgroup AppID derivation) is unmerged; the known-good tag is 3.16.22. Pin
-  # the package source to that tag. The nixpkgs pending patches (4ce1a91f
-  # system-libs, d49a2ade stb_image_resize2 guard) apply cleanly to 3.16.22
-  # (verified). This changes the gamescope binary for ALL consumers (system
-  # gamescope, Steam FHS extraPkgs, scopebuddy wrapper PATH) — intended.
-  gamescope = prev.gamescope.overrideAttrs (old: {
-    version = "3.16.22";
-    src = _final.fetchFromGitHub {
-      owner = "ValveSoftware";
-      repo = "gamescope";
-      tag = "3.16.22";
-      fetchSubmodules = true;
-      hash = "sha256-FuQkKguW00yI2w5nCctcxz7e1ZUKSWJOCIS1UMJzsMA=";
-    };
-    # 3.16.25-only patches: `shaders-path.patch` and `gamescopereaper.patch`
-    # target src/Utils/DirHelpers.cpp which DOES NOT EXIST in 3.16.22 (the
-    # GetUsrDir helper lives in src/reshade_effect_manager.cpp there). Drop
-    # them; replicate both fixes inline in postPatch below. Keep the two
-    # pending-upstream patches that apply cleanly to 3.16.22 (verified):
-    # 4ce1a91f (system libraries) + d49a2ade (stb_image_resize2 guard).
-    # 3.16.22 vendored wlroots 0.18 lacks LIBINPUT_SWITCH_KEYPAD_SLIDE handling;
-    # system libinput 1.31.3 added the enum, -Werror=switch fails the build.
-    # Add the enum + case (mirrors upstream wlroots).
-    patches = [
-      ./gamescope-3.16.22-wlroots-keypad-slide.patch
-      (_final.fetchpatch {
-        url = "https://github.com/ValveSoftware/gamescope/commit/4ce1a91fb219f570b0871071a2ec8ac97d90c0bc.diff";
-        hash = "sha256-O358ScIIndfkc1S0A8g2jKvFWoCzcXB/g6lRJamqOI4=";
-      })
-      (_final.fetchpatch {
-        url = "https://github.com/ValveSoftware/gamescope/commit/d49a2aded261030e649fee42ad295f1ef56b736b.diff";
-        hash = "sha256-Uh08ZRaV912ZOsl1DMpbVLxIgh4jEXevgihQf2W9KFk=";
-      })
-    ];
-    # postPatch: replicate shaders-path.patch (GetUsrDir -> @out@ in
-    # reshade_effect_manager.cpp, not DirHelpers.cpp) + gamescopereaper.patch
-    # (absolute path in Process.cpp). DirHelpers.cpp does not exist in 3.16.22.
-    postPatch = ''
-      substituteInPlace src/reshade_effect_manager.cpp --replace-fail 'return "/usr";' 'return "@out@";'
-      substituteInPlace src/reshade_effect_manager.cpp --replace-fail "@out@" "$out"
-      substituteInPlace src/Utils/Process.cpp --replace-fail '"gamescopereaper"' '"@gamescopereaper@"'
-      substituteInPlace src/Utils/Process.cpp --subst-var-by "gamescopereaper" "$out/bin/gamescopereaper"
-      patchShebangs subprojects/libdisplay-info/tool/gen-search-table.py
-      patchShebangs default_extras_install.sh
-    '';
-  });
-
   # 2026-08-10: xwayland 24.1.13 fails to build under GCC 15.3 — libunwind's
   # unw_word_t is now unsigned int* (was unsigned long*) on x86_64, so the
   # uint64_t val / %PRIx64 in os/backtrace.c is an ABI mismatch. This breaks
