@@ -59,6 +59,11 @@ in {
     # Using an include file because the NixOS unbound module's RFC42
     # format generator joins list values with spaces, breaking
     # local-data records that contain spaces.
+    # 2026-08-15: FULL domain set synced from modules/network/cluster-dns.nix
+    # (the SSOT). That module is NOT yet imported by any host, so the ACTIVE
+    # list must mirror it or .lan services (auth.lan especially) 404 in DNS —
+    # which crash-loops central-auth and fails every nexus deploy. SSOT import
+    # is the follow-up; keep these two lists in lockstep until then.
     environment.etc."unbound/local-dns.conf".text =
       lib.concatMapStrings (record: "local-data: \"${record}\"\n")
       [
@@ -66,7 +71,35 @@ in {
         "search.lan. IN A 10.1.1.100"
         "ai.lan. IN A 10.1.1.100"
         "openwebui.lan. IN A 10.1.1.100"
-        # .cluster.local aliases
+        # Host-service domains via VIP (Caddy ingress)
+        "ai-inference.lan. IN A 10.1.1.100"
+        "auth.lan. IN A 10.1.1.100"
+        "qdrant.lan. IN A 10.1.1.100"
+        "n8n.lan. IN A 10.1.1.100"
+        "mission-control.lan. IN A 10.1.1.100"
+        "grafana.lan. IN A 10.1.1.100"
+        "privacy-filter.lan. IN A 10.1.1.100"
+        "workspace.lan. IN A 10.1.1.100"
+        "dashboard.lan. IN A 10.1.1.100"
+        "maplespike.lan. IN A 10.1.1.100"
+        "api.maplespike.lan. IN A 10.1.1.100"
+        "mcp.maplespike.lan. IN A 10.1.1.100"
+        "auth.maplespike.lan. IN A 10.1.1.100"
+        "status.maplespike.lan. IN A 10.1.1.100"
+        "uptime.maplespike.lan. IN A 10.1.1.100"
+        "haven.lan. IN A 10.1.1.100"
+        "dev.maplespike.lan. IN A 10.1.1.100"
+        "dev-api.maplespike.lan. IN A 10.1.1.100"
+        "dev-mcp.maplespike.lan. IN A 10.1.1.100"
+        "gitea.lan. IN A 10.1.1.100"
+        # Forge / Sentry / Hermes
+        "mining.lan. IN A 10.1.1.130"
+        "monitoring.lan. IN A 10.1.1.140"
+        "prometheus.lan. IN A 10.1.1.140"
+        "alertmanager.lan. IN A 10.1.1.140"
+        "hermes.lan. IN A 10.1.1.120"
+        "api.hermes.lan. IN A 10.1.1.120"
+        # .cluster.local aliases (keep the historical three)
         "search.cluster.local. IN A 10.1.1.100"
         "ai.cluster.local. IN A 10.1.1.100"
         "openwebui.cluster.local. IN A 10.1.1.100"
