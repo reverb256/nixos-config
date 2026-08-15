@@ -1,7 +1,10 @@
 # Ops Postmortem 2026-08-14 — Backup Wedge, Deploy Chain, SSH CA, Dendritic Quirk
 
 Dense record of the 2026-08-14 incident chain. Every entry: symptom → root cause →
-fix → verification. Use this to avoid repeating any of it.
+fix → verification. Use this to avoid repeating the mistakes. **Late-breaking:
+the nexus/forge k3s "activating forever" + deploy error-code-4s were NOT an etcd
+problem — the root cause was a duplicate `[nvidia]` containerd runtime table
+(see the last section).**
 
 ---
 
@@ -144,3 +147,30 @@ ss -ltnp | grep :9900
 systemctl start backup-to-garage
 journalctl -u backup-to-garage -f
 ```
+
+---
+
+## 5. Nexus/Forge k3s "activating forever" — root cause: duplicate `[nvidia]` containerd runtime
+
+**Symptom:** k3s stuck `activating (start)`, API :6443 → `503 "apiserver not ready"`,
+`kubectl` → "unable to handle the request", and EVERY colmena deploy aborts
+`error code: 4`. Looked like etcd/quorum for hours.
+
+**Root cause:** `containerdConfigTemplate` in `modules/services/k3s-cluster.nix`
+added an UNQUOTED `[plugins."...".runtimes.nvidia]` table while the nixpkgs k3s
+module already generates the quoted `"nvidia"` + `"nvidia-cdi"` runtimes when
+`hardware.nvidia-container-toolkit.enable = true`. TOML treats them as the SAME
+table → `containerd: failed to unmarshal TOML: toml: table nvidia already
+exists` → containerd exits 1 → k3s never ready.
+
+**Where the error lives:** `/var/lib/rancher/k3s/agent/containerd/containerd.log`
+(file — NOT journald). k3s fd 1/2 → internal socketpair, so `journalctl -u k3s`
+is empty even when k3s logs a lot.
+
+**Fix:** removed the duplicate table from the template (`61a432f7`). containerd
+boots clean (`successfully booted in 0.1s`), k3s reaches ready.
+
+**Pitfalls burned into us (don't repeat):**
+- Foreground `k3s server` tests with `pkill` reset the etcd replay clock each time — each test adds 10+ min and masquerades as a new failure.
+- `--cluster-reset` interrupted by a reboot leaves a half-state (`reset-flag` present + new member name); re-run to completion, and the "remove the cluster-reset flag" fatal on the second run is EXPECTED.
+- The error-code-4 deploy abort is the skill-documented "k3s member stuck activating" case — check containerd.log FIRST, before any etcd surgery.
