@@ -264,6 +264,15 @@ in {
       # fork needs it). Pure-eval stays an OPT-IN per-command flag
       # (`nix build --pure-eval`); the eval-cache engages only when a caller
       # explicitly requests pure eval.
+      #
+      # 2026-08-14 (REAL FIX): the Lix homelab fork DEFAULTS pure-eval=true
+      # (verified via `nix show-config` with a clean env and empty nix.conf —
+      # removing the old `pure-eval = true` line had NO effect because the
+      # default is compiled in). Explicitly force it off; remote builders
+      # (ssh-ng) inherit this via nix.conf and produce wrong content for
+      # home-manager derivations otherwise (observed: hash mismatch importing
+      # hm_dolphinrc / niri-config-reload.path from sentry).
+      pure-eval = false;
       eval-cache = true;
 
       auto-optimise-store = true;
