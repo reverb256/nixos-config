@@ -795,9 +795,10 @@
     enableForge0 = false;
     enableForge1 = false;
     enableForgeVk = true;
-    # 2026-08-15: verified vk0 stable at 32K ctx (7GB free after load).
-    # Enable the second 5700 XT — both cards fit with the GTT fix.
-    enableForgeVk1 = true;
+    # 2026-08-15: vk1 reverted — enabling it put forge in a boot OOM
+    # reboot loop (both units load at boot on 15GB). Re-enable only with
+    # a boot-time stagger/delay for the second unit.
+    enableForgeVk1 = false;
   };
 
 
