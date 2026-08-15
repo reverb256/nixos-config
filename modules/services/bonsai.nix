@@ -375,6 +375,11 @@ with lib; let
     # and earlyoom killed vk0 during simultaneous load.
     memoryMax = "6G";
     extraEnv = {
+      # 2026-08-15: weights were landing in GTT (system RAM) not VRAM —
+      # fork allocates DeviceLocal|HostVisible by default, RADV backs it
+      # from GTT. This env forces pure eDeviceLocal = VRAM. The 9.4GB GTT
+      # spike was OOMing forge (earlyoom SIGTERM at 80s, 6 reboots).
+      GGML_VK_DISABLE_HOST_VISIBLE_VIDMEM = "1";
       GGML_VULKAN_DEVICE = "0";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
       GGML_VK_MAX_NODES_PER_SUBMIT = "1";
@@ -405,6 +410,7 @@ with lib; let
     afterUnits = ["bonsai-1bit-forge-vk0.service"];
     memoryMax = "6G";
     extraEnv = {
+      GGML_VK_DISABLE_HOST_VISIBLE_VIDMEM = "1";
       GGML_VULKAN_DEVICE = "1";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
       GGML_VK_MAX_NODES_PER_SUBMIT = "1";
