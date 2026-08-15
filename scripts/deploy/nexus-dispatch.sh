@@ -127,7 +127,9 @@ executor() {
   trap 'cd /; git -C "$FLAKE" worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
 
   NIX_CMD=(
-    nix run
+    # Lix fork default is pure-eval=true (nix.conf ignored for this key);
+    # colmena's eval would use stale eval-cache hashes without the override.
+    nix run --option pure-eval false
     .#apps.x86_64-linux.colmena
     --
   )
