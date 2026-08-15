@@ -93,9 +93,16 @@ in {
     # Using environment.variables (global) instead of sessionVariables
     # to ensure availability in all contexts: shells, GUI apps, systemd services, etc.
     environment.variables = {
-      # Use mkForce to override the default "pipewire" value from NixOS shells-environment.nix
-      QT_MEDIA_BACKEND = lib.mkForce "gstreamer";
-
+      # NOTE: QT_MEDIA_BACKEND is intentionally NOT forced here. desktop.nix
+      # sets the session default to "pipewire" (NixOS default). Forcing
+      # "gstreamer" globally (lib.mkForce) poisoned EVERY native Qt app on
+      # the box — including the iNiR shell, which segfaulted deterministically
+      # in libgstreamermediaplugin.so (Qt Multimedia's GStreamer backend,
+      # observed 2026-08-14, 382 crashes). Audiotube (the original reason for
+      # this module) is a Flatpak and does NOT read host env vars, so the
+      # global force never helped it anyway. Apps that genuinely need the
+      # GStreamer backend must set QT_MEDIA_BACKEND=gstreamer per-app
+      # (e.g. in their own systemd unit or wrapper).
       # Help Qt find GStreamer plugins at runtime
       # Note: Use /run/current-system/sw path for runtime discovery
       GST_PLUGIN_PATH = "/run/current-system/sw/lib/gstreamer-1.0";
