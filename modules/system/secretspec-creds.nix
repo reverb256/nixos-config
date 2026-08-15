@@ -64,9 +64,14 @@ let
       # consumers (cachix: "Header Authorization has newlines"). The old
       # 'tr -d "\r\n"' stripped ALL newlines, which destroyed PEM keys
       # (OpenSSL requires PEM line structure) and left ca.key unparseable.
-      _v=$(printf '%s' "$_v" | sed 's/\r$//')
-      install -D -m "$4" -o "$5" -g "$6" \
-        <(printf '%s' "$_v") "$2" 2>>"$LOG" || {
+      # CR-strip IN THE INSTALL PIPELINE — no command substitution on _v
+      # (a $(...) wrapper strips ALL trailing newlines, undoing the PEM
+      # newline append above; observed 411B -> 410B invalid key on
+      # /run/secrets/ssh-ca-key, ssh-keygen "invalid format").
+      # sed removes a trailing CR only; the final LF survives because we
+      # pipe directly and do not round-trip through a command substitution.
+      printf '%s' "$_v" | sed 's/\r$//' | install -D -m "$4" -o "$5" -g "$6" \
+        /dev/stdin "$2" 2>>"$LOG" || {
         log "FAILED: install $2"; fail=1; return
       }
       log "Wrote $2 ($(wc -c < "$2") bytes)"
