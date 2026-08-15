@@ -147,6 +147,11 @@ with lib; let
     # 2026-08-15: gpuLabel feeds the workload registry (kind="direct") so the
     # fuzzel menu shows this unit with live state. null = no registry entry.
     gpuLabel ? null,
+    # 2026-08-15: explicit Vulkan device pinning (-dev Vulkan0). The
+    # GGML_VULKAN_DEVICE env var alone does NOT pin llama-server to one
+    # card on this fork — the load spread across both 5700 XTs and OOMed
+    # forge's 15GB box (6 reboots). -dev Vulkan0/Vulkan1 = single card.
+    deviceArgs ? null,
     memoryMax ? "6G",
     parallel ? 1,
     specType ? null,
@@ -165,7 +170,8 @@ with lib; let
           "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa ${fa} -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel ${toString parallel} --alias bonsai-27b-1bit-${name}"
           + optionalString (specType != null) " --spec-type ${specType}"
           + optionalString (specDraftNMax != null) " --spec-draft-n-max ${toString specDraftNMax}"
-          + optionalString (draftModel != null) " -md ${draftModel}";
+          + optionalString (draftModel != null) " -md ${draftModel}"
+          + optionalString (deviceArgs != null) " ${deviceArgs}";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
@@ -364,6 +370,7 @@ with lib; let
     cacheTypeK = "q8_0";
     cacheTypeV = "f16";
     parallel = 2;
+    deviceArgs = "-dev Vulkan0";
     # 15GB box: 2 instances -> 12G total cgroup cap. 8G each was > physical
     # and earlyoom killed vk0 during simultaneous load.
     memoryMax = "6G";
@@ -393,6 +400,7 @@ with lib; let
     cacheTypeK = "q8_0";
     cacheTypeV = "f16";
     parallel = 2;
+    deviceArgs = "-dev Vulkan1";
     # Stagger after vk0: model loads (2.1G peak each) must not overlap on 15GB.
     afterUnits = ["bonsai-1bit-forge-vk0.service"];
     memoryMax = "6G";
