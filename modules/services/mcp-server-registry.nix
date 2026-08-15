@@ -277,39 +277,54 @@
     (mkClaudeCodeMcpServers stdioServers);
 
   # ── C3: Generate Hermes config.yaml mcp_servers ─────────────────────────
-  mkHermesMcpServers = servers: let
-    mkServerBlock = name: server: let
-      lines = ["    ${name}:"];
-      addLine = line: lines ++ [line];
-    in
-      lib.concatStringsSep "\n" (
-        if server.type == "sse"
-        then
-          addLine "      url: ${server.url}"
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-        else if server.type == "http"
-        then
-          addLine "      url: ${server.url}"
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-        else
-          # stdio
-          addLine "      command: ${server.command}"
-          ++ lib.optional (server ? args && server.args != [])
-          ("      args:\n" + lib.concatStringsSep "\n" (map (a: "        - ${a}") server.args))
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-          ++ lib.optional (server ? description)
-          "      description: ${server.description}"
-      );
-  in
-    lib.concatStringsSep "\n" (lib.mapAttrsToList mkServerBlock servers);
+  # 2026-08-15 rewrite: the old generator emitted INVALID YAML (duplicate
+  # server keys from a stateful addLine, wrong indentation, unquoted scalars)
+  # — hermes-mcp-servers.service failed 100% of runs for 7+ days. Correct
+  # shape:
+  #     mcp_servers:
+  #       agentmemory:
+  #         command: "..."
+  #         args:
+  #           - "..."
+  #         connect_timeout: 30
+  #         timeout: 120
+  #         description: "..."
+  # All scalars are double-quoted with backslash/quote escaping (values like
+  # '@anthropic-ai/...' or 'Hound — web fetch, crawl, ...' break unquoted).
+  mkHermesMcpServers = servers:
+    lib.concatStringsSep "\n" (
+      ["  mcp_servers:"]
+      ++ lib.concatLists (lib.mapAttrsToList mkServerBlock servers)
+    );
 
-  hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml" ''
-        mcp_servers:
-    ${mkHermesMcpServers allServers}
-  '';
+  mkServerBlock = name: server:
+    ["    ${name}:"]
+    ++ (
+      if server.type == "sse" || server.type == "http"
+      then
+        [
+          "      url: ${server.url}"
+          "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+          "      timeout: ${toString (server.timeout or 60)}"
+        ]
+      else
+        # stdio
+        [
+          "      command: \"${lib.escape ["\\" "\""] server.command}\""
+        ]
+        ++ lib.optionals (server ? args && server.args != [])
+        (["      args:"]
+          ++ map (a: "        - \"${lib.escape ["\\" "\""] a}\"") server.args)
+        ++ [
+          "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+          "      timeout: ${toString (server.timeout or 60)}"
+        ]
+        ++ lib.optionals (server ? description)
+        ["      description: \"${lib.escape ["\\" "\""] server.description}\""]
+    );
+
+  hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml"
+    (mkHermesMcpServers allServers);
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
