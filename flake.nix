@@ -339,6 +339,7 @@
             k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
             k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
             k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
+            mcp-hermes-yaml = mkCheck "mcp-hermes-yaml" ./tests/mcp-hermes-yaml.nix;
             module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
             dualsense = mkCheck "dualsense" ./tests/dualsense.nix;
             network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
