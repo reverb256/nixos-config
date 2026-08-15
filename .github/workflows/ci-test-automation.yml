@@ -20,6 +20,12 @@ jobs:
 
   test-coverage:
     name: Test Coverage
+    # Trusted-only: this job executes tests/*.nix, which are PR-controlled
+    # code, on the persistent self-hosted runner. Running them for PRs would
+    # let untrusted pull requests execute arbitrary Nix on the runner
+    # (supply-chain boundary, ci-workflow-policy.py). PRs get the quick
+    # parse/lint/security gates from ci.yml instead.
+    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, nixos]
     timeout-minutes: 120
     steps:

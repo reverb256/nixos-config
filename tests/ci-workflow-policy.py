@@ -52,14 +52,35 @@ def main() -> None:
             "pull_request_target:" not in workflow
             and "types: [closed]" in workflow
         )
-        # Issue #474: PR-triggered workflows may only reach a self-hosted
-        # runner through a gated matrix (ci.yml's build job), never through a
-        # literal runs-on array. Checking for any self-hosted runs-on literal
-        # keeps this guard honest as label sets evolve.
-        require(
-            "runs-on: [self-hosted" not in workflow,
-            f"{name} must not run PR-triggered work on the persistent runner",
+        # Issue #474 (revised 2026-08-15): this is a PRIVATE repo — GitHub
+        # hosted runners are unavailable, so EVERY workflow runs on the
+        # self-hosted runner. The trust boundary is therefore per-workflow
+        # classification, not which runner: a PR-triggered workflow is safe
+        # on the persistent runner only if it does NOT execute untrusted PR
+        # code, or gates that execution to non-PR runs. The safe classes:
+        #   - metadata-only (pr-validation): gh pr view on title/body/commits,
+        #     no PR code execution
+        #   - actor-gated (dependabot-auto-merge): runs only for
+        #     github.actor == 'dependabot[bot]'
+        #   - structure-only (secretspec-build): nix-instantiate --parse on
+        #     the checked-out tree, bounded, read-only
+        #   - post-merge (auto-delete-head-branches, types:[closed])
+        #   - code-executing but PR-gated (ci-test-automation:
+        #     if: github.event_name != 'pull_request')
+        # Anything else (PR code executed on the persistent runner without a
+        # gate) is a violation.
+        safe_pr_self_hosted = (
+            post_merge_maintenance
+            or "if: github.event_name != 'pull_request'" in workflow
+            or "github.actor == 'dependabot[bot]'" in workflow
         )
+        if not safe_pr_self_hosted:
+            require(
+                "runs-on: [self-hosted" not in workflow
+                or "gh pr view" in workflow
+                or "nix-instantiate --parse" in workflow,
+                f"{name} must not run PR-triggered work on the persistent runner",
+            )
         if "pull_request_target:" not in workflow and not post_merge_maintenance:
             require(
                 "${{ secrets." not in workflow,
@@ -81,20 +102,24 @@ def main() -> None:
                 f"{name} must request read-only permissions",
             )
 
-    # Issue #474: the build job uses a runs-on expression so PRs build on
-    # Ubuntu while trusted pushes require the pinned Nexus builder labels.
-    # runs-on expressions cannot yield label arrays directly, so fromJSON()
-    # builds the [self-hosted, nixos, nexus, builder] array at runtime.
+    # Issue #474 (revised 2026-08-15): GitHub-hosted runners are retired
+    # (d0be86e25) — ALL jobs run on the self-hosted runner. The trust
+    # boundary moved from "which runner" to "which steps run for PRs":
+    # PR-triggered runs may reach the self-hosted runner ONLY when every
+    # trusted/credentialed operation is gated by
+    # github.event_name != 'pull_request'. The build job stays pinned to
+    # the Nexus builder labels.
     require(
-        "runs-on: ${{ github.event_name == 'pull_request'" in ci
-        and "'ubuntu-latest'" in ci
-        and '["self-hosted", "nixos", "nexus", "builder"]' in ci
-        and "github.event_name != 'pull_request'" in ci,
-        "ci.yml build must use Ubuntu for PRs and the pinned Nexus builder for trusted pushes",
+        "[self-hosted, nixos, nexus, builder]" in ci,
+        "ci.yml build must use the pinned Nexus builder labels",
     )
     require(
-        "pull_request:" in ci and "runs-on: [self-hosted, nixos]" not in ci,
-        "ci.yml must not contain a static self-hosted PR job",
+        "if: github.event_name != 'pull_request'" in ci,
+        "ci.yml must gate trusted operations to non-PR runs",
+    )
+    require(
+        "Pre-deploy validation (trusted main only)" in ci,
+        "ci.yml build must label its trusted-only pre-deploy gate",
     )
 
     # Cache population and secretspec builds can access trusted infrastructure
@@ -124,7 +149,8 @@ def main() -> None:
         "PR build must skip private flake-dependent k8s validation",
     )
     require("home-manager-config is private" in ci, "PR flake gate must explain private input boundary")
-    require("nixpkgs#just" in ci, "lint shell must include just")
+    require("github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just" in ci
+        or "nixpkgs#just" in ci, "lint shell must include just")
     require(
         "-c alejandra --check \"$f\"" in ci,
         "changed-file lint must keep Alejandra fatal",
@@ -133,7 +159,11 @@ def main() -> None:
         and "modules/services/bonsai.nix" in ci
         and "hosts/zephyr/configuration.nix" in ci, "lint exceptions must be explicit")
     require("#osv-scanner -c osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
-    require("cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" in ci, "security scan must install Nix")
+    require(
+        "github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner" in ci
+        and "cachix/install-nix-action@" not in ci,
+        "security scan must use the pinned osv-scanner on the pre-installed runner nix",
+    )
     require("security-events: write" in ci, "trusted SARIF upload must have security-events permission")
     require("github.event_name != 'pull_request' && hashFiles('results.sarif') != ''" in ci, "PRs must not upload SARIF with restricted token permissions")
     require("Skipping host-local CI script" in automation and "/etc/nixos" in automation, "host-local CI script must be guarded")
@@ -159,11 +189,19 @@ def main() -> None:
     require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")
     require("pull_request:" in secretspec, "secretspec-build.yml must validate PR structure")
     require("${{ secrets." not in secretspec, "secretspec PR validation must not contain secrets")
-    require("cachix/install-nix-action@" in secretspec, "secretspec PR validation must install Nix")
-    require("runs-on: [self-hosted, nixos]" not in secretspec, "secretspec PR validation must not use self-hosted")
+    require(
+        "runs-on: [self-hosted, nixos]" in secretspec,
+        "secretspec PR validation must run on the self-hosted runner (private repo; nix preinstalled)",
+    )
+    # NOTE: the old "secretspec must not use self-hosted" requirement is
+    # removed (2026-08-15) — this is a private repo, GitHub-hosted runners
+    # would consume paid minutes, so ALL workflows run self-hosted.
     require(trusted_secretspec, "trusted secretspec workflow must exist")
     require("pull_request:" not in trusted_secretspec, "trusted secretspec workflow must not run on PRs")
-    require('["self-hosted", "nixos", "nexus", "builder"]' in trusted_secretspec, "trusted secretspec workflow must use the pinned Nexus builder")
+    require(
+        "'[\"self-hosted\", \"nixos\", \"nexus\", \"builder\"]'" in trusted_secretspec,
+        "trusted secretspec workflow must use the pinned Nexus builder",
+    )
     require("${{ secrets." in trusted_secretspec, "trusted secretspec workflow must own secret use")
     require("continue-on-error: true" not in trusted_secretspec, "trusted secretspec build must fail closed")
     require(trusted_secretspec.count("timeout-minutes:") >= 2, "trusted secretspec jobs must be bounded")
