@@ -366,7 +366,13 @@ with lib; let
     };
   });
 
-  bit1ForgeVk1 = mkIf (host == "forge" && cfg.enableForgeVk) (mk1bitService {
+  # 2026-08-15 (3): DISABLED by default — forge has 15GB system RAM. Two
+  # resident 3.5GB instances + k3s + miners + alloy = swap write errors on
+  # /dev/zram0 -> kernel wedged -> auto-reboot (happened 3x in 20 min). The
+  # 5700 XT pair measures IDENTICAL single-card speed (13.7 t/s decode), so
+  # one instance (vk0) loses nothing. Re-enable only with a memory budget
+  # (e.g. --no-mmap or a bigger host).
+  bit1ForgeVk1 = mkIf (host == "forge" && cfg.enableForgeVk1) (mk1bitService {
     name = "forge-vk1";
     desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-1 via Vulkan (port 8008) turbo4 KV 128K";
     port = 8008;
@@ -557,6 +563,12 @@ in {
       type = types.bool;
       default = false;
       description = "Run the forge AMD RX 5700 XT Vulkan bonsai pair (ports 8007/8008). The AMD cards are dedicated inference; 4060s stay 100% on mining.";
+    };
+
+    enableForgeVk1 = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Run the SECOND forge AMD instance (5700 XT-1, port 8008). Default off: 15GB RAM cannot hold two resident 3.5GB instances with the mining stack (swap write errors -> reboot). Enable only on a bigger host or with --no-mmap.";
     };
   };
 
