@@ -123,6 +123,21 @@ nix-store --export $(nix-store -qR "$CLOSURE") | gzip \
   | ssh sentry 'sudo bash -c "gunzip -c | NIX_STORE_DIR=/mnt/nix/store NIX_STATE_DIR=/mnt/nix/var/nix nix-store --import"'
 ```
 
+> **⚠️ CRITICAL (2026-08-14): canonicalize modes after import.**
+> The import writes every file with build-user ownership (0775 nixbld:nixbld)
+> instead of canonical Nix store modes (0444/0555 root:root). Because the NAR
+> hash includes the executable bit, ALL imported paths become hash-invalid
+> (nix store verify reports them "modified"), and sentry then serves
+> divergent NARs into the ssh-ng builder pool → "hash mismatch importing path"
+> on every build that races nexus/sentry.
+> After import, ALWAYS run (on the target host):
+> ```bash
+> sudo nix-store --verify --check-contents --repair --store local
+> ```
+> This re-canonicalizes modes/ownership from the store DB (content is
+> byte-identical; no re-download) and deletes the corrupted .links entries.
+> Verify afterwards: `nix store verify --all --no-trust | grep -c "was modified"` should return 0.
+
 Requires `/mnt/nix` RW first:
 ```bash
 sudo mount -o remount,rw /mnt/nix
