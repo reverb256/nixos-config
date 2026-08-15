@@ -185,29 +185,42 @@ in {
         port = 21759; # proxy listen; models bind 21760+ (startPort)
         yamlFile = "nexus.yaml";
       })
+      # Workload registry: gguf entries (menu load/unload via swap). Port =
+      # startPort+idx (21760 bonsai, 21761 nemotron). Menu reads the JSON at
+      # runtime over SSH — no menu edit when this catalog changes.
+      {
+        services.gpu-workload-registry.workloads.nexus = [
+          {
+            id = "bonsai-1bit";
+            name = "Bonsai 1bit (Nexus)";
+            gpuLabel = "3060 Ti";
+            kind = "gguf";
+            port = 21760;
+            swapId = "bonsai-1bit";
+            swapPort = 21759;
+            alwaysOn = false;
+          }
+          {
+            id = "nemotron-30b-a3b";
+            name = "Nemotron 30B (Nexus)";
+            gpuLabel = "3060 Ti";
+            kind = "gguf";
+            port = 21761;
+            swapId = "nemotron-30b-a3b";
+            swapPort = 21759;
+            alwaysOn = false;
+          }
+        ];
+      }
     ]))
 
-    # ── forge: RTX 4060 (CUDA0) — Bonsai 1bit only (both GPUs miner-committed) ──
-    (mkIf (host == "forge" && cfg.enable) (mkMerge [
-      {
-        environment.etc = mkCatalog {
-          fileName = "forge.yaml";
-          models = [
-            {
-              id = "bonsai-1bit";
-              name = "Bonsai 1bit 256k Turbo4";
-              model = "/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
-              gpuUuid = "GPU-5eb10624-1e18-33d9-f7f7-f8040ac34dad";
-            }
-          ];
-        };
-      }
-      (mkService {
-        name = "forge";
-        port = 21763; # proxy listen; models bind 21761+ (startPort)
-        yamlFile = "forge.yaml";
-      })
-    ]))
+    # ── forge: 4060s are 100% mining since 2026-08-15 — NO llama-swap catalog ──
+    # The 5700 XT pair (bonsai-1bit-forge-vk0/vk1, ports 8007/8008) serves
+    # Bonsai via DIRECT systemd units (RDNA1 env baked in: MAX_NODES=1,
+    # nogttspill, TURBO_AUTO_ASYMMETRIC=0, -fa off). The catalog spawns with a
+    # clean env and cannot carry those fixes — a swap model on a mining 4060
+    # would squat compute. The registry lists the two direct units instead.
+    # (services.llama-swap-cluster.enable = false on forge — see host config.)
 
     # ── sentry: AMD RX 5600 XT (Vulkan) — Gemma 4 E2B (replaces Bonsai 1-bit) ──
     (mkIf (host == "sentry" && cfg.enable) (mkMerge [
@@ -233,6 +246,20 @@ in {
         port = 21764; # proxy listen; models bind 21762+ (startPort)
         yamlFile = "sentry.yaml";
       })
+      {
+        services.gpu-workload-registry.workloads.sentry = [
+          {
+            id = "gemma-e2b";
+            name = "Gemma 4 E2B (Sentry)";
+            gpuLabel = "5600 XT";
+            kind = "gguf";
+            port = 21762;
+            swapId = "gemma-e2b";
+            swapPort = 21764;
+            alwaysOn = false;
+          }
+        ];
+      }
     ]))
   ];
 }

@@ -67,6 +67,8 @@
     ../../modules/services/bonsai.nix
     # llama-swap cluster: llama-swap across the board (unified turboquant binary)
     ../../modules/services/llama-swap-cluster.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
