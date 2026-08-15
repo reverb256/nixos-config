@@ -45,8 +45,27 @@
     echo "# HELP dbus_broker_soft_limit dbus-broker soft RLIMIT_NOFILE" >> "$OUT"
     echo "# TYPE dbus_broker_soft_limit gauge" >> "$OUT"
 
-    emit "$(pgrep -u 1000 -x dbus-broker | head -1 || true)" "user-j_kro"
-    emit "$(pgrep -u 0 -x dbus-broker | head -1 || true)" "system"
+    # The session/system bus broker is a direct child of
+    # `dbus-broker-launch --scope <scope>`. The at-spi2 accessibility broker
+    # is also named dbus-broker and runs as the same uid, but its launcher
+    # passes --config-file — exclude it so we always report the session bus.
+    # (The system bus runs as messagebus, not root, so uid-based matching
+    # would miss it.)
+    broker_pid() {
+      local scope="$1" launcher=""
+      while read -r l; do
+        [ -n "$l" ] || continue
+        if ! grep -q -- '--config-file' "/proc/$l/cmdline" 2>/dev/null; then
+          launcher="$l"
+          break
+        fi
+      done < <(pgrep -f "dbus-broker-launch --scope $scope" 2>/dev/null || true)
+      [ -n "$launcher" ] || return 1
+      pgrep -P "$launcher" -x dbus-broker 2>/dev/null | head -1 || true
+    }
+
+    emit "$(broker_pid user || true)" "user-j_kro"
+    emit "$(broker_pid system || true)" "system"
 
     if [ -s "$OUT" ]; then
       mv -f "$OUT" "$FINAL"
@@ -71,10 +90,13 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["prometheus-node-exporter.service"];
       requires = ["prometheus-node-exporter.service"];
+      # procps for pgrep, gawk for awk — the default NixOS service PATH has
+      # neither. Must be a sibling of serviceConfig: inside serviceConfig it
+      # renders as a lowercase `path=` directive that systemd ignores.
+      path = with pkgs; [procps gawk];
       serviceConfig = {
         Type = "oneshot";
         User = "root";
-        path = with pkgs; [procps gawk];
         ExecStart = exporterScript;
         TimeoutStartSec = "15";
       };
