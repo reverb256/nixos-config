@@ -96,6 +96,16 @@ $(echo "$LOGS" | tail -c 3000)
 ISSUE
 )
 
+# Dedup: the doctor fires on every failed CI run; without this guard one
+# failure mode spawns a new issue per run (2026-08-15 triage: 143 duplicate
+# "NixOS CI: unknown — parse error" issues). Skip if an open issue with this
+# exact title already exists.
+if gh issue list --repo "$REPO" --search "state:open \"$TITLE\" in:title" --json number --jq 'length' 2>/dev/null | grep -q '^[1-9]'; then
+  echo "⏭️  Open issue already exists for: $TITLE — skipping"
+  rm -rf "$TMPDIR"
+  exit 0
+fi
+
 gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" 2>&1 || {
   echo "$BODY" > "$TMPDIR/issue_body.md"
   gh issue create --repo "$REPO" --title "$TITLE" --body-file "$TMPDIR/issue_body.md" 2>&1
