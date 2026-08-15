@@ -92,6 +92,12 @@
           # ~/.ssh key write failed — 'Permission denied' — without it).
           "HOME=${runnerHome}"
           "LANG=C.UTF-8"
+          # NIX_PATH so steps that use `import <nixpkgs>` (Test Suite's
+          # nix-instantiate --arg pkgs) resolve nixpkgs. The runner process
+          # does NOT get a login shell, so /etc/profile's NIX_PATH never
+          # materializes; without this every such step exits 1 instantly
+          # under the default `bash -e` step shell (2026-08-15).
+          "NIX_PATH=nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
         ];
         ProtectSystem = "strict";
         BindReadOnlyPaths = [
