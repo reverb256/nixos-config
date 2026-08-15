@@ -10,6 +10,21 @@
     # resolve the SAME nixpkgs regardless of which host evaluates.
     # To bump nixpkgs: edit this rev AND run `nix flake update`.
     nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?rev=0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5";
+    # Homelab Lix fork: build nix.package from the patched source instead of
+    # nixpkgs' lix_2_95. The source of truth is the `homelab/2.96` branch of
+    # reverb256/lix — a fork of lix-project/lix carrying the 4 homelab
+    # patches IN-TREE (zngur codegen ordering, lix-rs test gating, Boehm GC
+    # heap cap, attr-set linear scan). Pinned to a specific commit, never the
+    # branch head: evaluation happens on nexus from origin/main, and pinning
+    # keeps every builder resolving the SAME tree (see the nixpkgs input
+    # comment for the same reasoning). Bump by pushing the fork branch,
+    # re-running CI (it builds .#nix with the test suite), then pinning the
+    # new tip here. flake=false: we only consume the source tree; nixpkgs'
+    # common-lix.nix build glue stays in charge.
+    lix = {
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=5cb85cafe0b2970fe7c5d0fa84ebbc0f8d00dbfa";
+      flake = false;
+    };
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
     # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
     # embeds the zen version; following our nixpkgs made it drift every time
@@ -410,6 +425,10 @@
             }).config.system.build.image;
           # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
           # packages.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
+          # Boots a VM with the homelab Lix as nix-daemon and exercises it.
+          # Build/run: nix build .#lix-vm-test
+          packages.lix-vm-test =
+            import ./tests/lix-vm.nix {inherit pkgs inputs;};
 
           apps.colmena = {
             type = "app";
