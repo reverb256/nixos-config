@@ -27,6 +27,9 @@
     # Log aggregation to Sentry's Loki
     gputemps-exporter.enable = true;
 
+    # dbus-broker fd usage canary (session-bus EMFILE took down the desktop 2026-08-14)
+    dbus-broker-exporter.enable = true;
+
     monitoring.smart-exporter.enable = true;
 
     monitoring.promtail = {

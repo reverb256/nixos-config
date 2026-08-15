@@ -156,6 +156,7 @@
     ./services/gpu-exporters.nix
     # ./services/mining-exporter.nix (removed with compute-market)
     ./services/gputemps-exporter.nix
+    ./services/dbus-broker-exporter.nix
     # Multimedia modules
     ./multimedia/gstreamer.nix
     # Desktop modules (Spotify customization)
