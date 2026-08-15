@@ -60,6 +60,28 @@
     for dir in ${lib.concatStringsSep " " manifestDirs}; do
       dir_path="${manifestDir}/$dir"
       if [ -d "$dir_path" ]; then
+        # ── calico two-phase apply (2026-08-15 durable fix) ──────────────────
+        # The alphabetical glob applied tigera-operator.yaml AFTER the CR
+        # manifests, so Installation/IPPool/APIServer failed ("no matches for
+        # kind") and the operator provisioned nothing -> every pod sandbox
+        # died "plugin type=calico failed". The operator manifest creates the
+        # CRDs, so apply it FIRST, wait for the CRD group, then apply the rest
+        # with retry (the operator needs a moment to become ready).
+        if [ "$dir" = "calico" ]; then
+          echo "[k8s-manifests] calico phase 1: tigera-operator (CRD source)"
+          ${pkgs.kubectl}/bin/kubectl apply -f "$dir_path/tigera-operator.yaml" 2>&1 || true
+          # Wait until the Calico CRDs are established (up to 60s)
+          CRD_WAIT=60; crd_elapsed=0
+          until ${pkgs.kubectl}/bin/kubectl get crd installations.operator.tigera.io &>/dev/null; do
+            sleep 3
+            crd_elapsed=$((crd_elapsed + 3))
+            if [ $crd_elapsed -ge $CRD_WAIT ]; then
+              echo "[k8s-manifests] WARNING: calico CRDs not ready after ''${CRD_WAIT}s"
+              break
+            fi
+          done
+          echo "[k8s-manifests] calico phase 2: CR manifests (with retry)"
+        fi
         # Apply only .yaml files that don't start with test/old/draft prefixes
         for f in "$dir_path"/*.yaml; do
           basename=$(basename "$f")
@@ -69,8 +91,20 @@
               continue
               ;;
           esac
+          # Skip the operator manifest in the general pass (already applied).
+          [ "$dir" = "calico" ] && [ "$basename" = "tigera-operator.yaml" ] && continue
           echo "[k8s-manifests] Applying $dir/$basename"
           ${pkgs.kubectl}/bin/kubectl apply -f "$f" 2>&1 || true
+          # In calico phase 2, retry CR manifests that raced the operator.
+          if [ "$dir" = "calico" ] && echo "$basename" | grep -qE "^(tigera-installation|tigera-ippool|tigera-apiserver|felix-configuration|bgp-config|calico-node-clusterrole|network-policies)"; then
+            retry=0
+            until ${pkgs.kubectl}/bin/kubectl apply -f "$f" >/dev/null 2>&1; do
+              retry=$((retry + 1))
+              [ $retry -ge 10 ] && { echo "[k8s-manifests] give up on $basename"; break; }
+              sleep 5
+            done
+            echo "[k8s-manifests] calico CR applied: $basename (retries=$retry)"
+          fi
         done
       fi
     done
