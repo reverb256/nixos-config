@@ -229,6 +229,14 @@
       enable = true;
       user = "j_kro";
       managedConfig = true;
+      # Local llama-swap proxy (port 21759, models bonsai-1bit + nemotron).
+      managedProviders = {
+        "llama-swap" = {
+          base_url = "http://127.0.0.1:21759/v1";
+          discover_models = true;
+          model = "bonsai-1bit";
+        };
+      };
     };
     hermes-a2a.enable = true;
 
