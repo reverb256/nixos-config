@@ -42,6 +42,20 @@
   # finds the ICD normally inside the fixed FHS. If the ICD ever goes
   # missing, rebuild (nixos-rebuild) and RESTART the launcher — do not
   # re-add env hacks.
+  # 2026-08-15 FUNDAMENTAL FIX: the aagl launcher builds its own custom FHS
+  # (pkgs/wrapAAGL/fhsenv.nix) with vulkan-loader but NOT the NVIDIA driver,
+  # so the sandbox lacks /usr/share/vulkan/icd.d/nvidia_icd.json and every
+  # Vulkan game fails (DXVK 'vkCreateInstance res=-9'). The launcher package
+  # accepts extraLibraries and passes it to the FHS multiPkgs; add the system
+  # nvidia driver so the ICD + GL libs land at standard paths INSIDE the
+  # sandbox and the loader finds them with NO env vars.
+  nvidiaDrv = config.hardware.nvidia.package;
+
+  withNvidiaLibraries = pkg:
+    pkg.override {
+      extraLibraries = pkgs: [nvidiaDrv];
+    };
+
   # Wrap an aagl launcher package so it always exports the correct
   # NVIDIA Vulkan ICD and drops the gamescope WSI layer before exec.
   # The original package is the symlinkJoin with the steam-run wrapper;
@@ -112,10 +126,10 @@ in {
   # presence, not just `enable or false`.
   config = lib.mkMerge [
     (lib.mkIf (config ? programs.anime-game-launcher && config.programs.anime-game-launcher.enable or false) {
-      programs.anime-game-launcher.package = wrapLauncherEnv pkgs.anime-game-launcher;
+      programs.anime-game-launcher.package = wrapLauncherEnv (withNvidiaLibraries pkgs.anime-game-launcher);
     })
     (lib.mkIf (config ? programs.honkers-railway-launcher && config.programs.honkers-railway-launcher.enable or false) {
-      programs.honkers-railway-launcher.package = wrapLauncherEnv pkgs.honkers-railway-launcher;
+      programs.honkers-railway-launcher.package = wrapLauncherEnv (withNvidiaLibraries pkgs.honkers-railway-launcher);
     })
   ];
 }
