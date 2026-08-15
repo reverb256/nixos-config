@@ -51,7 +51,7 @@
     };
     sentry = {
       enabled = true;
-      role = "server";
+      role = "agent";
       clusterInit = false;
       serverAddr = "https://10.1.1.120:6443";
       nodeIP = "10.1.1.140";
@@ -72,7 +72,7 @@
   observedMetadata = {
     nexus = { enabled = true; role = "server"; nodeName = "nexus"; source = "hosts/metadata/nexus.json"; };
     forge = { enabled = true; role = "server"; nodeName = "forge"; source = "hosts/metadata/forge.json"; };
-    sentry = { enabled = true; role = "server"; nodeName = "sentry"; source = "hosts/metadata/sentry.json"; };
+    sentry = { enabled = true; role = "agent"; nodeName = "sentry"; source = "hosts/metadata/sentry.json"; };
     zephyr = { enabled = false; role = "disabled"; nodeName = "zephyr"; source = "hosts/metadata/zephyr.json"; };
   };
 

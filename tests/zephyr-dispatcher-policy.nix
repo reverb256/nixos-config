@@ -21,9 +21,12 @@
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
     && lib.strings.hasInfix "then 0" distributedBuilds;
 
-  sharedForcesNexusSix =
+  # Nexus is the primary builder; the shared module forces its capacity
+  # (12 physical cores, 2 max-jobs per the nix.dev over-sell guidance).
+  sharedForcesNexusCapacity =
     lib.strings.hasInfix "currentHost == \"nexus\"" distributedBuilds
-    && lib.strings.hasInfix "then 6" distributedBuilds;
+    && lib.strings.hasInfix "then 12 # 3900X = 12 physical cores" distributedBuilds
+    && lib.strings.hasInfix "then 2 # 12 cores x 2 jobs" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 
@@ -34,7 +37,7 @@
     zephyrHasNoSettingsAttrsetOverride = !hasSettingsAttrsetOverride;
     inherit
       sharedForcesZephyrZero
-      sharedForcesNexusSix
+      sharedForcesNexusCapacity
       sharedBuildersUseSubstitutes
       ;
   };
