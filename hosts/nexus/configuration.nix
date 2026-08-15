@@ -67,6 +67,8 @@
     ../../modules/services/bonsai.nix
     # llama-swap cluster: llama-swap across the board (unified turboquant binary)
     ../../modules/services/llama-swap-cluster.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -153,12 +155,18 @@
 
     # Nexus-specific firewall rules (in addition to cluster defaults)
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [
+      # mkForce: plain mkOptionDefault silently collapses to [22] in the
+      # dendritic eval (2026-08-14, sentry lesson) — must force the full list:
+      # base [22 6443] + host ports + 9900 A2A.
+      allowedTCPPorts = lib.mkForce [
+        22 # SSH
+        6443 # k3s API
         10250 # Kubelet API
         3900 # Garage S3 API
         3901 # Garage RPC
         8080 # llama-server for autoresearch LLM evaluation
         9100 # Prometheus node-exporter
+        9900 # Hermes A2A gateway (hermes-nexus agent card + calls)
       ];
       allowedTCPPortRanges = [
         {
@@ -216,6 +224,23 @@
     gaming-detection.enable = lib.mkForce false;
     gpu-profile-manager.enable = lib.mkForce false;
     mining-coordinator.enable = lib.mkForce false;
+
+    # Hermes A2A mesh node: config.yaml sections rendered from Nix by
+    # hermes-config-emit; peers shared via services.hermes-a2a.
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      managedConfig = true;
+      # Local llama-swap proxy (port 21759, models bonsai-1bit + nemotron).
+      managedProviders = {
+        "llama-swap" = {
+          base_url = "http://127.0.0.1:21759/v1";
+          discover_models = true;
+          model = "bonsai-1bit";
+        };
+      };
+    };
+    hermes-a2a.enable = true;
 
     k3s-cluster = {
       enable = true;

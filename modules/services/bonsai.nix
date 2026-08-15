@@ -137,6 +137,12 @@ with lib; let
     contextSize ? "262144",
     cacheTypeK ? "turbo4",
     cacheTypeV ? "turbo4",
+    # 2026-08-15: RDNA1 Vulkan MUST run -fa off (3x faster decode, sentry
+    # playbook). NVIDIA hosts keep the default "on".
+    fa ? "on",
+    # 2026-08-15: gpuLabel feeds the workload registry (kind="direct") so the
+    # fuzzel menu shows this unit with live state. null = no registry entry.
+    gpuLabel ? null,
     memoryMax ? "6G",
     parallel ? 1,
     specType ? null,
@@ -152,7 +158,7 @@ with lib; let
         User = "bonsai";
         RuntimeDirectory = "bonsai-1bit-${name}";
         ExecStart =
-          "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel ${toString parallel} --alias bonsai-27b-1bit-${name}"
+          "${getExe binary} -m ${model} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa ${fa} -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel ${toString parallel} --alias bonsai-27b-1bit-${name}"
           + optionalString (specType != null) " --spec-type ${specType}"
           + optionalString (specDraftNMax != null) " --spec-draft-n-max ${toString specDraftNMax}"
           + optionalString (draftModel != null) " -md ${draftModel}";
@@ -181,6 +187,19 @@ with lib; let
         // extraEnv;
     };
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [port];
+    # Workload registry: every direct unit is a kind="direct" workload. The
+    # menu reads /etc/cluster/workloads.json at runtime — no menu edit needed
+    # when units are added/removed here (gpu-workload-registry module).
+    services.gpu-workload-registry.workloads.${host} = optionals (gpuLabel != null) [{
+      id = "bonsai-1bit-${name}";
+      name = desc;
+      gpuLabel = gpuLabel;
+      kind = "direct";
+      port = port;
+      swapId = null;
+      swapPort = null;
+      alwaysOn = true;
+    }];
   };
 
   # Shorthand: Ternary Bonsai service (6.7 GB).
@@ -289,7 +308,10 @@ with lib; let
   # unconditionally.
 
   # 1-bit on forge 4060 GPU 0 (8 GB)
-  bit1Forge0 = mkIf (host == "forge" && true) (mk1bitService {
+  # 2026-08-15: gated behind enableForge0 — the 4060s went back to 100% mining
+  # when the 5700 XTs took over inference (bit1ForgeVk0/1). A CUDA bonsai on
+  # a mining 4060 is a compute-sharing squat; the AMD pair is dedicated.
+  bit1Forge0 = mkIf (host == "forge" && cfg.enableForge0) (mk1bitService {
     name = "forge-0";
     desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002) turbo4 KV 256k";
     port = 8002;
@@ -304,6 +326,59 @@ with lib; let
     port = 8006;
     gpu = "1";
     contextSize = "262144";
+  });
+
+  # 1-bit on forge AMD RX 5700 XT pair via Vulkan — DEDICATED inference cards.
+  # 2026-08-15 decision (bench-backed): the two 5700 XTs (Vulkan1/Vulkan2)
+  # measure 89 t/s prefill / 13.7 t/s decode on Bonsai 27B Q1_0 — faster than
+  # the 4060 CUDA path. The 4060s go back to 100% mining; the AMD pair serves
+  # bonsai always-on. RDNA1 playbook env (sentry 5600 XT, same gfx1010 family):
+  #   GGML_VK_MAX_NODES_PER_SUBMIT=1 (DeviceLost fix, upstream #21724/#24872)
+  #   RADV_PERFTEST=nogttspill (GTT-spill collapse, Mesa 25.2+)
+  #   TURBO_AUTO_ASYMMETRIC=0 (auto-asymmetric upgraded K to q8_0 -> 2x cost)
+  #   -fa off (Vulkan FA on RDNA1 = 3x slower decode)
+  #   VK_ICD_FILENAMES=radeon (device index = AMD-only; 0 and 1 are the 5700 XTs)
+  #   2x 128K slots (parallel 2) like sentry — 256K/slot needs 4.8G KV, OOMs.
+  bit1ForgeVk0 = mkIf (host == "forge" && cfg.enableForgeVk) (mk1bitService {
+    name = "forge-vk0";
+    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-0 via Vulkan (port 8007) turbo4 KV 128K";
+    port = 8007;
+    binary = prismBinary;
+    gpuLabel = "5700 XT-0";
+    fa = "off";
+    contextSize = "131072";
+    cacheTypeK = "turbo4";
+    cacheTypeV = "turbo4";
+    parallel = 2;
+    memoryMax = "8G";
+    extraEnv = {
+      GGML_VULKAN_DEVICE = "0";
+      VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
+      GGML_VK_MAX_NODES_PER_SUBMIT = "1";
+      RADV_PERFTEST = "nogttspill";
+      TURBO_AUTO_ASYMMETRIC = "0";
+    };
+  });
+
+  bit1ForgeVk1 = mkIf (host == "forge" && cfg.enableForgeVk) (mk1bitService {
+    name = "forge-vk1";
+    desc = "Bonsai 27B 1-bit — Forge AMD RX 5700 XT-1 via Vulkan (port 8008) turbo4 KV 128K";
+    port = 8008;
+    binary = prismBinary;
+    gpuLabel = "5700 XT-1";
+    fa = "off";
+    contextSize = "131072";
+    cacheTypeK = "turbo4";
+    cacheTypeV = "turbo4";
+    parallel = 2;
+    memoryMax = "8G";
+    extraEnv = {
+      GGML_VULKAN_DEVICE = "1";
+      VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
+      GGML_VK_MAX_NODES_PER_SUBMIT = "1";
+      RADV_PERFTEST = "nogttspill";
+      TURBO_AUTO_ASYMMETRIC = "0";
+    };
   });
 
   # NOTE: ternary on forge was REMOVED (2026-08-12) — same root cause as nexus:
@@ -363,58 +438,15 @@ with lib; let
     memoryMax = "6G";
   });
 
-  # Gemma 4 E2B on sentry (2026-08-14): replaces the Bonsai 1-bit on 8003.
-  # The 26B-A4B MoE experiment failed on sentry (Zen 1 CPU + Vulkan = 2.3
-  # t/s CPU-expert streaming); the E4B dense+PLE is too heavy for Navi 10
-  # (3.8 t/s). E2B (3.1 GB) is fully GPU-resident: measured 8.8 t/s decode,
-  # 46 t/s prefill, 128K native context — same throughput as Bonsai with a
-  # far stronger model (Gemma 4 family: thinking, tool-calling, 128K).
-  # 2026-08-14 (2): --flash-attn OFF is the RDNA1 decode lever. The Vulkan
-  # scoreboard (#10879) measured -fa on as 3x SLOWER for decode on RDNA1
-  # (Llama 2 7B Q4_0: 70.7 -> 23.2 t/s); on E2B the penalty measured even
-  # worse — 8.8 t/s with FA on vs 89.8 t/s with FA off (10x). Quantized V
-  # requires FA, so V must be f16 when FA is off (K stays q8_0).
-  gemmaE2BSentry = mkIf (host == "sentry") {
-    systemd.services."gemma-e2b-sentry" = {
-      description = "Gemma 4 E2B — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "simple";
-        User = "bonsai";
-        RuntimeDirectory = "gemma-e2b-sentry";
-        ExecStart =
-          "${getExe forkVulkanBinary} -m /srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf --host 0.0.0.0 --port 8003 -ngl 99 --fit off --cache-type-k q8_0 --cache-type-v f16 -c 131072 --flash-attn off -t 8 -tb 8 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias gemma-4-e2b";
-        Restart = "on-failure";
-        RestartSec = "10";
-        StandardOutput = "journal";
-        StandardError = "journal";
-        MemoryMax = "6G";
-        LimitNOFILE = 65536;
-        OOMScoreAdjust = 500;
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        ReadWritePaths = [ "/run/gemma-e2b-sentry" ];
-        ReadOnlyPaths = [ "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf" ];
-      };
-      environment = {
-        GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
-        GGML_VULKAN_DEVICE = "0";
-        VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
-        # 2026-08-14 (3): NO GGML_VK_MAX_NODES_PER_SUBMIT and NO
-        # RADV_PERFTEST here — both were measured to kill FA-off decode on
-        # RDNA1 (93.7 t/s clean vs 6.4 with nodes=1 vs 9.6 with nogttspill).
-        # The DeviceLost fix was zero-cost only on Bonsai's FA-on graph; the
-        # FA-off graph has far more nodes so forcing 1-node submits
-        # serializes it. Watch for vk::Queue::submit: ErrorDeviceLost on
-        # long prefills + cancellation; if it recurs, re-enable nodes=1 and
-        # accept ~6 t/s or move E2B back to FA on.
-      };
-    };
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 8003 ];
-  };
+  # Gemma 4 E2B on sentry — served via llama-swap (see
+  # llama-swap-cluster.nix sentry.yaml, swapId gemma-e2b, proxy :21764).
+  # 2026-08-14 history: the direct unit was the first E2B deployment (port
+  # 8003, FA off, f16 V + q8_0 K, 128K). It measured 84-94 t/s decode.
+  # REMOVED 2026-08-14 (2): all models must live in the llama-swap catalog
+  # (harmonization) — a direct unit outside the swap cannot be unloaded by
+  # the swap, causing VRAM contention when the catalog loads. The gateway
+  # now points at the sentry swap proxy 127.0.0.1:21764. Do NOT re-add a
+  # direct unit here.
 
   # 1-bit on krash3 CPU-only (no GPU available)
   bit1Krash3 = mkIf (host == "krash3") (mk1bitService {
@@ -506,6 +538,18 @@ in {
       default = true;
       description = "Run the second forge bonsai service (GPU 1). Disable when the GPU 1 miner holds most VRAM — the 3.5GB 1-bit model SIGSEGVs on allocation (libnvidia-eglcore) with <1GB free.";
     };
+
+    enableForge0 = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Run the first forge bonsai service (GPU 0, CUDA on 4060-0). Set false when the 5700 XTs serve inference (AMD pair is dedicated; the 4060s mine 100%).";
+    };
+
+    enableForgeVk = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Run the forge AMD RX 5700 XT Vulkan bonsai pair (ports 8007/8008). The AMD cards are dedicated inference; 4060s stay 100% on mining.";
+    };
   };
 
   config = mkMerge [
@@ -521,12 +565,12 @@ in {
     bit1Zephyr
     bit1Forge0
     bit1Forge1
-    # 2026-08-14: sentry now serves Gemma 4 E2B (gemmaE2BSentry) — the Bonsai
-    # 1-bit was replaced after benchmarking (E2B: 8.8 t/s decode, 128K ctx vs
-    # Bonsai: 9.4 t/s, 2x64K). Stronger model, same throughput. The old
-    # bit1Sentry unit definition is kept above (documented history) but is
-    # NOT enabled — do not re-add it to this list without re-checking VRAM.
-    gemmaE2BSentry
+    bit1ForgeVk0
+    bit1ForgeVk1
+    # 2026-08-14: sentry serves Gemma 4 E2B via llama-swap (see
+    # llama-swap-cluster.nix sentry.yaml, swapId gemma-e2b, proxy :21764).
+    # The old bit1Sentry unit definition is kept above (documented history)
+    # but is NOT enabled — do not re-add it without re-checking VRAM.
     bit1Krash3
   ];
 }

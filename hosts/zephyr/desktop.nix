@@ -8,6 +8,7 @@
     ../../modules/desktop/zephyr-sdr-brightness.nix
     ../../modules/desktop/samsung-tv-brightness.nix
     ../../modules/desktop/niri-hdr-samsung.nix
+    ../../modules/desktop/desktop-session-watchdog.nix
   ];
 
   services.displayManager.sddm.enable = lib.mkForce true;
@@ -46,6 +47,11 @@
 
   # NVIDIA tuning + Samsung TV HDR config for niri
   desktop.niri-hdr-samsung.enable = true;
+
+  # 2026-08-14: restart the DM automatically if the graphical session dies
+  # and sddm wedges (no greeter, no session) instead of leaving the desktop
+  # dead until a manual restart.
+  desktop.session-watchdog.enable = true;
 
   # Noctalia v5 (noctalia flake input) is enabled automatically by
   # modules/desktop/wayland-compositor-common.nix whenever `programs.niri.enable`

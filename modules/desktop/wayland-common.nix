@@ -70,6 +70,20 @@ in {
     };
   };
 
+  # 2026-08-14: the user-session dbus-broker (--scope user) inherits the
+  # systemd default soft RLIMIT_NOFILE of 1024, while the SYSTEM bus broker
+  # runs at 16384. Under Steam + Path of Exile 2 load the user bus exhausted
+  # 1024 fds and died with "Too many open files" (sockopt_get_peerpidfd),
+  # which disconnected every session D-Bus client (steamwebhelper aborted,
+  # then niri received SIGTERM) and took down the whole graphical session.
+  # This is upstream dbus-broker issue #435 / CVE-2026-16730: the session
+  # bus has NO resource accounting (limits configured "effectively infinite"),
+  # so the fd limit is the ONLY protection, and dbus-broker 37 does not
+  # self-raise its soft limit (upstream fix landed in v38 via #439). Raise the
+  # user bus well above the system bus so a gaming session cannot exhaust the
+  # broker's fd table; the dbus-broker-exporter textfile canary monitors growth.
+  systemd.user.services.dbus-broker.serviceConfig.LimitNOFILE = 65536;
+
   security.rtkit.enable = true;
 
   # Printer monitoring — ink levels and status via LEDM API.

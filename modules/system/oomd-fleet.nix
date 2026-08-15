@@ -19,8 +19,11 @@
     systemd.oomd = {
       enable = lib.mkDefault true;
       settings.OOM = {
-        MemoryUsedPercent = lib.mkDefault 90;
-        SwapUsedPercent   = lib.mkDefault 85;        # percent not raw integer
+        # systemd-oomd (>=261) has NO MemoryUsedPercent key — memory is
+        # governed by PSI via DefaultMemoryPressureLimit (default 60%).
+        # SwapUsedPercent is likewise not a key; the swap/memory threshold is
+        # SwapUsedLimit (fires when memory-used AND swap-used both exceed it).
+        SwapUsedLimit = lib.mkDefault "85%";
       };
     };
 

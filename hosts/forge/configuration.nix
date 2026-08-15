@@ -106,6 +106,8 @@
     ../../modules/services/bonsai.nix
     # llama-swap cluster: llama-swap across the board (unified turboquant binary)
     ../../modules/services/llama-swap-cluster.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -146,11 +148,17 @@
   networking = {
     # Forge-specific firewall rules (in addition to cluster defaults)
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [
+      # mkForce: plain mkOptionDefault silently collapses to [22] in the
+      # dendritic eval (2026-08-14, sentry lesson) — must force the full list:
+      # base [22 6443] + host ports + 9900 A2A.
+      allowedTCPPorts = lib.mkForce [
+        22 # SSH
+        6443 # k3s API
         10250 # Kubelet API
         3334 # gpu-proxy-cpp (centralized proxy for cluster)
         3900 # Garage S3 API (if needed)
         3901 # Garage RPC (if needed)
+        9900 # Hermes A2A gateway (hermes-forge agent card + calls)
       ];
       allowedTCPPortRanges = [
         {
@@ -183,6 +191,29 @@
   # SERVICES CONFIGURATION
 
   services = {
+    # Hermes A2A mesh node: config.yaml sections rendered from Nix by
+    # hermes-config-emit; peers shared via services.hermes-a2a.
+    # NOTE: hosts/forge/services.nix is DEAD CODE (not imported) — this is
+    # the live services attrset (see the k3s encryption-key comment below).
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      managedConfig = true;
+      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
+      # Local Bonsai 27B 1-bit (AMD RX 5700 XT-0, port 8007) for gateway
+      # generation — 4060s are mining-only since 2026-08-15.
+      managedProviders = {
+        "bonsai-forge" = {
+          base_url = "http://127.0.0.1:8007/v1";
+          discover_models = true;
+          model = "bonsai-27b-1bit-forge-vk0";
+        };
+      };
+    };
+    hermes-a2a.enable = true;
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -752,14 +783,21 @@
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {
     enable = true;
-    # 1-bit model fits: miners hold ~1.1GB each, 4 miners = ~4.3GB across both
-    # GPUs, leaving ~5.5GB per 8GB GPU for the 3.5GB model. Earlier SIGSEGV was
-    # a loading-race artifact (both services starting on a busy GPU), not OOM.
-    enableForge1 = true;
+    # 2026-08-15: inference moved to the dedicated AMD 5700 XT pair
+    # (forge-vk0/1, ports 8007/8008, ~13.7 t/s decode each). The 4060s are
+    # back to 100% mining — both CUDA bonsai units are OFF (a CUDA bonsai on
+    # a mining 4060 is a compute-sharing squat; the unified build also squatted
+    # the AMD VRAM at init, the original bug).
+    enableForge0 = false;
+    enableForge1 = false;
+    enableForgeVk = true;
   };
 
+
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
-  services.llama-swap-cluster.enable = true;
+  # 2026-08-15: DISABLED on forge — 4060s mine 100%; the AMD 5700 XT pair are
+  # direct units (bonsai-1bit-forge-vk0/1, RDNA1 env) with no swap catalog.
+  services.llama-swap-cluster.enable = false;
 
   # SOPS age key for secretspec (persistent across generations)
   # Must contain BOTH cluster_age and zephyr_age_v2 private keys (like zephyr's

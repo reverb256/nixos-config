@@ -134,6 +134,7 @@
     ./services/auto-update.nix
     ./services/hermes/default.nix
     ./services/hermes-cli.nix
+    ./services/hermes-a2a-mesh.nix # Shared A2A mesh peers (4-host gateways, dendritic SPOC)
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix
     ./services/cluster-ca.nix # Internal CA for cluster services
@@ -155,6 +156,7 @@
     ./services/gpu-exporters.nix
     # ./services/mining-exporter.nix (removed with compute-market)
     ./services/gputemps-exporter.nix
+    ./services/dbus-broker-exporter.nix
     # Multimedia modules
     ./multimedia/gstreamer.nix
     # Desktop modules (Spotify customization)

@@ -46,6 +46,8 @@
     ../../modules/services/bonsai.nix
     # llama-swap cluster: llama-swap across the board (unified turboquant binary)
     ../../modules/services/llama-swap-cluster.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
   ];
 
   # ============================================================================
@@ -137,6 +139,16 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
+    # Hermes A2A mesh node: config.yaml sections (providers/a2a peers/gateway
+    # platform) rendered from Nix by hermes-config-emit. Peers are shared via
+    # services.hermes-a2a (single source of truth in hermes-a2a-mesh.nix).
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      managedConfig = true;
+    };
+    hermes-a2a.enable = true;
+
     k3s-cluster = {
       enable = true;
       role = "agent";

@@ -33,30 +33,31 @@ with lib; let
   llamaSwap = pkgs.llama-swap;
 
   # Write a llama-swap catalog yaml for one host (system-level, /etc/llama-swap).
-  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; cacheK?; cacheV?; extraFlags? }
+  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; fa?; cacheK?; cacheV?; extraFlags?; binary? }
   #
   # Each model is emitted as a 2-space-indented YAML block, built from explicit
   # string lines (no nested ''-string indentation stripping) so the emitted YAML
   # stays correctly nested regardless of the module's surrounding indentation.
-  # (\${PORT} is llama-swap's own runtime substitution, escaped from Nix.)
+  # (\\${PORT} is llama-swap's own runtime substitution, escaped from Nix.)
   modelYaml = m:
+    let bin = m.binary or unifiedLlama; in
     concatStringsSep "\n" [
       "  \"${m.id}\":"
       "    name: \"${m.name}\""
       "    cmd: |"
-      "      setsid env -i \\"
+      "      /run/current-system/sw/bin/setsid env -i \\"
       "        HOME=/home/j_kro USER=j_kro \\"
       "        PATH=/run/current-system/sw/bin:/usr/bin:/bin \\"
-      "        LD_LIBRARY_PATH=${unifiedLlama}/lib:/run/opengl-driver/lib \\"
+      "        LD_LIBRARY_PATH=${bin}/lib:/run/opengl-driver/lib \\"
       "        ${
         if m.vkDevice or null == null
         then "CUDA_VISIBLE_DEVICES=${m.gpuUuid} \\"
         else "GGML_VULKAN_DEVICE=${m.vkDevice} \\"
       }"
       "        GGML_CUDA_ENABLE_UNIFIED_MEMORY=0 \\"
-      "        ${unifiedLlama}/bin/llama-server \\"
+      "        ${bin}/bin/llama-server \\"
       "        -m ${m.model} \\"
-      "        --host 127.0.0.1 --port \${PORT} -ngl 99 -fa on -c ${toString (m.ctx or 262144)} \\"
+      "        --host 127.0.0.1 --port \${PORT} -ngl 99 -fa ${m.fa or "on"} -c ${toString (m.ctx or 262144)} \\"
       "        ${
         if m.extraFlags or "" == ""
         then "--cache-type-k ${m.cacheK or "turbo4"} --cache-type-v ${m.cacheV or "turbo4"} --fit off \\"
@@ -165,6 +166,13 @@ in {
               model = "/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ3_M.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
               ctx = 262144;
+              # 2026-08-15 (FIX): the default unified turboquant build
+              # (fca3093) fails this model with "expected 417, got 408"
+              # tensors (MTP tensor check — the skill-documented 417-vs-408
+              # blocker). The PLAIN nixpkgs llama-cpp build (2026-08-12,
+              # verified loads on nexus) has no MTP expectation. Use it for
+              # this model; turboquant stays for Bonsai.
+              binary = pkgs.llama-cpp;
               # Verified recipe (2026-08-13). --fit off + -ngl 25 are NOT
               # optional: without them the MoE offload OOMs on 8 GB.
               extraFlags = "--n-cpu-moe 40 --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --fit off -ngl 25";
@@ -177,44 +185,58 @@ in {
         port = 21759; # proxy listen; models bind 21760+ (startPort)
         yamlFile = "nexus.yaml";
       })
-    ]))
-
-    # ── forge: RTX 4060 (CUDA0) — Bonsai 1bit only (both GPUs miner-committed) ──
-    (mkIf (host == "forge" && cfg.enable) (mkMerge [
+      # Workload registry: gguf entries (menu load/unload via swap). Port =
+      # startPort+idx (21760 bonsai, 21761 nemotron). Menu reads the JSON at
+      # runtime over SSH — no menu edit when this catalog changes.
       {
-        environment.etc = mkCatalog {
-          fileName = "forge.yaml";
-          models = [
-            {
-              id = "bonsai-1bit";
-              name = "Bonsai 1bit 256k Turbo4";
-              model = "/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
-              gpuUuid = "GPU-5eb10624-1e18-33d9-f7f7-f8040ac34dad";
-            }
-          ];
-        };
+        services.gpu-workload-registry.workloads.nexus = [
+          {
+            id = "bonsai-1bit";
+            name = "Bonsai 1bit (Nexus)";
+            gpuLabel = "3060 Ti";
+            kind = "gguf";
+            port = 21760;
+            swapId = "bonsai-1bit";
+            swapPort = 21759;
+            alwaysOn = false;
+          }
+          {
+            id = "nemotron-30b-a3b";
+            name = "Nemotron 30B (Nexus)";
+            gpuLabel = "3060 Ti";
+            kind = "gguf";
+            port = 21761;
+            swapId = "nemotron-30b-a3b";
+            swapPort = 21759;
+            alwaysOn = false;
+          }
+        ];
       }
-      (mkService {
-        name = "forge";
-        port = 21763; # proxy listen; models bind 21761+ (startPort)
-        yamlFile = "forge.yaml";
-      })
     ]))
 
-    # ── sentry: AMD RX 5600 XT (Vulkan) — /srv/models, smaller ctx ──
+    # ── forge: 4060s are 100% mining since 2026-08-15 — NO llama-swap catalog ──
+    # The 5700 XT pair (bonsai-1bit-forge-vk0/vk1, ports 8007/8008) serves
+    # Bonsai via DIRECT systemd units (RDNA1 env baked in: MAX_NODES=1,
+    # nogttspill, TURBO_AUTO_ASYMMETRIC=0, -fa off). The catalog spawns with a
+    # clean env and cannot carry those fixes — a swap model on a mining 4060
+    # would squat compute. The registry lists the two direct units instead.
+    # (services.llama-swap-cluster.enable = false on forge — see host config.)
+
+    # ── sentry: AMD RX 5600 XT (Vulkan) — Gemma 4 E2B (replaces Bonsai 1-bit) ──
     (mkIf (host == "sentry" && cfg.enable) (mkMerge [
       {
         environment.etc = mkCatalog {
           fileName = "sentry.yaml";
           models = [
             {
-              id = "bonsai-1bit";
-              name = "Bonsai 1bit 8k q4_0";
-              model = "/srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
+              id = "gemma-e2b";
+              name = "Gemma 4 E2B 128k";
+              model = "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf";
               vkDevice = "0";
-              ctx = 8192;
-              cacheK = "q4_0";
-              cacheV = "q4_0";
+              ctx = 131072;
+              fa = "off"; # RDNA1: -fa on costs 10x decode (2026-08-14, measured 84 t/s)
+              cacheK = "q8_0";
+              cacheV = "f16"; # quantized V requires FA
             }
           ];
         };
@@ -224,6 +246,20 @@ in {
         port = 21764; # proxy listen; models bind 21762+ (startPort)
         yamlFile = "sentry.yaml";
       })
+      {
+        services.gpu-workload-registry.workloads.sentry = [
+          {
+            id = "gemma-e2b";
+            name = "Gemma 4 E2B (Sentry)";
+            gpuLabel = "5600 XT";
+            kind = "gguf";
+            port = 21762;
+            swapId = "gemma-e2b";
+            swapPort = 21764;
+            alwaysOn = false;
+          }
+        ];
+      }
     ]))
   ];
 }

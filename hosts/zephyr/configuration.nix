@@ -49,6 +49,8 @@
     ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
+    # GPU workload registry: single source for the fuzzel menu (workloads.json)
+    ../../modules/services/gpu-workload-registry.nix
     # NVIDIA Switchyard LLM routing proxy (routes.toml + systemd unit)
     ../../modules/services/switchyard.nix
 
@@ -85,23 +87,26 @@
   # Zephyr carries ~/Projects/secretspec-core (cachix-fork with sops
   # subprocess provider) and ~/Projects/secretspec/provider-rust (NDJSON
   # dispatcher fork). `cluster.localSealSupport` was REMOVED 2026-07-25
-  # (vestigial after Phase 1a), and the old "impure-eval relax + local-fork
-  # probe" coupling is DISPROVEN: pure-eval is now enabled cluster-wide
-  # (`nix.settings.pure-eval = true`, modules/system/nix-config.nix) and all
-  # four hosts' toplevels + home-manager eval cleanly under
-  # `nix eval --pure-eval` (verified 2026-08-13). No explicit declaration
-  # needed; see .plans/2026-07-25-cluster-localSealSupport-scope.md for the
-  # cluster-wide semantic.
+  # (vestigial after Phase 1a). 2026-08-13 the deploy scripts briefly added
+  # a GLOBAL `nix.settings.pure-eval = true` (claiming "home-manager eval
+  # cleanly under pure-eval") — that claim was FALSE: home-manager's news
+  # step does a NIX_PATH `<home-manager/...>` lookup which pure mode forbids
+  # (`cannot look up '<home-manager/home-manager/build-news.nix>' in pure
+  # evaluation mode`), breaking every `home-manager switch`. Removed
+  # 2026-08-14 in modules/system/nix-config.nix. Pure-eval is opt-in per
+  # command now; the secretspec fork path already forces
+  # `--option pure-eval false` in the justfile where it needs impure eval.
+  # See .plans/2026-07-25-cluster-localSealSupport-scope.md.
   # ============================================================================
 
   # Validator is auto-coupled to services.sops-secrets-registry.enable (set below in
   # the services block) — no explicit services.secretspec-validator block needed.
   # → enable defaults to true (coupled) + production defaults to true.
-  # Eval-mode note (2026-08-13): pure-eval is enabled cluster-wide and verified
-  # working — see the modules/system/secretspec-validator.nix header. There is
-  # NO impure-eval coupling requirement; cluster.localSealSupport was removed
-  # and no host needs it. See .plans/2026-07-25-cluster-localSealSupport-scope.md
-  # for the historical cluster-wide toggle decision.
+  # Eval-mode note (2026-08-14): the global pure-eval experiment (2026-08-13)
+  # was REVERTED in modules/system/nix-config.nix — it broke home-manager
+  # switch (news NIX_PATH lookup fails in pure mode). No host requires
+  # cluster.localSealSupport; the secretspec fork build path forces
+  # `--option pure-eval false` in the justfile where needed.
 
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};
@@ -856,19 +861,16 @@
   programs = {
     scopebuddy = {
       enable = true;
+      # 2026-08-14: ALL autoDetect off. scb.conf (home-manager
+      # zephyr-gaming-hdr.nix) hard-codes 4K60/HDR — it is the single source of
+      # truth. The autoDetect exports (SCB_AUTO_RES/HDR/HZ/SCALE=1) contradict
+      # the hard-coded scb.conf and leak into every process env; on niri they
+      # can force a lower logical resolution (Samsung TV 4K @ scale 1.5 →
+      # 2560x1440) and refresh changes.
       autoDetect = {
-        resolution = true;
-        hdr = true;
-        # 2026-07-28: VRR disabled on zephyr. Niri output config has
-        # variable-refresh-rate = false already, but scopebuddy would still
-        # apply VRR-capable profiles on connect. Keep scopebuddy itself
-        # active for HDR/resolution auto-detection.
+        resolution = false;
+        hdr = false;
         vrr = false;
-        # 2026-08-14: refreshRate/scaling auto-detect leak SCB_AUTO_HZ=1 and
-        # SCB_AUTO_SCALE=1 into the global session env (scopebuddy.nix exports
-        # them), telling every game to auto-detect refresh/scaling — on niri
-        # auto-scaling can force a lower logical resolution (Samsung TV 4K @
-        # scale 1.5 → 2560x1440). scb.conf hard-codes 4K60; kill the leak.
         refreshRate = false;
         scaling = false;
       };
@@ -998,8 +1000,13 @@
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
-    lsfg-vk # Lossless Scaling frame-gen Vulkan layer (nixpkgs 2.0.0-dev, Steam app 993090)
-    lsfg-vk-ui # lsfg-vk config GUI
+    # lsfg-vk / lsfg-vk-ui REMOVED 2026-08-14 — ROOT ISSUE of the swapchain
+    # failures: 2.0.0-dev installs VkLayer_LSFGVK_frame_generation.json as a
+    # GLOBAL implicit layer that loads into EVERY Vulkan app and fails init
+    # ("lsfg-vk: unsupported configuration version" in PoE2, llama.cpp,
+    # upscayl). A dev-build implicit layer breaking every Vulkan process is
+    # unacceptable. Frame-gen, if ever wanted again, must be a per-game opt-in
+    # (VK_INSTANCE_LAYERS in a wrapper), never system-global.
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
@@ -1111,7 +1118,11 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
-    telegram-desktop
+    # telegram-desktop intentionally NOT in system packages (2026-08-14):
+    # HM's opencode module installs it into ~/.nix-profile (opencode.nix
+    # programs.opencode.telegramDesktop, default true). A system copy
+    # duplicated the org.telegram.desktop DBus service -> dbus-broker
+    # "Ignoring duplicate name" warnings on every session start.
     # Freebuff Desktop — packaged from the AppImage (appimageTools.wrapType2).
     # Installed system-wide so noctalia's systemd-run (PATH=/run/current-system/sw/bin)
     # can resolve `freebuff-desktop` for launcher clicks (was only in ~/.local/bin).
@@ -1339,4 +1350,9 @@
       }
     ];
   };
+
+  # A2A mesh: shared peer definitions + inbound gateway platform (port 9900)
+  # rendered from Nix by hermes-config-emit. Dendritic SPOC — peers live here,
+  # token values stay in the hermes-owned config.yaml.
+  services.hermes-a2a.enable = true;
 }

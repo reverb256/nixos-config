@@ -15,12 +15,10 @@ in {
       priority = 90;
     };
 
-    hermes-cli = {
-      enable = true;
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
-    };
+    # NOTE: hermes-cli / hermes-a2a live in hosts/forge/configuration.nix
+    # (the live services attrset). THIS FILE IS NOT IMPORTED — see the
+    # k3s-cluster encryption-key comment there.
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;

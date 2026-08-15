@@ -251,16 +251,29 @@ in {
       # (NB: colmena's `--evaluator streaming` path uses nix-eval-jobs, which does
       # its own eval and does not hit this cache — the win is on the
       # nixos-rebuild / direct-build path.) Gated in lix/libcmd/installables.cc:402
-      # on `use-eval-cache && pure-eval`, so BOTH must be true. Historically the
-      # deploy scripts passed `--option pure-eval false` (a CLI flag, which
-      # overrides nix.conf), silently disabling the cache on the deploy path —
-      # those overrides are now removed. Set both explicitly so the pairing is
-      # durable across upstream default changes and visible in one place.
-      # Safe here: all four hosts + home-manager + apps evaluate cleanly under
-      # `nix eval --pure-eval` (the old sops-nix eval-time age-key decrypt
-      # migrated to the runtime secretspec subprocess provider).
+      # on `use-eval-cache && pure-eval`, so BOTH must be true.
+      #
+      # 2026-08-14 (FIX): pure-eval must NOT be a global default. The global
+      # `pure-eval = true` broke home-manager's `switch` with
+      # `cannot look up '<home-manager/home-manager/build-news.nix>' in pure
+      # evaluation mode` — home-manager's news step does a NIX_PATH `<...>`
+      # lookup, which pure mode forbids even with `-I`. The setting was added
+      # 2026-08-13 claiming "home-manager evaluates cleanly under pure-eval",
+      # which is provably false. It also never engaged on the primary deploy
+      # path: the justfile forces `--option pure-eval false` there (secretspec
+      # fork needs it). Pure-eval stays an OPT-IN per-command flag
+      # (`nix build --pure-eval`); the eval-cache engages only when a caller
+      # explicitly requests pure eval.
+      #
+      # 2026-08-14 (REAL FIX): the Lix homelab fork DEFAULTS pure-eval=true
+      # (verified via `nix show-config` with a clean env and empty nix.conf —
+      # removing the old `pure-eval = true` line had NO effect because the
+      # default is compiled in). Explicitly force it off; remote builders
+      # (ssh-ng) inherit this via nix.conf and produce wrong content for
+      # home-manager derivations otherwise (observed: hash mismatch importing
+      # hm_dolphinrc / niri-config-reload.path from sentry).
+      pure-eval = false;
       eval-cache = true;
-      pure-eval = true;
 
       auto-optimise-store = true;
 

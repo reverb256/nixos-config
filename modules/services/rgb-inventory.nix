@@ -322,6 +322,11 @@ in {
         ProtectHome = true;
         PrivateTmp = true;
         RestrictAddressFamilies = ["AF_UNIX" "AF_INET"];
+        # OpenRGB creates ~/.config/OpenRGB at startup. ProtectHome=true blocks
+        # /root, so create_directories throws -> SIGABRT on EVERY run (seen as
+        # a coredump every 5 min). Redirect its config dir into our writable
+        # state dir so the CLI can start and enumerate devices.
+        Environment = "XDG_CONFIG_HOME=${stateDir}/config";
       };
     };
 
@@ -346,6 +351,8 @@ in {
         ProtectHome = true;
         PrivateTmp = true;
         RestrictAddressFamilies = ["AF_UNIX" "AF_INET"];
+        # Same as rgb-inventory: OpenRGB must be able to create its config dir.
+        Environment = "XDG_CONFIG_HOME=${stateDir}/config";
       };
     };
 

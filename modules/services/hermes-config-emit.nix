@@ -40,6 +40,12 @@ in
           managedFallbackJson =
             pkgs.writeText "hermes-managed-fallback.json"
             (builtins.toJSON cfg.managedFallbackProviders);
+          managedA2aJson =
+            pkgs.writeText "hermes-managed-a2a-agents.json"
+            (builtins.toJSON cfg.managedA2aAgents);
+          managedGatewayA2aJson =
+            pkgs.writeText "hermes-managed-gateway-a2a.json"
+            (builtins.toJSON cfg.managedGatewayA2a);
         in
           pkgs.writeShellScript "hermes-config-emit" ''
                     set -euo pipefail
@@ -67,12 +73,26 @@ in
                 managed_providers = json.load(f)
             with open("${managedFallbackJson}") as f:
                 managed_fallback = json.load(f)
+            with open("${managedA2aJson}") as f:
+                managed_a2a_agents = json.load(f)
+            with open("${managedGatewayA2aJson}") as f:
+                managed_gateway_a2a = json.load(f)
 
             doc = {}
             if managed_providers:
                 doc["providers"] = managed_providers
             if managed_fallback:
                 doc["fallback_providers"] = managed_fallback
+            if managed_a2a_agents:
+                doc["a2a_agents"] = managed_a2a_agents
+            if managed_gateway_a2a is not None:
+                doc["gateway"] = {
+                    **(doc.get("gateway") or {}),
+                    "platforms": {
+                        **((doc.get("gateway") or {}).get("platforms") or {}),
+                        "a2a": managed_gateway_a2a,
+                    },
+                }
 
             yaml.safe_dump(
                 doc,
@@ -96,7 +116,34 @@ in
                 managed = yaml.safe_load(f) or {}
 
             for k, v in managed.items():
-                existing[k] = v
+                if k == "gateway":
+                    # Deep-merge gateway sections so other platforms
+                    # (telegram, discord, etc.) survive the emit.
+                    existing_gw = existing.get("gateway") or {}
+                    managed_plat = v.get("platforms") or {}
+                    existing_plat = existing_gw.get("platforms") or {}
+                    existing_gw = dict(existing_gw)
+                    existing_gw["platforms"] = {**existing_plat, **managed_plat}
+                    existing["gateway"] = existing_gw
+                elif k == "a2a_agents":
+                    # Deep-merge per-peer: Nix-managed structure (url,
+                    # capabilities, timeout) wins; token values (hermes-owned,
+                    # NEVER in Nix store) survive because managed entries
+                    # carry no auth key. Existing auth fields pass through.
+                    existing_peers = existing.get("a2a_agents") or {}
+                    merged_peers = {}
+                    for peer, peer_cfg in v.items():
+                        merged_peers[peer] = {
+                            **existing_peers.get(peer, {}),
+                            **peer_cfg,
+                        }
+                    # peers removed from Nix no longer emit; keep any peers
+                    # that were never managed (preserve unknown/legacy peers).
+                    for peer, peer_cfg in existing_peers.items():
+                        merged_peers.setdefault(peer, peer_cfg)
+                    existing["a2a_agents"] = merged_peers
+                else:
+                    existing[k] = v
 
             with open("$MERGED_TMP", "w") as f:
                 yaml.safe_dump(existing, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
