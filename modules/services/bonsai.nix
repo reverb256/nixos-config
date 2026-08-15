@@ -133,6 +133,10 @@ with lib; let
     gpu ? null,
     extraEnv ? {},
     binary ? prismBinary,
+    # 2026-08-15: extra ordering deps. forge-vk1 starts AFTER vk0 so two 3.5GB
+    # model loads never overlap on forge's 15GB box (earlyoom SIGTERM'd vk0 —
+    # simultaneous load peaked at 2.1G each, system avail hit 0 MiB).
+    afterUnits ? [],
     model ? cfg.onebitModel,
     contextSize ? "262144",
     cacheTypeK ? "turbo4",
@@ -151,7 +155,7 @@ with lib; let
   }: {
     systemd.services."bonsai-1bit-${name}" = {
       description = desc;
-      after = ["network.target"];
+      after = ["network.target"] ++ afterUnits;
       wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "simple";
@@ -350,7 +354,9 @@ with lib; let
     cacheTypeK = "turbo4";
     cacheTypeV = "turbo4";
     parallel = 2;
-    memoryMax = "8G";
+    # 15GB box: 2 instances -> 12G total cgroup cap. 8G each was > physical
+    # and earlyoom killed vk0 during simultaneous load.
+    memoryMax = "6G";
     extraEnv = {
       GGML_VULKAN_DEVICE = "0";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
@@ -371,7 +377,9 @@ with lib; let
     cacheTypeK = "turbo4";
     cacheTypeV = "turbo4";
     parallel = 2;
-    memoryMax = "8G";
+    # Stagger after vk0: model loads (2.1G peak each) must not overlap on 15GB.
+    afterUnits = ["bonsai-1bit-forge-vk0.service"];
+    memoryMax = "6G";
     extraEnv = {
       GGML_VULKAN_DEVICE = "1";
       VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json";
