@@ -124,6 +124,21 @@ in
             description = "Monitoring service {{ $labels.job }} (instance {{ $labels.instance }}) has been down for 1 minute.";
           };
         }
+        {
+          # RGB inventory runs as a oneshot timer; its scan_success metric is
+          # exported via node-exporter textfile collector. A value of 0 means
+          # the OpenRGB discovery step failed (2026-08-14: the CLI crashed
+          # under ProtectHome=true for hours while the service itself reported
+          # success — the metric was the only honest signal).
+          alert = "RgbInventoryScanFailed";
+          expr = "rgb_inventory_scan_success == 0";
+          for = "15m";
+          labels = {severity = "warning";};
+          annotations = {
+            summary = "RGB inventory scan failed on {{ $labels.instance }}";
+            description = "RGB hardware inventory scan_success=0 for 15 minutes. OpenRGB device discovery is broken on {{ $labels.instance }} (not a visibility gap — the scan itself failed).";
+          };
+        }
       ])
 
       # ── Temperature ──────────────────────────────────────────────
