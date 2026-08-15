@@ -89,7 +89,7 @@ in
                 doc["gateway"] = {
                     **(doc.get("gateway") or {}),
                     "platforms": {
-                        **(doc.get("gateway") or {}).get("platforms") or {},
+                        **((doc.get("gateway") or {}).get("platforms") or {}),
                         "a2a": managed_gateway_a2a,
                     },
                 }
