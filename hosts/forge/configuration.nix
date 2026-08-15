@@ -310,7 +310,11 @@
     # - mining.nix: hugepagesz=1G, hugepages=3 (when mining enabled)
     #
     # Only add Forge-specific parameters here that aren't provided by modules
+    # 2026-08-15: GTT fix — suspended 2nd GPU pushes allocations to GTT
+    # (llama.cpp issue #5380, sentry-proven). hosts/forge/hardware.nix is
+    # NOT imported, so params must live here.
     kernelParams = [
+      "amdgpu.runpm=0"
       "iomem=relaxed" # Required for gputemps BAR0 MMIO access (per-module GDDR6 VRAM temps)
     ];
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
