@@ -92,7 +92,11 @@
     # them; replicate both fixes inline in postPatch below. Keep the two
     # pending-upstream patches that apply cleanly to 3.16.22 (verified):
     # 4ce1a91f (system libraries) + d49a2ade (stb_image_resize2 guard).
+    # 3.16.22 vendored wlroots 0.18 lacks LIBINPUT_SWITCH_KEYPAD_SLIDE handling;
+    # system libinput 1.31.3 added the enum, -Werror=switch fails the build.
+    # Add the enum + case (mirrors upstream wlroots).
     patches = [
+      ./gamescope-3.16.22-wlroots-keypad-slide.patch
       (_final.fetchpatch {
         url = "https://github.com/ValveSoftware/gamescope/commit/4ce1a91fb219f570b0871071a2ec8ac97d90c0bc.diff";
         hash = "sha256-O358ScIIndfkc1S0A8g2jKvFWoCzcXB/g6lRJamqOI4=";
