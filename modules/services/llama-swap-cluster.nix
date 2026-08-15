@@ -33,13 +33,14 @@ with lib; let
   llamaSwap = pkgs.llama-swap;
 
   # Write a llama-swap catalog yaml for one host (system-level, /etc/llama-swap).
-  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; fa?; cacheK?; cacheV?; extraFlags? }
+  # models: list of { id; name; model; gpuUuid; vkDevice?; ctx?; fa?; cacheK?; cacheV?; extraFlags?; binary? }
   #
   # Each model is emitted as a 2-space-indented YAML block, built from explicit
   # string lines (no nested ''-string indentation stripping) so the emitted YAML
   # stays correctly nested regardless of the module's surrounding indentation.
   # (\\${PORT} is llama-swap's own runtime substitution, escaped from Nix.)
   modelYaml = m:
+    let bin = m.binary or unifiedLlama; in
     concatStringsSep "\n" [
       "  \"${m.id}\":"
       "    name: \"${m.name}\""
@@ -47,14 +48,14 @@ with lib; let
       "      /run/current-system/sw/bin/setsid env -i \\"
       "        HOME=/home/j_kro USER=j_kro \\"
       "        PATH=/run/current-system/sw/bin:/usr/bin:/bin \\"
-      "        LD_LIBRARY_PATH=${unifiedLlama}/lib:/run/opengl-driver/lib \\"
+      "        LD_LIBRARY_PATH=${bin}/lib:/run/opengl-driver/lib \\"
       "        ${
         if m.vkDevice or null == null
         then "CUDA_VISIBLE_DEVICES=${m.gpuUuid} \\"
         else "GGML_VULKAN_DEVICE=${m.vkDevice} \\"
       }"
       "        GGML_CUDA_ENABLE_UNIFIED_MEMORY=0 \\"
-      "        ${unifiedLlama}/bin/llama-server \\"
+      "        ${bin}/bin/llama-server \\"
       "        -m ${m.model} \\"
       "        --host 127.0.0.1 --port \${PORT} -ngl 99 -fa ${m.fa or "on"} -c ${toString (m.ctx or 262144)} \\"
       "        ${
@@ -165,6 +166,13 @@ in {
               model = "/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ3_M.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
               ctx = 262144;
+              # 2026-08-15 (FIX): the default unified turboquant build
+              # (fca3093) fails this model with "expected 417, got 408"
+              # tensors (MTP tensor check — the skill-documented 417-vs-408
+              # blocker). The PLAIN nixpkgs llama-cpp build (2026-08-12,
+              # verified loads on nexus) has no MTP expectation. Use it for
+              # this model; turboquant stays for Bonsai.
+              binary = pkgs.llama-cpp;
               # Verified recipe (2026-08-13). --fit off + -ngl 25 are NOT
               # optional: without them the MoE offload OOMs on 8 GB.
               extraFlags = "--n-cpu-moe 40 --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --fit off -ngl 25";
