@@ -1136,7 +1136,12 @@
     # Freebuff Desktop — packaged from the AppImage (appimageTools.wrapType2).
     # Installed system-wide so noctalia's systemd-run (PATH=/run/current-system/sw/bin)
     # can resolve `freebuff-desktop` for launcher clicks (was only in ~/.local/bin).
-    freebuff-desktop
+    # 2026-08-15: override with the SYSTEM nvidia driver (new_feature 610) so
+    # freebuff's Vulkan ICD matches the running driver. The overlay default
+    # (linuxPackages.nvidia_x11) is 595.84 — mismatched libs.
+    (pkgs.freebuff-desktop.override {
+      nvidiaIcdPath = "${config.hardware.nvidia.package}/share/vulkan/icd.d/nvidia_icd.json";
+    })
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
