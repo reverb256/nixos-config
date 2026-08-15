@@ -1,5 +1,4 @@
-{ pkgs ? import <nixpkgs> { } }:
-let
+{pkgs ? import <nixpkgs> {}}: let
   inherit (pkgs) lib;
 
   hmDir = ../modules/home-manager;
@@ -38,7 +37,8 @@ let
     (lib.strings.hasInfix "fonts.${family} = {" stylixContent
       || lib.strings.hasInfix "${family} = {" stylixContent)
     && lib.strings.hasInfix "\"${name}\"" stylixContent;
-  fontChecks = lib.mapAttrs'
+  fontChecks =
+    lib.mapAttrs'
     (family: name: lib.nameValuePair "stylix-declares-${family}" (declaresFamily family name))
     expectedFonts;
 
@@ -48,26 +48,33 @@ let
   # forgets to bump the lock, the next colmena deploy silently reverts Layer-2
   # to the stale pinned rev. The lock-sync guard lives in deploy.yml, but we
   # assert here that the input is at least present and rev-pinned.
+  #
+  # NOTE: parse the lock as JSON instead of regex-scanning the raw text.
+  # lib.strings.hasInfix -> builtins.match ".*..." stack-overflows on the
+  # ~130KB flake.lock in the pinned Nix (regex backtracking), which broke
+  # the Test Coverage job (2026-08-15).
   lockPath = ../flake.lock;
   lockContent = builtins.readFile lockPath;
-  lockHasHmInput = lib.strings.hasInfix "home-manager-config" lockContent;
-  lockHasRev = lockHasHmInput && lib.strings.hasInfix "\"rev\"" lockContent;
+  lockData = builtins.fromJSON lockContent;
+  lockHasHmInput = builtins.hasAttr "home-manager-config" lockData.nodes;
+  lockHasRev =
+    lockHasHmInput
+    && (lockData.nodes."home-manager-config".locked ? rev);
 
   deployWorkflow = builtins.readFile ../.github/workflows/deploy.yml;
   hasDeploy = needle: lib.strings.hasInfix needle deployWorkflow;
 
-  checks = {
-    localCopyRemoved = localCopyRemoved;
-    shimRemoved = shimRemoved;
-    inherit lockHasHmInput lockHasRev;
-    deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
-    deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
-    deployStopsOnConfirmedDrift = hasDeploy "exit 1";
-    deployDocumentsOfflineSkip = hasDeploy "skipping lock-sync guard";
-  } // fontChecks;
-in
-rec {
+  checks =
+    {
+      inherit localCopyRemoved shimRemoved lockHasHmInput lockHasRev;
+      deployGuardsLayer2Lock = hasDeploy "Guard Layer-2 lock sync";
+      deployComparesLockedAndRemote = hasDeploy "LOCK_REV" && hasDeploy "REMOTE_REV";
+      deployStopsOnConfirmedDrift = hasDeploy "exit 1";
+      deployDocumentsOfflineSkip = hasDeploy "skipping lock-sync guard";
+    }
+    // fontChecks;
+in rec {
   inherit checks;
   failures = builtins.attrNames (lib.filterAttrs (_: v: !v) checks);
-  passed = failures == [ ];
+  passed = failures == [];
 }

@@ -1,3 +1,10 @@
+# Declare the custom self-hosted runner labels used across workflows
+# (`[self-hosted, nixos, ...]` and `[self-hosted, nixos, nexus, builder]`).
+# actionlint rejects labels that are not in this list (the labels list
+# replaces the default set when present). See
+# https://github.com/rhysd/actionlint/blob/main/docs/config.md.
 self-hosted-runner:
   labels:
     - nixos
+    - nexus
+    - builder
