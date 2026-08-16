@@ -1,7 +1,7 @@
 # Architecture Decision Record Index
 
 > **Status:** Canonical decision navigation
-> **Last Verified:** 2026-08-13
+> **Last Verified:** 2026-08-16
 > **Owner:** Cluster operations
 > **Authority:** The detailed decision table remains in [`ACTION-ITEMS.md`](../ACTION-ITEMS.md#decision-log); this file routes readers to the rationale and source material.
 
@@ -29,6 +29,7 @@ historical reports or generated snapshots into current operating procedures.
 | Secrets | SecretSpec is the runtime resolution path while sops-nix remains a compatibility path during migration; plaintext secrets do not belong in documentation. | [`docs/current-state.md`](current-state.md), [`SOPS-NIX.md`](../SOPS-NIX.md), `secretspec.toml` |
 | Resource placement | Nexus is the default workload/build target; Zephyr is protected from non-infrastructure workload pressure. | [`docs/kubernetes/zephyr-ram-protection-policy.md`](kubernetes/zephyr-ram-protection-policy.md), `modules/system/distributed-builds.nix`, `kubernetes/cluster.nix` |
 | Security backlog | Open hardening work and recorded rationale stay in the consolidated action-item table. | [`ACTION-ITEMS.md`](../ACTION-ITEMS.md#decision-log) |
+| Sops envelope format | After `sops updatekeys` (2026-08-16) rewrote all envelopes JSON→YAML, the registry defaults to `format="yaml"` + `key="data"`; do not restore `binary` without re-encrypting to JSON (blocked by YubiKey). | [`SOPS-NIX.md`](../SOPS-NIX.md), `modules/system/sops-secrets-registry.nix`, commit `389fc2697` |
 | Host wiring | Dendritic flake-parts pattern (Variant B path-import); shared `lib/dendritic-host.nix` evaluator for `nixosConfigurations` + `colmena`; classic shim dissolved 2026-08-13. | [`../modules/hosts/`](../modules/hosts/), [`../lib/dendritic-host.nix`](../lib/dendritic-host.nix), [`../contracts/host-inventory.nix`](../contracts/host-inventory.nix), [`../AGENTS.md`](../AGENTS.md) |
 
 ## Historical and superseded decisions

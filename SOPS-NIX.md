@@ -24,6 +24,18 @@
 > secrets decrypt; only the hermes-relevant set enabled on zephyr (and
 > re-keyed to zephyr's pubkey) does.
 
+## Envelope format: YAML (post-rotation)
+
+The 2026-08-16 age-key rotation (`5f188591b`) ran `sops updatekeys` on all 79
+sops files, rewriting JSON envelopes to YAML envelopes. `sops-install-secrets`
+`format = "binary"` requires a JSON envelope (`json.Unmarshal` in
+`pkgs/sops-install-secrets/main.go:514`) and fails with `invalid character 'd'
+looking for beginning of value` on YAML envelopes. Fix `389fc2697` set the
+registry defaults to `defaultSopsFormat = "yaml"` + `defaultSopsKey = "data"`
+and gave `cloud/cloudflared-token` its explicit `sopsFile`. Do NOT reintroduce
+`format = "binary"` unless the files are re-encrypted to JSON envelopes (blocked
+by YubiKey hardware).
+
 ## Current state
 
 - **Module wiring:** `common-modules-list.nix` line 8

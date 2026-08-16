@@ -7,6 +7,68 @@
 
 ## Recent Achievements
 
+### Freebuff Desktop launcher: NVIDIA EGL fix + declarative icon (2026-08-16)
+
+**Status:** ✅ COMPLETE (HM layer verified; zephyr deploy in flight)
+
+Fixed the Freebuff Desktop launcher on zephyr: missing icon, missing NVIDIA EGL
+environment, and a non-declarative hand-placed `.desktop` entry.
+
+**Root Cause:**
+- `Icon=freebuff` resolved to nothing — no icon in any store path.
+- The AppImage wrapper set `VK_ICD_FILENAMES` but omitted
+  `__EGL_VENDOR_LIBRARY_FILENAMES`, `LIBGL_DRIVERS_PATH`, libglvnd
+  `LD_LIBRARY_PATH`, `GDK_BACKEND=wayland`, `MOZ_ENABLE_WAYLAND=1` — Electron
+  had no NVIDIA EGL/Vulkan path.
+- The `.desktop` entry was hand-placed in `~/.local/share/applications/`.
+- Two competing launchers; HM `freebuff-desktop-latest` wins PATH over
+  `/run/current-system/sw/bin/freebuff-desktop-launcher`.
+
+**Solution:**
+- home-manager-config `ee907ec`: extended `launchEnv` in
+  `modules/appimage-updater.nix` with the five NVIDIA/EGL/Wayland vars.
+- nixos-config `699707518`: reduced `modules/services/freebuff-desktop.nix` to
+  icon-only (512×512 icon extracted from the AppImage into
+  `modules/services/assets/`), removed the duplicate launcher from
+  `overlays/system.nix`, pinned HM `ee907ec` in flake.lock.
+- Removed the hand-placed `.desktop`; HM regenerates it declaratively.
+
+**Result:**
+- `home-manager switch` exit 0; live wrapper
+  `~/.nix-profile/bin/freebuff-desktop-latest` carries the EGL vars (lines 9–13).
+- `.desktop` symlinked into HM output; mimeinfo.cache regenerated.
+
+**Commits:** home-manager-config `ee907ec`; nixos-config `699707518`
+
+---
+
+### Sops YAML-envelope regression after age-key rotation (2026-08-16)
+
+**Status:** ✅ COMPLETE (fix committed; zephyr deploy in flight)
+
+The 2026-08-16 age-key rotation (`5f188591b`) ran `sops updatekeys` on all 79
+sops files, rewriting JSON envelopes to YAML envelopes. `sops-install-secrets`
+with `format = "binary"` does `json.Unmarshal` on the raw file (main.go:514), so
+every binary-format secret failed at build/runtime with `cannot parse json of
+'...': invalid character 'd' looking for beginning of value`.
+
+**Root Cause:** `sops updatekeys` re-serialized envelopes; `format = "binary"`
+requires a JSON envelope; re-encrypting 79 files back to JSON was blocked by the
+YubiKey hardware requirement.
+
+**Solution (config-side, `389fc2697`):**
+- `modules/system/sops-secrets-registry.nix`: `defaultSopsFormat` binary→yaml,
+  added `defaultSopsKey = "data"`.
+- `hosts/zephyr/configuration.nix`: `cloud/cloudflared-token` gained an explicit
+  `sopsFile` (it was inheriting the nvidia key file via the registry fallback).
+
+**Result:** sops-nix manifest build green; all 3 zephyr secrets now
+`format=yaml`/`key=data`/correct files. Only zephyr was affected (only host with
+the registry enabled).
+
+**Commits:** `389fc2697`
+
+---
 ### Dendritic flake-parts host migration (issue #397) (2026-08-13)
 
 **Status:** ✅ COMPLETE
