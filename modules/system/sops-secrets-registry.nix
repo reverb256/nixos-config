@@ -55,24 +55,28 @@ in {
   config = mkIf config.services.sops-secrets-registry.enable {
     sops = {
       defaultSopsFile = "${inputs.self}/secrets/ai/nvidia-api-key.yaml";
-      defaultSopsFormat = "binary";
+      defaultSopsFormat = "yaml";
+      defaultSopsKey = "data";
       age.keyFile = "/etc/nixos/.age/key.txt";
     };
     sops.secrets = {
-      # NOTE: these are single-value sops files ({ "data": ENC[...] }),
-      # so format must be "binary" — "yaml" makes sops-install-secrets
-      # treat the secret name (storage/...) as a YAML key path and fail
-      # with 'the key storage cannot be found' (deploy blocker 2026-08-13).
+      # NOTE: these are single-value sops files (YAML envelope `data: ENC[...]`).
+      # After the 2026-08-16 age-key rotation (`sops updatekeys` rewrote all
+      # store files as YAML), format must be "yaml" with key = "data".
+      # "binary" requires a JSON envelope and fails check-mode with
+      # 'cannot parse json' (deploy blocker 2026-08-16).
       "storage/garage-s3-access-key-id" = {
         sopsFile = "${inputs.self}/secrets/storage/garage-s3-access-key-id.yaml";
-        format = "binary";
+        format = "yaml";
+        key = "data";
         owner = "root";
         group = "root";
         mode = "0440";
       };
       "storage/garage-s3-secret-key" = {
         sopsFile = "${inputs.self}/secrets/storage/garage-s3-secret-key.yaml";
-        format = "binary";
+        format = "yaml";
+        key = "data";
         owner = "root";
         group = "root";
         mode = "0440";
