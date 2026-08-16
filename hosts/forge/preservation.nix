@@ -31,6 +31,13 @@
       "/var/lib/bluetooth"
       "/var/lib/tailscale"
       "/var/lib/fwupd"
+
+      # SOPS age key — secretspec-creds and secretspec-validator read
+      # ageKeyFile = /etc/sops/age/key.txt (set in hosts/forge/configuration.nix).
+      # The key is seeded ONCE by the operator at /persistent/etc/sops/age/key.txt;
+      # this bindmount makes it durable across generations. It must NOT be
+      # declared in configuration.nix (the 2026-08-16 audit found the previous
+      # pkgs.writeText copy had leaked both private keys into git history).
       "/etc/sops/age"
     ];
     files = [

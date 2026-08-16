@@ -23,9 +23,10 @@ certs.bak/
 # ✅ DO commit: secrets/*.yaml (sops-encrypted, safe to track)
 echo
 # ── Editor backups + patch-rejection artifacts ────────────────────
-.env
-.env.*
-# .env files (operator-only, NOT tracked):
+# .env files in any shape (operator-only, NOT tracked) — covers .env,
+# .env.secrets, foo.env, mcp-gateway-credentials.env, etc.
+*.env
+*.env.*
 #   .env          — local SDK config with SAMSUNG_TV_TOKEN (in secretspec via sops)
 #   .env.secrets  — placeholder env map for secretspec dotenv provider
 .firecrawl/
@@ -70,6 +71,9 @@ secrets/cache/
 secrets/*.key
 .secretspec.env
 #   .secretspec.env — secretspec pre-loaded env
+#   env-vars       — captured shell `declare -x` dump (was accidentally tracked;
+#                    contained CONTEXT7_API_KEY/GEMINI_API_KEY/HF_TOKEN)
+/env-vars
 secrets/*.plaintext
 secrets.pre-recovery-2026-07-25/
 secrets/*.secret
@@ -77,6 +81,9 @@ secrets/*.txt
 .serena/
 .sisyphus/
 skills/
+# ── Agent task guides are tracked documentation, not the ignored skills/ tree ──
+!agents/skills/
+!agents/skills/**
 skills-lock.json
 ssh/
 *.swp

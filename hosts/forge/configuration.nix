@@ -807,17 +807,17 @@
   # direct units (bonsai-1bit-forge-vk0/1, RDNA1 env) with no swap catalog.
   services.llama-swap-cluster.enable = false;
 
-  # SOPS age key for secretspec (persistent across generations)
-  # Must contain BOTH cluster_age and zephyr_age_v2 private keys (like zephyr's
-  # ~/.config/sops/age/keys-combined.txt) because SOPS files are encrypted to
-  # multiple recipients. See /etc/nixos/.sops.yaml for the recipient list.
-  environment.etc."sops/age/key.txt".source = pkgs.writeText "age-key" ''
-    # created: 2026-03-02T05:10:03-06:00
-    # public key: age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe
-    AGE-SECRET-KEY-1DRL0V8ELTG5W60CNMTHT26GDEJTTYRP92RZKPVJZ6CK333DXKUUQ9KJ2ZJ
-    # created: 2026-07-25T13:42:32-05:00
-    # public key: age163ce5qyznc8vsfq9ppkk5jwtuj66yasxup3hge2t625y4xmw5ffqcmczdx
-    AGE-SECRET-KEY-1KZ0485ERFN5LRV3XJN0D6VS6LJ2KXPQWU5WT663A2ZA98NU4EW0QAMCSEW
-  '';
-  environment.etc."sops/age/key.txt".mode = "0600";
+  # SOPS age key for secretspec (persistent across generations).
+  #
+  # The key is NOT declared here: it is seeded once by the operator at
+  # /persistent/etc/sops/age/key.txt and bind-mounted to /etc/sops/age/key.txt
+  # by hosts/forge/preservation.nix (the "/etc/sops/age" entry). Both
+  # services.secretspec-creds and services.secretspec-validator below read it
+  # via ageKeyFile = "/etc/sops/age/key.txt".
+  #
+  # SECURITY (2026-08-16): the previous generation hardcoded the two private
+  # keys here via pkgs.writeText, which landed them in the nix store AND in
+  # git history (recipient for the entire sops store). That key is considered
+  # COMPROMISED — rotate it before the next deploy. See
+  # docs/runbooks/credential-rotation.md and agents/skills/secrets.md.
 }
