@@ -116,7 +116,11 @@
     # Colmena - Multi-host deployment
     colmena = {
       url = "git+https://github.com/zhaofengli/colmena";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # 2026-08-16: REMOVED inputs.nixpkgs.follows. It forced colmena to
+      # compile from source on every nixpkgs bump (upstream CI builds against
+      # colmena's own pin -> cache miss). colmena.cachix.org is in the cache
+      # policy now; the lock rev keeps reproducibility (buildOnTarget hosts
+      # re-evaluate the same locked colmena+nixpkgs).
     };
     # Niri - Scrollable-tiling Wayland compositor
     # Provides: programs.niri NixOS module, niri-unstable overlay, home-manager module
