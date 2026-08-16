@@ -71,7 +71,14 @@ in
     # x86-64-v3: all fleet CPUs support AVX2 + SSE4.2 + popcnt. target-cpu
     # lets rustc emit v3-native instructions (avx2, bmi2, fma, etc.) across
     # the niri + smithay dependency tree — compositor, DRM/KMS, rendering.
-    RUSTFLAGS = "-C target-cpu=x86-64-v3";
+    # NB: MUST merge into the base package's env.RUSTFLAGS (which carries
+    # rustc link args from buildRustPackage). Setting RUSTFLAGS directly as
+    # an overrideAttrs attr makes it a derivation ARG, which overlaps the
+    # env attr -> "env attribute set cannot contain attributes passed to
+    # derivation" (verified 2026-08-16, collab w/ parallel agent).
+    env = old.env // {
+      RUSTFLAGS = (old.env.RUSTFLAGS or "") + " -C target-cpu=x86-64-v3";
+    };
 
     # Regenerated Cargo.lock (2026-08-15) from the fork checkout (hdr-latest
     # 980aa465): `nix develop --command cargo generate-lockfile` — pins smithay
