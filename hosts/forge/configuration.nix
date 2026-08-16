@@ -83,6 +83,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Per-host firewall rules (source-restricted ports, extra rules)
+    ./firewall.nix
     # Declarative non-volatile state.
     ./preservation.nix
     # Desktop (niri + uwsm + SDDM autoLogin) — must be imported or

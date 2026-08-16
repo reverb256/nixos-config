@@ -17,6 +17,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Per-host firewall rules (source-restricted ports, extra rules)
+    ./firewall.nix
 
     # Declarative non-volatile state; replaces the retired impermanence module.
     ./preservation.nix
