@@ -179,6 +179,8 @@ Author workflow: `just new-worktree NNN` → edit in `/data/projects/own/nixos-c
 
 `/etc/nixos` itself on every host stays on `main`; deployed cluster state = `main` HEAD after the most recent `just deploy`.
 
+**Remotes (canonical set, 2026-08-09):** `origin` = GitHub (`git@github.com:reverb256/nixos-config.git`, PR/issue home), `central` = Nexus bare repo (`j_kro@10.1.1.120:/srv/git/nixos-config.git`, the LAN mirror hosts sync from), `local-gitea` = `http://gitea.lan/j_kro/nixos-config.git` (the self-hosted Gitea *service*), `gitlawb`. The cloud `gitea` remote (`git@gitea.com:…`) was **removed 2026-08-09** (auth kept failing); the Gitea service at `gitea.lan` is unaffected and still hosts the CI runner + OIDC app. `just git-push` pushes `origin` + `central` only.
+
 ### Build pipeline quirks
 
 - Zephyr NEVER builds locally (31GB RAM OOM); since 2026-08-08 Forge and Sentry are also non-builders — **Nexus is the sole Nix build executor** (`max-jobs=6`), all other hosts run `max-jobs=0` and dispatch to Nexus via `scripts/remote-build.sh` or the Nexus dispatcher.
@@ -270,6 +272,8 @@ Secretspec (`secretspec.toml` + sops:// provider) is the runtime resolution path
 ### Doc-rot prevention (Pocock Rule)
 
 `docs/plans/*.md` documents MUST have a "Last Verified" date. If a doc is >7 days stale, re-verify against current cluster state before following it. After completing work against a plan, update it with actual outcomes. AGENTS.md: fix immediately if you spot a wrong section.
+
+`docs/archive/legacy/CONTENTS.txt` is the exact-path manifest for the legacy archive. `docs/meta/VERIFICATION-SUITE/verify-infra.sh` validates it against **git-tracked files** (`git ls-files docs/archive/legacy/`), NOT physical disk — the archive deliberately contains gitignored local material (`ARCHIVE/external/lucebox-hub`, `.gitignore:41`), so a disk-based `find` comparison false-fails on live hosts while passing CI/clean checkouts (2026-08-09). If you add/remove a file under `docs/archive/legacy/`, regenerate the manifest (`find docs/archive/legacy -type f ! -name CONTENTS.txt -printf '%P\n' | sort > docs/archive/legacy/CONTENTS.txt`) — but never list gitignored local material in it.
 
 ## Things to avoid
 
@@ -490,8 +494,18 @@ If `str_replace` or `write_file` fails on a /etc/nixos file, the basher-side
 the edit comment so future maintainers don't re-add the same code-reviewer
 warning.
 
-### Recent state changes (through 2026-08-08)
+### Recent state changes (through 2026-08-09)
 
+- **Remotes reconciled; cloud `gitea` remote removed (2026-08-09)**: `central`
+  (two stale Starship commits #332) and `origin` (concurrent #428 sentry
+  host-key fix) were merged into `main` (merge commits `3e9c7717` +
+  `c3d55d3f`) and pushed, so `origin` and `central` both track `main`. The
+  failing `gitea` remote (`git@gitea.com:reverb256/nixos-config.git`) was
+  removed; `local-gitea` (`gitea.lan`) is the live service and stays. Docs
+  verification hardened the same day: `verify-infra.sh` now checks
+  `docs/archive/legacy/CONTENTS.txt` against tracked files (`git ls-files`)
+  instead of disk `find`, so the deliberately gitignored 6MB `lucebox-hub`
+  local archive no longer false-fails the source-of-truth gate (`just docs-audit`).
 - **Nexus is now the SOLE Nix build executor (2026-08-08, in flight)**:
   `distributed-builds.nix` sets `max-jobs` nexus=6 / zephyr+forge+sentry=0 and
   the `/etc/nix/machines` generator advertises nexus only, with `i686-linux`
