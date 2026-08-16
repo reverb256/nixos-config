@@ -228,7 +228,7 @@ jobs:
             [ "$name" = "lib" ] && continue
             [ "$name" = "lix-vm" ] && continue
             echo "=== $name ==="
-            out=$(nix-instantiate --eval --strict --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' "$test" 2>&1)
+            out=$(nix-instantiate --eval --strict --impure --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' "$test" 2>&1)
             rc=$?
             echo "$out" | tail -2
             if [ $rc -ne 0 ]; then
