@@ -539,6 +539,37 @@ in {
         StartLimitIntervalSec = lib.mkForce "5min";
         StartLimitBurst = lib.mkForce 3;
       };
+      # ── nft 1.1.0 segfault fix (2026-08-16 sentry crash storm) ────────────
+      # k3s bundles nftables 1.1.0 in its data-dir aux/ (k3s-root v0.15.2 /
+      # buildroot 2025.02 LTS). That binary NULL-pointer-derefs — fixed
+      # upstream in nftables >= 1.1.5 — when kube-proxy lists rulesets
+      # containing udata written by a newer nft/kernel, and the crash storm
+      # filled /var/lib/systemd/coredump (568 cores -> 88% disk -> ENOSPC ->
+      # watchdog reset). No released k3s bundles nft >= 1.1.5 (all releases
+      # through v1.36.3 and master pin k3s-root v0.15.2 -> nft 1.1.0), so k3s
+      # components must use the HOST nftables (1.1.6):
+      #  1) PATH: k3s appends its aux dir LAST to its process PATH, so host
+      #     nftables earlier in the unit PATH wins every `nft` exec.LookPath()
+      #     (kube-proxy etc). Same approach as the nixpkgs k3s package, which
+      #     ships an empty aux dir and relies on PATH runtime deps.
+      #  2) execStartPre: also replace the extracted aux nft with the host
+      #     binary so direct invocations of the bundled path work. k3s only
+      #     re-extracts when its embedded data hash changes (version upgrade);
+      #     on such a boot the fresh 1.1.0 is covered by (1) until the next
+      #     boot's swap.
+      path = [pkgs.nftables];
+      execStartPre = [
+        (pkgs.writeShellScript "k3s-replace-aux-nft" ''
+          set -eu
+          host_nft=${pkgs.nftables}/bin/nft
+          for f in ${cfg.dataDir}/data/*/bin/aux/nft; do
+            [ -e "$f" ] || continue
+            if ! ${pkgs.diffutils}/bin/cmp -s "$f" "$host_nft"; then
+              ${pkgs.coreutils}/bin/cp -f "$host_nft" "$f"
+            fi
+          done
+        '')
+      ];
       serviceConfig = {
         Restart = lib.mkForce "on-failure";
         RestartSec = lib.mkForce "15s";
@@ -546,6 +577,12 @@ in {
         # hung start must not hold an activation transaction forever.
         TimeoutStartSec = lib.mkForce "10min";
         TimeoutStopSec = lib.mkForce "2min";
+        # Disable core dumps: a crash in a k3s component (e.g. the bundled nft
+        # above) must never storm the disk again — 568 coredumps in
+        # /var/lib/systemd/coredump filled the disk (88%) and forced a
+        # watchdog reset. Overrides the upstream rancher/k3s default
+        # LimitCORE=infinity.
+        LimitCORE = 0;
       };
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # k3s waits on /run/secrets/k3s-cluster-token (provisioned by
@@ -598,6 +635,16 @@ in {
           };
         };
       };
+    };
+
+    # Canonical k3s config.yaml — Nix-managed so no host carries a stale
+    # hand-placed file (2026-07-13 forge drift: leftover flannel-iface +
+    # duplicate flannel-backend lines). The CLI flags below already carry
+    # these settings; this file makes the on-disk state match the module so
+    # k3s never reads a contradicting config.yaml from /etc/rancher.
+    environment.etc."rancher/k3s/config.yaml".text = lib.generators.toYAML {} {
+      flannel-backend = "none";
+      disable-network-policy = true;
     };
 
     system.activationScripts.k3s-fix-mount = lib.stringAfter ["k3s-dirs"] ''
