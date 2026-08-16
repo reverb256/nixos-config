@@ -202,7 +202,7 @@
     llama-cpp-turboquant = {
       # OUR fork (reverb256): mainline qwen35 + ssm_scan rollback + TurboQuant KV.
       # main-qwen35 @ 478caed42 (merge of TheTom turbo onto mainline 1692f9e5).
-      url = "git+https://github.com/reverb256/llama-cpp-turboquant?ref=main-qwen35&rev=478caed42747ccc8a6fbd0d946252bc3e29a526b";
+      url = "git+https://github.com/reverb256/llama-cpp-turboquant?ref=main-qwen35&rev=99b9ca4db4bad83a0f2e6f15ce7f6d9e1b47fa01";
     };
   };
 

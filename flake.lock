@@ -1823,17 +1823,17 @@
         "nixpkgs": "nixpkgs_10"
       },
       "locked": {
-        "lastModified": 1786846386,
-        "narHash": "sha256-pD+GsmpifN5Y9QbxBBJtAe6hNBhkVanLDxXnAOjBIwc=",
+        "lastModified": 1786848032,
+        "narHash": "sha256-QZwBCp/09RjQZyQWviWUsha+j1nT63oE+1tvzo6dC9E=",
         "ref": "main-qwen35",
-        "rev": "478caed42747ccc8a6fbd0d946252bc3e29a526b",
-        "revCount": 10599,
+        "rev": "99b9ca4db4bad83a0f2e6f15ce7f6d9e1b47fa01",
+        "revCount": 10600,
         "type": "git",
         "url": "https://github.com/reverb256/llama-cpp-turboquant"
       },
       "original": {
         "ref": "main-qwen35",
-        "rev": "478caed42747ccc8a6fbd0d946252bc3e29a526b",
+        "rev": "99b9ca4db4bad83a0f2e6f15ce7f6d9e1b47fa01",
         "type": "git",
         "url": "https://github.com/reverb256/llama-cpp-turboquant"
       }
