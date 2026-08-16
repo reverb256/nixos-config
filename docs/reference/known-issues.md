@@ -61,3 +61,36 @@ history, so **rotation is mandatory before the repo goes public** — see
 The forge age key now lives at `/persistent/etc/sops/age/key.txt` (bind-mounted
 by `hosts/forge/preservation.nix`), seeded once by the operator and never
 written into the nix config.
+
+## Sops envelope-format regression (2026-08-16)
+
+`format = "binary"` in `sops-install-secrets` requires a JSON sops envelope
+(`json.Unmarshal` at `pkgs/sops-install-secrets/main.go:514`). The age-key
+rotation (`5f188591b`, 2026-08-16) ran `sops updatekeys` on all 79 sops files,
+rewriting JSON envelopes to YAML envelopes (`data: ENC[...]` + `sops:` block).
+Every binary-format secret then failed at build AND runtime with
+`cannot parse json of '.../file.yaml': invalid character 'd' looking for beginning of value`.
+
+Fix (`389fc2697`): the registry now defaults to `defaultSopsFormat = "yaml"`
+with `defaultSopsKey = "data"`. Secrets without an explicit `sopsFile` inherit
+the registry default file — give each one its real file (the
+`cloud/cloudflared-token` case was silently binding the nvidia key file).
+Re-encrypting the files back to JSON is blocked by the YubiKey hardware
+requirement, so YAML envelopes are the new normal.
+
+## Freebuff Desktop launcher lessons (2026-08-16)
+
+- PATH order matters: `~/.nix-profile/bin` precedes `/run/current-system/sw/bin`,
+  so the home-manager wrapper always wins for `freebuff-desktop-latest`; the
+  NixOS system launcher was a duplicate.
+- NVIDIA Electron AppImages need more than `VK_ICD_FILENAMES`. The working
+  `launchEnv` set: `__EGL_VENDOR_LIBRARY_FILENAMES` → the glvnd vendor JSON
+  (`/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json`), libglvnd-first
+  `LD_LIBRARY_PATH`, `LIBGL_DRIVERS_PATH`, `GDK_BACKEND=wayland`,
+  `MOZ_ENABLE_WAYLAND=1`.
+- Keep `.desktop` entries declarative: HM emits
+  `~/.local/share/applications/freebuff-desktop.desktop` as a symlink; the
+  original hand-placed file was the violation that started this.
+- The AppImage runtime was broken anyway (`libz.so.1: wrong ELF class`); the
+  icon (`usr/share/icons/hicolor/512x512/apps/@codebufffreebuff-desktop.png`)
+  ships from the NixOS module instead (`modules/services/assets/freebuff-icon.png`).
