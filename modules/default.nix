@@ -148,6 +148,7 @@
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
     ./services/memlawb-server.nix # opt-in encrypted memory server (Hermes MCP backend)
+    ./services/gitlawb-node.nix # opt-in decentralized git node (private mirror)
     ./services/thermal-monitor.nix # Read-only CPU thermal watchdog (cross-fleet)
 
     # Monitoring
