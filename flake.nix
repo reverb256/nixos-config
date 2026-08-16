@@ -64,7 +64,7 @@
     # home-manager-config - standalone Home Manager configuration (Layer 2)
     # Migrated from modules/home-manager/ to separate flake per 3-layer model.
     home-manager-config = {
-      url = "git+https://github.com/reverb256/home-manager-config";
+      url = "git+ssh://git@github.com/reverb256/home-manager-config";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
