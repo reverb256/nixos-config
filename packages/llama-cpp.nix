@@ -21,13 +21,13 @@
   # Pinned to a commit that includes Muse Glimmer + Nemotron 3.5 Lightning
   # architecture support (PR #26841 "model: Muse Glimmer Support" merged
   # 2026-08-10; PR #26905 "Dflash support for nemotron-3.5" merged
-  # 2026-08-11) plus upstream fixes through 2026-08-12:
-  #   - 0b1bad14 chat: fix muse-glimmer detection of tool calls after EOM
-  #   - 5d16e81d convert: keep quantization scales for nemotron --mtp export
-  #   - 59886331 cuda: warp-per-row wkv7 kernel for single-token decode
-  # Earlier pins fail with "unknown model architecture" or
-  # "wrong number of tensors" on the Nemotron 3.5 Lightning GGUF.
-  version ? "0-unstable-2026-08-12",
+  # 2026-08-11) PLUS the 2026-08-14 ggml_ssm_scan recurrent-state-rollback
+  # fix (#26623, rev 1692f9e5) — REQUIRED for Qwen3.8-27B (arch qwen35,
+  # hybrid Gated DeltaNet): older pins crash with "CUDA error: driver
+  # shutting down" / core dump during tensor load. Delta kept small
+  # (33 commits) to avoid regressing Muse Glimmer / Nemotron Lightning,
+  # which are also served from this build.
+  version ? "0-unstable-2026-08-14-ssmscan-fix",
   # PrismML bonsai-ml fork: Q1_0/Q2_0 AVX512-VNNI CPU repack, CUDA __byte_perm
   # extraction, DSpark drafter fixes, CPU-MoE flags (--n-cpu-moe). Fleet runs
   # the fork for bonsai already (560rfa8pm); mainline lacks these. Fork base
@@ -50,7 +50,8 @@
   # fork (prism branch) is used instead — it has the Q1_0/Q2_0 repack +
   # DSpark + CPU-MoE specializations the fleet's bonsai deployments need.
   defaultSrc =
-    if useFork then
+    if useFork
+    then
       fetchgit {
         url = "https://github.com/PrismML-Eng/llama.cpp";
         rev = "9ca265a57f85f2117942490f421f64a226dd9847"; # prism branch 2026-07-31
@@ -60,8 +61,8 @@
     else
       fetchgit {
         url = "https://github.com/ggml-org/llama.cpp";
-        rev = "8e7f22b67ef4667b4ddd50230771287f328cfb3f";
-        hash = "sha256-jK1D2x7Yc8nkaKeXPK2DjcyQAFgmXrqc+s2ZFMlZCR8=";
+        rev = "1692f9e50bb20fd96b963af38a282daf78feea64";
+        hash = "sha256-6Ajy/SdHjimUqdkZB5vv57sy+ytURVd1wblCp7TVXAg=";
         leaveDotGit = false;
       };
   # src defined as let binding above
