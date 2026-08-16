@@ -870,9 +870,30 @@
       # different gamescope than the system. 2026-08-15 later: gamescope pin
       # reverted to 3.16.25 (the 28h-working version) — 3.16.22 broke nested
       # Xwayland on niri-hdr. This override now aligns scopebuddy with 3.16.25.
+      # 2026-08-16: ALSO add xwayland to the wrapper PATH. gamescope spawns its
+      # internal Xwayland BY NAME via wlroots; upstream's package.nix prepends
+      # [gamescope perl jq wlr-randr] but omits xwayland, so nested gamescope
+      # ran headless ('could not connect to wayland server') and Proton games
+      # crashed at swapchain create with E_INVALIDARG (-2147024809). Upstream
+      # PR OpenGamingCollective/ScopeBuddy#50; this re-wrap makes zephyr work
+      # without waiting for the merge.
       package =
-        (inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default)
-        .override {gamescope = pkgs.gamescope;};
+        let
+          scb =
+            (inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default)
+            .override {gamescope = pkgs.gamescope;};
+        in
+        pkgs.symlinkJoin {
+          name = "scopebuddy-with-xwayland";
+          paths = [ scb ];
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          postBuild = ''
+            wrapProgram $out/bin/scopebuddy \
+              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.xwayland ]}
+            wrapProgram $out/bin/scb \
+              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.xwayland ]}
+          '';
+        };
       # 2026-08-14: ALL autoDetect off. scb.conf (home-manager
       # zephyr-gaming-hdr.nix) hard-codes 4K60/HDR — it is the single source of
       # truth. The autoDetect exports (SCB_AUTO_RES/HDR/HZ/SCALE=1) contradict
