@@ -51,7 +51,7 @@
     };
     sentry = {
       enabled = true;
-      role = "agent";
+      role = "server";
       clusterInit = false;
       serverAddr = "https://10.1.1.120:6443";
       nodeIP = "10.1.1.140";
