@@ -2450,17 +2450,17 @@
         "zen-browser": "zen-browser_5"
       },
       "locked": {
-        "lastModified": 1786886441,
-        "narHash": "sha256-WV/0oH74PbNy3zCGOVNJ5SLThMepSPtqexF0FAWg+f0=",
+        "lastModified": 1786889176,
+        "narHash": "sha256-+oao3FsAlB9eAZhmEicVU01qRwitPuqzi/cpjBGpbEQ=",
         "ref": "refs/heads/master",
-        "rev": "ee907ec87c1a1089fd4303a89e6fb1b3c4425388",
-        "revCount": 143,
+        "rev": "28debbd4659908eac77719a3204cafe5fa204617",
+        "revCount": 144,
         "type": "git",
-        "url": "https://github.com/reverb256/home-manager-config"
+        "url": "ssh://git@github.com/reverb256/home-manager-config"
       },
       "original": {
         "type": "git",
-        "url": "https://github.com/reverb256/home-manager-config"
+        "url": "ssh://git@github.com/reverb256/home-manager-config"
       }
     },
     "home-manager-config_2": {
