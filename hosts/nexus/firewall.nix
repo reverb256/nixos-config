@@ -19,5 +19,11 @@
         8472
       ];
     };
+    # memlawb encrypted memory MCP server (user systemd service) —
+    # reachable ONLY over the Tailscale mesh, never the LAN.
+    # The merged tailscale0 allowlist (6443 etc. from cluster-networking
+    # + monitoring) did not include 8090, so the memory backend was dead
+    # from every host except nexus itself. #2026-08-10.
+    firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkAfter [8090];
   };
 }
