@@ -21,8 +21,11 @@
     # re-running CI (it builds .#nix with the test suite), then pinning the
     # new tip here. flake=false: we only consume the source tree; nixpkgs'
     # common-lix.nix build glue stays in charge.
+    # dadddaf1e (2026-08-16): coerceToSingleDerivedPath accepts sub-paths
+    # inside derived outputs — fixes `nix build .#apps.*.program` for the
+    # universal program = "${pkg}/bin/foo" idiom.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=bf49e347bc7dcdee0bd25374832cfff64b6fe955";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=dadddaf1e71ce71cb375eb469895a76cc6b62680";
       flake = false;
     };
     # astral-key — passkey-first auth + OIDC provider (replaces the retired
