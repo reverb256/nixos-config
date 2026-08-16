@@ -57,6 +57,21 @@
         memoryHigh = "8G";
         memoryMax = "12G";
       };
+      # reverb256/lix fork: the only place the patched tree's FULL test
+      # suite runs for real (hosted runners block the mount-namespace
+      # propagation the functional2 daemon sandbox needs). Runs nix build
+      # .#nix with doCheck via the nix daemon; scope memory like quill's.
+      lix = {
+        user = "runner-lix";
+        repo = "reverb256/lix";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["nexus" "builder"];
+        runnerName = "nexus-lix-runner";
+        memoryHigh = "16G";
+        memoryMax = "24G";
+      };
     };
   };
 in {
