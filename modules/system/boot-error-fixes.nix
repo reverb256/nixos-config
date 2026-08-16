@@ -86,47 +86,16 @@ in {
       "Z+ /nix/store/*-cups-progs/lib/cups/notifier/dbus 0555 root root - -"
     ];
 
-    # HP Envy 7800 network printer (10.1.1.173) — only when printing is enabled
-    systemd.services.add-network-printer = mkIf config.services.boot-error-fixes.includePrinting {
-      description = "Add HP Envy 7800 network printer";
-      after = ["cups.service" "cups.socket"];
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        # Fail-fast + auto-retry: 30s startup ceiling prevents the boot sequence
-        # from hanging when cups or the network printer at 10.1.1.173:9100 is
-        # unreachable. Restart=on-failure lets the unit auto-recover once cups
-        # comes up and the printer becomes reachable (was previously a silent
-        # multi-user.target blocker on hosts where the printer is occasionally
-        # powered off). Closes the add-network-printer half of #329.
-        TimeoutStartSec = "30";
-        Restart = "on-failure";
-        RestartSec = "2min";
-        # Bound auto-retry: 5 attempts within 25 min. Cups + k3s control-plane
-        # restarts routinely take 2-5 min to fully resolve; this profile lets
-        # transient cluster storms self-heal within ~10 min (5 x 2-min cadence)
-        # before the unit goes silent. Permanently-broken cups surfaces as
-        # journal spam bounded by the 25-min envelope, not forever.
-        StartLimitBurst = 5;
-        StartLimitIntervalSec = "25min";
-        ExecStart = pkgs.writeShellScript "add-network-printer" ''
-          #!${pkgs.bash}/bin/bash
-          set -e
-          # Wait for cups to be ready
-          for i in 1 2 3 4 5; do
-            ${pkgs.cups}/bin/lpstat -r 2>/dev/null && break
-            sleep 1
-          done
-          # Add printer if not exists
-          if ! ${pkgs.cups}/bin/lpstat -p 2>/dev/null | grep -q "HP-Envy-7800"; then
-            ${pkgs.cups}/bin/lpadmin -p "HP-Envy-7800" -v "socket://10.1.1.173:9100" -E || true
-          fi
-          # Set as default
-          ${pkgs.cups}/bin/lpoptions -d HP-Envy-7800 || true
-        '';
-      };
-    };
+    # NOTE: add-network-printer.service was REMOVED 2026-08-16.
+    # It conflicted with the declarative hardware.printers.ensurePrinters
+    # in wayland-common.nix by creating a second raw-socket printer
+    # (socket://9100, no PPD) alongside the intended IPP Everywhere printer
+    # (ipp://...631/ipp/print). When ensure-printers failed at boot
+    # (printer offline), this unit's raw printer took over — CUPS sent
+    # undrivered data to port 9100, producing garbage output.
+    # SPOC: the declarative config is the single source of truth.
+    # If ensure-printers fails, fix the cause (printer offline) — don't
+    # band-aid with an imperative raw-socket printer.
 
     # Set default printer — wayland-common.nix already sets this with correct name (HP_Envy_7800).
     # Removed duplicate to fix conflicting definition values build error.
