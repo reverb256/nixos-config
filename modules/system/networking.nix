@@ -6,7 +6,7 @@
   networking = {
     networkmanager = {
       enable = lib.mkDefault true;
-      insertNameservers = ["127.0.0.1" "::1"];
+      insertNameservers = ["127.0.0.1"];
     };
     useDHCP = lib.mkDefault false;
 
@@ -45,7 +45,6 @@
 
     nameservers = [
       "127.0.0.1"
-      "::1"
     ];
 
     firewall = {
