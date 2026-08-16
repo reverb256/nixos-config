@@ -178,6 +178,10 @@
       # could rejoin nexus's HA etcd; the wipe has completed and sentry is
       # now a healthy member, so this is back to false.
       wipeState = false;
+      # ONE-SHOT (2026-08-16): sentry's etcd has a stale cluster ID after the
+      # server promotion — etcdClean wipes the local db so it rejoins the
+      # nexus+forge HA cluster. REMOVE THIS IMMEDIATELY after the deploy.
+      etcdClean = true;
       # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
       # file or directory" on activation is fixed at a different layer:
       # the etcdClean=true previously in hosts/sentry/services.nix wiped the
