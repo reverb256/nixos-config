@@ -35,7 +35,7 @@ class VirtualKey:
     def check_model_allowed(self, model: str) -> bool:
         if "*" in self.allowed_models:
             return True
-        return any(m in model for m in self.allowed_models)
+        return model in self.allowed_models
 
     def check_backend_allowed(self, backend: str) -> bool:
         if "*" in self.allowed_backends:

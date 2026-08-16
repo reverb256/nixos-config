@@ -55,19 +55,40 @@ Job Job::from_notify(const nlohmann::json& params) {
     job.height = 0;
     job.clean_jobs = false;
 
-    if (params.is_array() && params.size() >= 4) {
-        job.job_id = params[0];
-        job.blob = params[1];  // Extra nonce2
-        job.target = params[2];
-        job.difficulty = params[3];
+    if (!params.is_array() || params.size() < 4) {
+        return job;
+    }
 
-        if (params.size() >= 5) {
-            params[4].get_to(job.height);
+    // Pools differ on whether job_id/height are strings or numbers. Coerce
+    // both so a type mismatch never throws (which would drop the whole job).
+    auto as_str = [](const nlohmann::json& j) -> std::string {
+        if (j.is_string()) return j.get<std::string>();
+        if (j.is_number()) return j.dump();
+        return "";
+    };
+    auto as_u64 = [](const nlohmann::json& j) -> uint64_t {
+        if (j.is_number_unsigned()) return j.get<uint64_t>();
+        if (j.is_number_integer()) {
+            return static_cast<uint64_t>(j.get<int64_t>());
         }
+        if (j.is_string()) {
+            try {
+                return std::stoull(j.get<std::string>());
+            } catch (...) {
+                return 0;
+            }
+        }
+        return 0;
+    };
 
-        if (params.size() >= 6) {
-            params[5].get_to(job.clean_jobs);
-        }
+    job.job_id = as_str(params[0]);
+    job.blob = as_str(params[1]);  // Extra nonce2
+    job.target = as_str(params[2]);
+    job.difficulty = as_str(params[3]);
+
+    if (params.size() >= 5) job.height = as_u64(params[4]);
+    if (params.size() >= 6 && params[5].is_boolean()) {
+        job.clean_jobs = params[5].get<bool>();
     }
 
     return job;

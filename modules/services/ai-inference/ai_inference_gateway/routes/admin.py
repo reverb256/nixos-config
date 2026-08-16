@@ -8,11 +8,13 @@ and budget enforcement for the AI Inference Gateway.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from ai_inference_gateway.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["admin"])
+router = APIRouter(tags=["admin"], dependencies=[Depends(require_admin)])
 
 
 def _get_tracker(request: Request):

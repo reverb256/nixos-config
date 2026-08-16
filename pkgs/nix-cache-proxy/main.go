@@ -191,6 +191,26 @@ func triggerAsyncFill(requestPath, nixStore string) {
 	}
 }
 
+// validateStorePath ensures path is a safe absolute Nix store path before it is
+// passed to `nix copy`. Rejects relative paths, parent traversal, and anything
+// that could be interpreted as a CLI flag.
+func validateStorePath(path, nixStore string) bool {
+	if path == "" || strings.HasPrefix(path, "-") {
+		return false
+	}
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	clean := filepath.Clean(path)
+	if clean != path {
+		return false
+	}
+	if !strings.HasPrefix(clean, nixStore+"/") {
+		return false
+	}
+	return true
+}
+
 // ── Handlers ───────────────────────────────────────────────────────
 
 var metrics = &Metrics{}
@@ -237,18 +257,24 @@ func metricsHandler() http.HandlerFunc {
 	}
 }
 
-func warmHandler(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Query().Get("path")
-	if path == "" {
-		http.Error(w, "missing ?path=<store-path>", http.StatusBadRequest)
-		return
-	}
-	select {
-	case fillQueue <- path:
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
-	default:
-		http.Error(w, "cache fill queue full", http.StatusServiceUnavailable)
+func warmHandler(nixStore string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Query().Get("path")
+		if path == "" {
+			http.Error(w, "missing ?path=<store-path>", http.StatusBadRequest)
+			return
+		}
+		if !validateStorePath(path, nixStore) {
+			http.Error(w, "path must be an absolute Nix store path", http.StatusBadRequest)
+			return
+		}
+		select {
+		case fillQueue <- path:
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
+		default:
+			http.Error(w, "cache fill queue full", http.StatusServiceUnavailable)
+		}
 	}
 }
 
@@ -302,7 +328,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler(*nixStore))
 	mux.HandleFunc("/metrics", metricsHandler())
-	mux.HandleFunc("/api/warm", warmHandler)
+	mux.HandleFunc("/api/warm", warmHandler(*nixStore))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		proxy.ServeHTTP(w, r)
 	})

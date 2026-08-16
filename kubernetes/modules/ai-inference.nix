@@ -95,6 +95,14 @@ in {
     };
     ai-inference.ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
+      # Astral Key auth backend for the admin endpoints (/admin/keys, /admin/costs).
+      # Unset fails closed (503). Point at the astral-key service; its public
+      # URL is https://auth.lan. The /api/v1/auth/verify and /api/v1/auth/keys/verify
+      # endpoints are public (no forward_auth), so this works through Caddy too.
+      ASTRAL_KEY_URL = "https://auth.lan";
+      # Optional: comma-separated scopes required for admin access. Empty = any
+      # valid astral-key credential (API key or JWT) is allowed.
+      ASTRAL_KEY_ADMIN_SCOPES = "";
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = "https://integrate.api.nvidia.com/v1";

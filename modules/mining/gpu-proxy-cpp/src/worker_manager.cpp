@@ -191,11 +191,12 @@ void WorkerManager::handle_subscribe(Connection* conn, const StratumRequest& req
     auto it = workers_.find(fd);
     if (it == workers_.end()) return;
 
-    // Build subscribe response
-    // Format: [[[mining.notify, subscription ID], extra_nonce1], extra_nonce2_size]
+    // Build subscribe response.
+    // extra_nonce2 is generated as 8 hex chars (= 4 bytes) in accept_worker,
+    // so advertise extra_nonce2_size as 4 bytes to match.
     std::string response = R"({"id": )" + std::to_string(req.id) +
         R"(, "result": [[["mining.notify", "]" + std::to_string(fd) +
-        R"("], ""], "8"], "error": null})";
+        R"("], ""], "4"], "error": null})";
 
     conn->send_line(response);
 
@@ -213,10 +214,11 @@ void WorkerManager::handle_authorize(Connection* conn, const StratumRequest& req
     auto it = workers_.find(fd);
     if (it == workers_.end()) return;
 
-    // Extract worker_id from params
+    // Extract worker_id from params (type-guarded: a non-string here would
+    // throw and drop the request).
     std::string worker_id;
     if (req.params.is_array() && req.params.size() > 0) {
-        worker_id = req.params[0].get<std::string>();
+        worker_id = json_as_string(req.params[0]);
     }
 
     it->second.worker_id = worker_id;
@@ -250,7 +252,7 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
     // Monero-style login: {"method":"login","params":{"login":wallet,"pass":password,"agent":...},"id":1}
     std::string worker_id;
     if (req.params.is_object() && req.params.contains("login")) {
-        worker_id = req.params["login"];
+        worker_id = json_as_string(req.params["login"]);
     }
 
     it->second.worker_id = worker_id;
@@ -265,9 +267,9 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
         // Include job in login response (Monero-style)
         response = R"({"id": )" + std::to_string(req.id) +
             R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
-            R"(", "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
-            R"(","job_id":")" + current_job_.job_id +
-            R"(","target":")" + current_job_.target +
+            R"(", "job": {"algo":"cuckaroo","blob":")" + json_escape(current_job_.blob) +
+            R"(","job_id":")" + json_escape(current_job_.job_id) +
+            R"(","target":")" + json_escape(current_job_.target) +
             R"(","height":)" + std::to_string(current_job_.height) +
             R"(}, "status": "OK"}, "error": null})";
     } else {
@@ -301,16 +303,16 @@ void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
 
     if (req.method == StratumMethod::MONERO_SUBMIT && req.params.is_object()) {
         // Monero-style submit: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":2}
-        if (req.params.contains("id")) worker_id = req.params["id"];
-        if (req.params.contains("job_id")) job_id = req.params["job_id"];
-        if (req.params.contains("nonce")) nonce = req.params["nonce"];
-        if (req.params.contains("result")) result = req.params["result"];
+        if (req.params.contains("id")) worker_id = json_as_string(req.params["id"]);
+        if (req.params.contains("job_id")) job_id = json_as_string(req.params["job_id"]);
+        if (req.params.contains("nonce")) nonce = json_as_string(req.params["nonce"]);
+        if (req.params.contains("result")) result = json_as_string(req.params["result"]);
     } else if (req.params.is_array() && req.params.size() >= 4) {
         // Bitcoin-style submit: ["worker", "job_id", "nonce", "result"]
-        worker_id = req.params[0];
-        job_id = req.params[1];
-        nonce = req.params[2];
-        result = req.params[3];
+        worker_id = json_as_string(req.params[0]);
+        job_id = json_as_string(req.params[1]);
+        nonce = json_as_string(req.params[2]);
+        result = json_as_string(req.params[3]);
     }
 
     fprintf(stderr, "[WorkerManager] Share from %s: job=%s nonce=%s\n",
@@ -367,7 +369,8 @@ void WorkerManager::send_job(const Job& job) {
         // Monero Stratum job notification format
         // Format: {"jsonrpc":"2.0","method":"job","params":{"algo":"cuckaroo","blob":"...","job_id":"...","target":"...","height":...}}
         std::string notify = R"({"jsonrpc":"2.0", "method": "job", "params": {"algo": "cuckaroo", "blob": ")" +
-            job.blob + R"(", "job_id": ")" + job.job_id + R"(", "target": ")" + job.target +
+            json_escape(job.blob) + R"(", "job_id": ")" + json_escape(job.job_id) +
+            R"(", "target": ")" + json_escape(job.target) +
             R"(", "height": )" + std::to_string(job.height) + R"(}})";
 
         info.conn->send_line(notify);
