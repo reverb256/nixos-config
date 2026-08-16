@@ -34,7 +34,7 @@ OpenCode is configured to **prefer local/hosted models** over cloud APIs:
 
 - OpenAI (GPT-4, GPT-5, etc.)
 - Anthropic (Claude 3.5, Claude 4, etc.)
-- Google (Gemini 2.5, Gemini 3, etc.)
+- Google (removed 2026-08-16 — Gemini key deleted, models retired)
 - Cohere (Command R, etc.)
 - Z.AI Coding Plan (GLM cloud API)
 

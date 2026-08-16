@@ -100,12 +100,6 @@ in {
       description = "Path to sops-nix secret file containing Kilo Code API key";
     };
 
-    geminiApiKeyFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to sops-nix secret file containing Gemini API key";
-    };
-
     hfTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
