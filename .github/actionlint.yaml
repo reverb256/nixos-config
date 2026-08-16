@@ -8,3 +8,22 @@ self-hosted-runner:
     - nixos
     - nexus
     - builder
+
+# Shellcheck runs on the inline `run:` scripts (the old blanket
+# `--ignore 'shellcheck reported issue'` was removed). The five rules below are
+# the repo's documented, deliberate bash style and are filtered per-path so any
+# *other* shellcheck code still fails the lint:
+#   SC2086 - unquoted vars: AGENTS.md uses `[[ $var == "x" ]]` comparisons and
+#            fixed-arity calls where word-splitting is intentional/no-op.
+#   SC2129 - individual `>> file` redirections instead of a grouped block.
+#   SC2162 - `read` without `-r` over fixed here-doc/loop data.
+#   SC2029 - ssh remote-command substitution that must expand server-side.
+#   SC2016 - single-quoted strings that intentionally do not expand.
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'shellcheck reported issue in this script: SC2086:.+'
+      - 'shellcheck reported issue in this script: SC2129:.+'
+      - 'shellcheck reported issue in this script: SC2162:.+'
+      - 'shellcheck reported issue in this script: SC2029:.+'
+      - 'shellcheck reported issue in this script: SC2016:.+'

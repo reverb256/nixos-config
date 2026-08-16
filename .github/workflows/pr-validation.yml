@@ -77,10 +77,10 @@ jobs:
       - name: "Target branch check"
         run: |
           BASE="${{ github.base_ref }}"
-          if [ "$BASE" = "main" ] || [ "$BASE" = "prod" ]; then
+          if [ "$BASE" = "main" ]; then
             echo "✅ PR targets $BASE"
           else
-            echo "::error::PR targets '$BASE' — should be main or prod"
+            echo "::error::PR targets '$BASE' — should be main"
             exit 1
           fi
 

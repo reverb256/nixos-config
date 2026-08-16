@@ -98,12 +98,8 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Flake structure validation..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            echo "::notice::Full flake evaluation is trusted-only because home-manager-config is private."
-          else
-            nix flake check --no-build
-            echo "✓ Flake structure validation complete"
-          fi
+          nix flake check --no-build
+          echo "✓ Flake structure validation complete"
 
       - name: Run local CI script
         run: |

@@ -18,6 +18,7 @@ jobs:
   cluster-status:
     name: Cluster Deployment Status
     runs-on: [self-hosted, nixos]
+    timeout-minutes: 10
 
     steps:
       - name: Check cluster deployment status

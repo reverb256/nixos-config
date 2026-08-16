@@ -122,6 +122,10 @@ def main() -> None:
     require("github.event.pull_request.base.sha" in ci, "parse gate must use PR base SHA")
     require("github.event.pull_request.head.sha" in ci, "PR gates must use the PR head SHA")
 
+    # Test suite must use the locked flake nixpkgs, not the runner channel.
+    require("import <nixpkgs> {}" not in ci, "ci.yml test suite must not use the runner channel nixpkgs")
+    require("(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}" in ci, "ci.yml test suite must use the locked flake nixpkgs input")
+
     # Security scan limited to changed dependency manifests.
     require(
         "SCAN_FILES=()" in ci and "No dependency manifests changed" in ci,
@@ -134,21 +138,26 @@ def main() -> None:
         and "bash docs/meta/VERIFICATION-SUITE/run.sh" in ci,
         "documentation verification must run only on trusted builds",
     )
-    require("nix develop --command just docs-audit" not in ci, "documentation verification must not evaluate the private flake")
+    require("nix develop --command just docs-audit" not in ci, "documentation verification stays in doc-rot-guard.yml (single owner)")
     require(
         "      - name: Validate k8s manifests (kubeconform)\n        if: github.event_name != 'pull_request'\n" in ci,
-        "PR build must skip private flake-dependent k8s validation",
+        "PR build keeps heavy k8s manifest validation trusted-only",
     )
-    require("home-manager-config is private" in ci, "PR flake gate must explain private input boundary")
+    require("home-manager-config is private" not in ci, "flake check must not be gated behind a stale private-input rationale")
+    require("nix flake check --no-build" in ci, "quick-check must run the full flake check on PRs and pushes")
 
-    # Lint shell pinned to the same nixpkgs rev as the flake.
+    # Lint shell derives its nixpkgs rev from flake.lock (no hardcoded rev).
     require(
-        "github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra" in ci,
-        "lint shell must pin alejandra to the flake nixpkgs rev",
+        "0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5" not in ci,
+        "toolchain nixpkgs rev must not be hardcoded",
     )
     require(
-        "github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just" in ci,
-        "lint shell must pin just to the flake nixpkgs rev",
+        "github:NixOS/nixpkgs/$NIXPKGS_REV#alejandra" in ci,
+        "lint shell must derive alejandra from the locked nixpkgs rev",
+    )
+    require(
+        "github:NixOS/nixpkgs/$NIXPKGS_REV#just" in ci,
+        "lint shell must derive just from the locked nixpkgs rev",
     )
     require(
         "-c alejandra --check \"$f\"" in ci,
@@ -159,15 +168,20 @@ def main() -> None:
         and "hosts/zephyr/configuration.nix" in ci, "lint exceptions must be explicit")
 
     # Security scan tooling.
-    require("#osv-scanner -c osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
-    require("nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner" in ci, "security scan must use pinned osv-scanner")
+    require("osv-scanner --no-resolve" in ci and "nix-shell -p osv-scanner" not in ci, "security scan must use nix shell without dependency resolution")
+    require("github:NixOS/nixpkgs/$NIXPKGS_REV#osv-scanner" in ci, "security scan must derive osv-scanner from the locked nixpkgs rev")
     require("security-events: write" in ci, "trusted SARIF upload must have security-events permission")
     require("github.event_name != 'pull_request' && hashFiles('results.sarif') != ''" in ci, "PRs must not upload SARIF with restricted token permissions")
 
-    # Actionlint pin.
+    # Actionlint derives its nixpkgs rev from flake.lock and runs shellcheck
+    # (scoped disables live in .github/actionlint.yaml — no blanket --ignore).
     require(
-        "nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint --ignore 'shellcheck reported issue' .github/workflows/*.yml" in ci,
-        "ci.yml must pin the actionlint nixpkgs revision",
+        'nix shell "github:NixOS/nixpkgs/$NIXPKGS_REV#actionlint" -c actionlint .github/workflows/*.yml' in ci,
+        "ci.yml must derive actionlint from the locked nixpkgs rev",
+    )
+    require(
+        "--ignore 'shellcheck reported issue'" not in ci,
+        "ci.yml must not blanket-suppress shellcheck findings",
     )
 
     # Preflight gate on trusted build.
@@ -208,6 +222,7 @@ def main() -> None:
     require("::error::PR body must contain" in pr, "missing issue links must fail")
     require("::error::PR title must start" in pr, "invalid PR titles must fail")
     require('exit "$FAILED"' in pr, "invalid commit references must fail")
+    require('"prod"' not in pr, "PR validation must not allow the removed prod branch")
 
     # -------------------------------------------------------------------------
     # ci-test-automation.yml
@@ -222,8 +237,8 @@ def main() -> None:
         and "grep -oE 'passed = true|all_pass = true'" in automation,
         "test automation must use the pinned flake nixpkgs input",
     )
-    require("home-manager-config is private" in automation, "test automation must explain private flake boundary")
-    require("if [ \"$GITHUB_EVENT_NAME\" = \"pull_request\" ]" in automation, "test automation must gate private flake evaluation")
+    require("home-manager-config is private" not in automation, "test automation must not gate flake eval behind a stale private-input rationale")
+    require("nix flake check --no-build" in automation, "test automation must run the full flake check unconditionally")
     require(automation.count("timeout-minutes:") >= 1, "test automation must bound its job")
     require("Skipping host-local CI script" in automation and "/etc/nixos" in automation, "host-local CI script must be guarded")
 
@@ -265,6 +280,18 @@ def main() -> None:
     require("contents: write" not in deploy, "deploy.yml must not request contents write")
     require("id-token: write" not in deploy, "deploy.yml must not request unused OIDC access")
     require("if: github.ref == 'refs/heads/main'" in deploy, "deploy.yml must reject non-main refs")
+    require(
+        'FLAKE="$GITHUB_WORKSPACE" ./scripts/preflight-check.sh' in deploy,
+        "deploy must gate on the checked-out ref via preflight",
+    )
+    require(
+        'cd "$GITHUB_WORKSPACE"' in deploy,
+        "deploy must build and activate from the checked-out ref, not /etc/nixos",
+    )
+    require(
+        'ssh zephyr "uptime"' in deploy,
+        "deploy health check must probe zephyr, not the runner host",
+    )
     require(deploy.count("timeout-minutes:") >= 1, "deploy.yml must bound activation")
 
     print("CI workflow policy: PASS")
