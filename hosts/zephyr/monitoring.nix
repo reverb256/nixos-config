@@ -44,4 +44,9 @@
 
   # Ensure node-exporter port is open for Prometheus scraping
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
+
+  # Zephyr has no IIO sensors (desktop board). Disable iio-sensor-proxy
+  # to avoid the service failing with "No sensors or missing kernel drivers"
+  # and hitting the start-limit.
+  hardware.sensor.iio.enable = false;
 }
