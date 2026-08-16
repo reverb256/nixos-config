@@ -1012,13 +1012,19 @@
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
-    # lsfg-vk / lsfg-vk-ui REMOVED 2026-08-14 — ROOT ISSUE of the swapchain
-    # failures: 2.0.0-dev installs VkLayer_LSFGVK_frame_generation.json as a
-    # GLOBAL implicit layer that loads into EVERY Vulkan app and fails init
-    # ("lsfg-vk: unsupported configuration version" in PoE2, llama.cpp,
-    # upscayl). A dev-build implicit layer breaking every Vulkan process is
-    # unacceptable. Frame-gen, if ever wanted again, must be a per-game opt-in
-    # (VK_INSTANCE_LAYERS in a wrapper), never system-global.
+    # lsfg-vk — Lossless Scaling frame-gen (PancakeTAS/lsfg-vk, GPLv3).
+    # RE-ADDED 2026-08-16 the PROPER way. The Aug-14 removal was correct:
+    # 2.0.0-dev with a stale config (version!=2) + no kill-switch broke EVERY
+    # Vulkan app ("unsupported configuration version"). The proper setup:
+    #   - DISABLE_LSFGVK=1 globally (environment.sessionVariables below) —
+    #     the implicit GLOBAL layer never loads by default; llama.cpp,
+    #     upscayl etc. are untouched.
+    #   - v2 conf.toml (home-manager xdg.configFile) pointing dll at the
+    #     Steam install: /data/games/SteamLibrary/steamapps/common/Lossless Scaling/Lossless.dll
+    #   - Per-game opt-in via Steam launch options: DISABLE_LSFGVK=0
+    #     LSFGVK_ENV=1 LSFGVK_DLL_PATH=<path> — layer activates only there.
+    lsfg-vk # Lossless Scaling frame generation Vulkan layer (needs Steam app 993090 installed for the DLL)
+    lsfg-vk-ui # lsfg-vk config GUI (per-game profiles)
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
@@ -1155,6 +1161,11 @@
   # MULTI-GPU ENVIRONMENT VARIABLES - RTX 3090 + 3060 Ti
   # ============================================================================
   environment.sessionVariables = {
+    # lsfg-vk kill-switch: the implicit GLOBAL layer is registered by the
+    # package but must NEVER load into every Vulkan app. This disables it
+    # everywhere by default; per-game launch options override to 0.
+    DISABLE_LSFGVK = "1";
+
     # GPU visibility
     CUDA_VISIBLE_DEVICES = "0,1";
 
