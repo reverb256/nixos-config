@@ -68,6 +68,11 @@ in
         cp ${./niri-hdr-Cargo.lock} Cargo.lock
       '';
 
+    # x86-64-v3: all fleet CPUs support AVX2 + SSE4.2 + popcnt. target-cpu
+    # lets rustc emit v3-native instructions (avx2, bmi2, fma, etc.) across
+    # the niri + smithay dependency tree — compositor, DRM/KMS, rendering.
+    RUSTFLAGS = "-C target-cpu=x86-64-v3";
+
     # Regenerated Cargo.lock (2026-08-15) from the fork checkout (hdr-latest
     # 980aa465): `nix develop --command cargo generate-lockfile` — pins smithay
     # + smithay-drm-extras from reverb256/smithay @ 4c4317bb.
