@@ -68,6 +68,27 @@
       shell = pkgs.bash;
     };
 
+    # Toolchain the workflows need on PATH (mirrors the legacy ci-runner.nix
+    # provision). The runner process gets NO login shell, so steps resolve
+    # commands from the system profile only. cachix-action pins
+    # cachixBin=/run/current-system/sw/bin/cachix in every workflow — without
+    # it the action fails instantly on the runner host.
+    environment.systemPackages = [
+      pkgs.git
+      pkgs.nix
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.gnugrep
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.findutils
+      pkgs.diffutils
+      pkgs.curl
+      pkgs.jq
+      pkgs.cachix
+      pkgs.gh
+    ];
+
     systemd.services.${svcName} = lib.mkIf autoStart {
       description = "GitHub Actions Self-Hosted Runner (${name})";
       after = ["network-online.target" "${setupSvcName}.service"];
