@@ -105,12 +105,16 @@
   # --hdr-debug-force-support; forcing the support flag yields CORRECT HDR
   # output on niri-hdr's genuinely-HDR wire.
   #
-  # NOTE: the gamescope-force-hdr-support.patch is NO LONGER applied here —
-  # g_bForceHDRSupportDebug was merged upstream (df25cc1d) AND into nixpkgs'
-  # own gamescope patches, so re-applying it made the build fail with
-  # "Reversed (or previously applied) patch detected". The pin + submodule
-  # override below is all that remains.
-  gamescope = prev.gamescope.overrideAttrs (old: {
+  # The patch append is IDEMPOTENT because overlays/default.nix is applied
+  # twice to the module pkgs (tunedNixpkgs in colmena.nix AND
+  # nixpkgs.overlays in common-modules-list.nix). A plain
+  # `++ [./patch]` would list it twice and fail with "Reversed (or
+  # previously applied) patch detected".
+  gamescope = prev.gamescope.overrideAttrs (old: let
+    hasHdrPatch = builtins.any
+      (p: prev.lib.hasSuffix "gamescope-force-hdr-support.patch" (toString p))
+      (old.patches or []);
+  in {
     src = prev.fetchFromGitHub {
       owner = "ValveSoftware";
       repo = "gamescope";
@@ -120,6 +124,8 @@
       # resolver needs them present or it errors "Unknown git submodule output"
       fetchSubmodules = true;
     };
+    patches = (old.patches or [])
+      ++ prev.lib.optional (!hasHdrPatch) ./gamescope-force-hdr-support.patch;
   });
   # gamescope-wsi: keep the FROG implicit layer on the same master rev as
   # gamescope so the WSI/HDR handshake stays in lockstep.
