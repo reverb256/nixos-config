@@ -46,13 +46,6 @@ updates:
   labels:
   - "dependencies"
   - "security"
-- package-ecosystem: "npm"
-  directory: "/istio-1.29.1/samples/bookinfo/src/ratings"
-  schedule:
-    interval: "monthly"
-  open-pull-requests-limit: 3
-  labels:
-  - "dependencies"
 - package-ecosystem: "docker"
   directory: "/"
   schedule:

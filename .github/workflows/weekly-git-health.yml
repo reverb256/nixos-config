@@ -14,6 +14,8 @@ jobs:
     runs-on: [self-hosted, nixos]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
       - name: "Check status"
         run: |
           echo "## Git Health Report" >> $GITHUB_STEP_SUMMARY

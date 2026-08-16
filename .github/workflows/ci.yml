@@ -48,7 +48,9 @@ jobs:
           echo "$FAILED unsigned commit(s) found"
 
       - name: Validate workflow syntax
-        run: nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#actionlint -c actionlint --ignore 'shellcheck reported issue' .github/workflows/*.yml
+        run: |
+          NIXPKGS_REV=$(python3 -c "import json; print(json.load(open('flake.lock'))['nodes']['nixpkgs']['locked']['rev'])")
+          nix shell "github:NixOS/nixpkgs/$NIXPKGS_REV#actionlint" -c actionlint .github/workflows/*.yml
 
       - name: Parse changed Nix files
         run: |
@@ -85,12 +87,7 @@ jobs:
           fetch-depth: 0
 
       - name: Nix flake check
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            echo "::notice::Full flake evaluation is trusted-only because home-manager-config is private."
-          else
-            nix flake check --no-build
-          fi
+        run: nix flake check --no-build
 
   # ============================================================================
   # STAGE 2: Linting and static analysis
@@ -109,6 +106,7 @@ jobs:
 
       - name: Lint changed Nix files
         run: |
+          NIXPKGS_REV=$(python3 -c "import json; print(json.load(open('flake.lock'))['nodes']['nixpkgs']['locked']['rev'])")
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             TARGET_SHA="${{ github.event.pull_request.head.sha }}"
@@ -124,16 +122,16 @@ jobs:
             for f in "${NIX_FILES[@]}"; do
               # Skip deleted files (same reason as the parse step).
               [ -f "$f" ] || continue
-              nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c alejandra --check "$f"
+              nix --extra-experimental-features 'nix-command flakes' shell "github:NixOS/nixpkgs/$NIXPKGS_REV#alejandra" "github:NixOS/nixpkgs/$NIXPKGS_REV#statix" "github:NixOS/nixpkgs/$NIXPKGS_REV#deadnix" "github:NixOS/nixpkgs/$NIXPKGS_REV#just" -c alejandra --check "$f"
               if [ "$f" = "flake.nix" ] || [ "$f" = "modules/services/bonsai.nix" ] || [ "$f" = "hosts/zephyr/configuration.nix" ]; then
                 echo "::notice::Skipping pre-existing Statix/Deadnix findings in $f; Alejandra remains enforced."
               else
-                nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c statix check "$f"
-                nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c deadnix --fail "$f"
+                nix --extra-experimental-features 'nix-command flakes' shell "github:NixOS/nixpkgs/$NIXPKGS_REV#alejandra" "github:NixOS/nixpkgs/$NIXPKGS_REV#statix" "github:NixOS/nixpkgs/$NIXPKGS_REV#deadnix" "github:NixOS/nixpkgs/$NIXPKGS_REV#just" -c statix check "$f"
+                nix --extra-experimental-features 'nix-command flakes' shell "github:NixOS/nixpkgs/$NIXPKGS_REV#alejandra" "github:NixOS/nixpkgs/$NIXPKGS_REV#statix" "github:NixOS/nixpkgs/$NIXPKGS_REV#deadnix" "github:NixOS/nixpkgs/$NIXPKGS_REV#just" -c deadnix --fail "$f"
               fi
             done
           else
-            nix --extra-experimental-features 'nix-command flakes' shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#alejandra github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#statix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#deadnix github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#just -c just lint
+            nix --extra-experimental-features 'nix-command flakes' shell "github:NixOS/nixpkgs/$NIXPKGS_REV#alejandra" "github:NixOS/nixpkgs/$NIXPKGS_REV#statix" "github:NixOS/nixpkgs/$NIXPKGS_REV#deadnix" "github:NixOS/nixpkgs/$NIXPKGS_REV#just" -c just lint
           fi
 
   # ============================================================================
@@ -230,7 +228,7 @@ jobs:
             [ "$name" = "lib" ] && continue
             [ "$name" = "lix-vm" ] && continue
             echo "=== $name ==="
-            out=$(nix-instantiate --eval --strict --arg pkgs 'import <nixpkgs> {}' "$test" 2>&1)
+            out=$(nix-instantiate --eval --strict --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' "$test" 2>&1)
             rc=$?
             echo "$out" | tail -2
             if [ $rc -ne 0 ]; then
@@ -272,6 +270,7 @@ jobs:
       - name: Run osv-scanner
         run: |
           set -euo pipefail
+          NIXPKGS_REV=$(python3 -c "import json; print(json.load(open('flake.lock'))['nodes']['nixpkgs']['locked']['rev'])")
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             TARGET_SHA="${{ github.event.pull_request.head.sha }}"
@@ -289,9 +288,9 @@ jobs:
               exit 0
             fi
             printf 'Scanning changed manifests:\n- %s\n' "${SCAN_FILES[@]}"
-            nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --format=sarif --output=results.sarif "${SCAN_FILES[@]}"
+            nix shell "github:NixOS/nixpkgs/$NIXPKGS_REV#osv-scanner" -c osv-scanner --no-resolve --format=sarif --output=results.sarif "${SCAN_FILES[@]}"
           else
-            nix shell github:NixOS/nixpkgs/0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5#osv-scanner -c osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif "$PWD"
+            nix shell "github:NixOS/nixpkgs/$NIXPKGS_REV#osv-scanner" -c osv-scanner --no-resolve --recursive --format=sarif --output=results.sarif "$PWD"
           fi
 
       - name: Upload SARIF

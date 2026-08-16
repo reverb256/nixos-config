@@ -61,7 +61,7 @@ jobs:
 
           # Download the Linux tarball, compute the SRI hash.
           TARBALL="peakminer-$LATEST.tar.gz"
-          curl -sL -o "/tmp/$TARBALL" \
+          curl -fsSL -o "/tmp/$TARBALL" \
             "https://github.com/peakminer/peakminer/releases/download/v$LATEST/$TARBALL"
           HASH=$(nix hash convert --to sri --type sha256 "$(nix hash file --type sha256 "/tmp/$TARBALL")")
 

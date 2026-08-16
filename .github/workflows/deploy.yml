@@ -34,10 +34,24 @@ jobs:
       - name: Checkout
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      - name: Preflight gate (checkout provenance + builder drift)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Preflight: the checkout below ($GITHUB_WORKSPACE) is what ships."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          # Fail closed unless the checked-out ref matches origin/main and no
+          # in-flight nexus build is active. This replaces the cosmetic
+          # `github.ref == main` guard with an actual provenance check, and
+          # self-heals nexus /etc/nixos to canonical if it drifted.
+          FLAKE="$GITHUB_WORKSPACE" ./scripts/preflight-check.sh
 
       - name: Pre-build validation
         run: |
-          cd /etc/nixos
+          cd "$GITHUB_WORKSPACE"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Pre-build: verifying configs build before deploying..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -64,11 +78,11 @@ jobs:
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "All targets build successfully. Proceeding with deploy..."
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Guard Layer-2 lock sync
         run: |
-          cd /etc/nixos
+          cd "$GITHUB_WORKSPACE"
           # The home-manager-config flake input is the Layer-2 source of truth.
           # If flake.lock pins a rev behind the input's default branch (master),
           # the deploy silently ships the stale Layer-2 config. Catch that here
@@ -91,11 +105,11 @@ jobs:
             exit 0
           fi
           if [ "$LOCK_REV" != "$REMOTE_REV" ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "ABORT: home-manager-config lock is behind master."
             echo "Run 'nix flake update home-manager-config' (or wait for the"
             echo "scheduled flake-update.yml PR) and re-run the deploy."
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
           echo "✓ home-manager-config lock is in sync with master"
@@ -106,7 +120,7 @@ jobs:
 
       - name: Deploy to hosts
         run: |
-          cd /etc/nixos
+          cd "$GITHUB_WORKSPACE"
 
           # Signal GPU scheduler
           signal_gpu_scheduler() {
@@ -165,9 +179,11 @@ jobs:
 
       - name: Sync central repo
         run: |
+          cd "$GITHUB_WORKSPACE"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Syncing central bare repo on nexus..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          git remote get-url central >/dev/null 2>&1 || git remote add central j_kro@10.1.1.120:/srv/git/nixos-config.git
           if git push central main 2>&1; then
             echo "✓ Central repo synced"
           else
@@ -221,14 +237,21 @@ jobs:
             echo "Checking $host..."
             case "$host" in
               zephyr)
-                if ssh localhost "uptime" 2>/dev/null; then
+                if ssh zephyr "uptime" 2>/dev/null; then
                   echo "✓ zephyr: SSH reachable"
                 else
-                  echo "⚠ zephyr: health check ambiguous"
+                  echo "⚠ zephyr: SSH unreachable"
                 fi
                 ;;
-              nexus|forge|sentry)
-                if ssh $host "uptime" 2>/dev/null; then
+              nexus)
+                if ssh localhost "uptime" 2>/dev/null; then
+                  echo "✓ nexus: SSH reachable (runner host)"
+                else
+                  echo "⚠ nexus: SSH unreachable"
+                fi
+                ;;
+              forge|sentry)
+                if ssh "$host" "uptime" 2>/dev/null; then
                   echo "✓ $host: SSH reachable"
                 else
                   echo "⚠ $host: SSH unreachable"
