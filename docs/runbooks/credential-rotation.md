@@ -79,7 +79,7 @@ do not commit new values in plaintext.
 | Credential | Where it leaked | Re-seal into |
 |------------|-----------------|--------------|
 | CONTEXT7 API key | `env-vars`, history | `secrets/ai/context7-api-key.yaml` |
-| Gemini API key | `env-vars`, history | `secrets/ai/gemini-api-key.yaml` |
+| Gemini (deleted 2026-08-16 — key removed at Google AI Studio; no sops secret entry exists; all config references removed) API key | `env-vars`, history | `secrets/ai/gemini-api-key.yaml` |
 | Hugging Face token | `env-vars` | `secrets/ai/huggingface-token.yaml` (or issuer token) |
 | GHCR PAT | history (`a727b420`) | issuer-issued; store via secretspec if still used |
 | Casdoor admin/client secret | `secrets/casdoor/mcp-gateway-credentials.env` | `secrets/k8s/casdoor-*.yaml` |

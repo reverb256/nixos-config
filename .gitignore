@@ -72,7 +72,7 @@ secrets/*.key
 .secretspec.env
 #   .secretspec.env — secretspec pre-loaded env
 #   env-vars       — captured shell `declare -x` dump (was accidentally tracked;
-#                    contained CONTEXT7_API_KEY/GEMINI_API_KEY/HF_TOKEN)
+#                    contained CONTEXT7_API_KEY/HF_TOKEN)
 /env-vars
 secrets/*.plaintext
 secrets.pre-recovery-2026-07-25/

@@ -19,7 +19,6 @@
     || cfg.opencodeGoApiKeyFile != null
     || cfg.opencodeZenApiKeyFile != null
     || cfg.kilocodeApiKeyFile != null
-    || cfg.geminiApiKeyFile != null
     || cfg.hfTokenFile != null
     || cfg.githubTokenFile != null
     || cfg.secretspecEnvVarMappings != {};
