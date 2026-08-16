@@ -2,6 +2,13 @@
 # Fast pre-commit hooks - should complete in < 5 seconds
 # Heavy checks (flake check, builds) run in CI, not here
 repos:
+  # Secret scanning (2026-08-16, public-flip audit) — runs BEFORE the local
+  # hooks so a leaked secret aborts the commit immediately.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
   - repo: local
     hooks:
       # Nix linting (fast - ~2 seconds)
