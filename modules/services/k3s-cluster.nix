@@ -558,7 +558,7 @@ in {
       #     on such a boot the fresh 1.1.0 is covered by (1) until the next
       #     boot's swap.
       path = [pkgs.nftables];
-      execStartPre = [
+      preStart = [
         (pkgs.writeShellScript "k3s-replace-aux-nft" ''
           set -eu
           host_nft=${pkgs.nftables}/bin/nft
