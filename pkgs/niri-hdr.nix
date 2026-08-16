@@ -1,6 +1,10 @@
 { lib, fetchFromGitHub, rustPlatform, pkg-config, libdisplay-info, libglvnd, libinput, libxkbcommon, libgbm, pango, seatd, wayland, dbus, pipewire, systemd, eudev, niri-unstable }:
 
-# HDR-enabled niri fork (dividebysandwich/niri @ hdr-smithay-master).
+# HDR-enabled niri fork. Base: dividebysandwich/niri @ hdr-smithay-master
+# (2516a83b) + reverb256/niri-hdr-fork commit 5f30907: re-probe HDR caps on
+# DrmScanEvent::Changed. Fixes TVs that gain HDR capability after connect
+# (EDID PQ flip) — previously frozen as SDR for the whole session, which
+# made gamescope report SDR output (grayed in-game HDR toggle).
 #
 # The fork's Cargo.toml patches smithay via a LOCAL path (../smithay, dev
 # layout). We replace that with a git [patch] to the dividebysandwich smithay
@@ -23,16 +27,16 @@ let
 in
 niri-unstable.overrideAttrs (old: {
   pname = "niri-hdr";
-  version = "2026-08-07-hdr-fork";
+  version = "2026-08-15-reverb256-fork";
 
   # hdr-smithay-master HEAD (2026-08-07, verified reachable 2026-08-08 — it is
   # the current branch tip). An EARLIER pin (2516a83b3eef5bc0...) was
   # force-pushed away; do not confuse it with the similar-looking rev below.
   src = fetchFromGitHub {
-    owner = "dividebysandwich";
-    repo = "niri";
-    rev = "2516a83b3eef5f3a766af5113244357a11e255a6";
-    hash = "sha256-Y8X2bTuboCAQ9E67ri9kTMkzBYU+1o3iCHCOVWctxLo=";
+    owner = "reverb256";
+    repo = "niri-hdr-fork";
+    rev = "5f30907d2a3aadfa19696f3a481a1ccfbd76e20c";
+    hash = "sha256-1g754qdk1sw5cqilqfki7cczdbha17g1xxw5ay9f3g9cnhab5mfk";
   };
 
   # Replace the fork's path-based smithay [patch] with a git-based one, and
