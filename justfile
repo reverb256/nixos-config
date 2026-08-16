@@ -142,6 +142,11 @@ git-push:
 deploy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
+    # MANDATORY preflight — never bypass
+    {{FLAKE}}/scripts/preflight-check.sh 2>&1 | sed 's/^/  [preflight] /' || {
+        echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
+        exit 1
+    }
     exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
 
 # Submit a disconnect-safe deployment to Nexus. The command returns after
@@ -149,6 +154,11 @@ deploy host="all":
 deploy-async host="all":
     #!/usr/bin/env bash
     set -euo pipefail
+    # MANDATORY preflight — never bypass
+    {{FLAKE}}/scripts/preflight-check.sh 2>&1 | sed 's/^/  [preflight] /' || {
+        echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
+        exit 1
+    }
     exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "{{host}}"
 
 # Legacy direct dispatcher retained as an emergency fallback only. It bypasses

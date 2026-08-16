@@ -75,11 +75,28 @@ for HOST in $HOSTS; do
     pass "$HOST matches origin/main"
   fi
 done
-# 4. In-flight build check (don't stomp a running build).
-if ssh nexus "bash --norc --noprofile -c 'systemctl --user is-active \"nix-build-*\" 2>/dev/null | grep -q active'" 2>/dev/null; then
-    fail "a nexus nix-build is already active — wait for it to finish before deploying"
+# 4. In-flight build check — detect ALL build types, not just systemd services.
+#    This prevents concurrent colmena/nix-build processes from racing.
+BUILD_TYPES=("colmena" "nix-build" "nix-eval" "nix-instantiate" "nix-copy" "nixos-rebuild" "switch-to-configuration")
+DETECTED=""
+for btype in "${BUILD_TYPES[@]}"; do
+    PIDS=$(ssh nexus "pgrep -x '$btype' 2>/dev/null | wc -l" 2>/dev/null)
+    if [[ "${PIDS:-0}" -gt 0 ]]; then
+        DETECTED="$DETECTED $btype($PIDS)"
+    fi
+done
+if [[ -n "$DETECTED" ]]; then
+    fail "in-flight build processes on nexus:$DETECTED — wait for them to finish before deploying"
 else
-    pass "no in-flight nexus build"
+    pass "no in-flight builds on nexus"
+fi
+
+# 4b. Nexus nix-daemon health check
+NEXUS_DAEMON=$(ssh nexus "systemctl show nix-daemon --property=MainPID --value 2>/dev/null" 2>/dev/null)
+if [[ -z "${NEXUS_DAEMON:-}" || "$NEXUS_DAEMON" == "0" ]]; then
+    fail "nix-daemon not running on nexus — builds will fail"
+else
+    pass "nix-daemon running on nexus (pid $NEXUS_DAEMON)"
 fi
 
 log "=== Preflight result: $([ "$FAIL" -eq 0 ] && echo PASS || echo BLOCKED) ==="
