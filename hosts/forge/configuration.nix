@@ -43,15 +43,15 @@
   # belong to the miners. Matches sentry's configuration.nix (line ~474).
   services.boot-error-fixes.includePrinting = lib.mkForce false;
 
-  # SecretSpec Phase 4 credential provisioning — sops-secrets-registry
-  # Categories needed on forge: kubernetes (k3s token/encryption key),
-  # mining (pool creds), ci (github token for flake inputs)
-  services.sops-secrets-registry = {
-    enable = true;
-    kubernetes = true;
-    mining = true;
-    ci = true;
-  };
+  # SecretSpec Phase 4 credential provisioning — secretspec-creds is the
+  # sole owner of /run/secrets on forge (k3s token, encryption key, etc.).
+  # The legacy sops-secrets-registry (sops-nix) is DISABLED here: enabling it
+  # activates sops-nix's versioned /run/secrets.d/<N> symlink rotation, which
+  # orphans the secretspec-creds output at every generation switch (k3s lost
+  # /run/secrets/k3s-cluster-token after the 2026-08-16 01:24 switch and hung
+  # in `activating`). The registry only declared garage keys forge does not
+  # consume (no rclone/garage service on forge).
+  services.sops-secrets-registry.enable = lib.mkForce false;
 
   # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
 

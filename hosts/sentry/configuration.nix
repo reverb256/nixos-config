@@ -151,14 +151,17 @@
 
     k3s-cluster = {
       enable = true;
-      role = "agent";
-      # 2026-08-08: nexus (10.1.1.120) recovered; sentry rejoins the nexus
-      # cluster as an agent (non-server). Sentry was temporarily bootstrapped
-      # as a standalone server during the nexus outage; that temp CA is discarded.
-      # Running as agent avoids the flannel-backend mismatch that occurs when
-      # a non-initializing server tries to join a cluster with a different
-      # flannel backend config in etcd. Direct nexus address avoids the
-      # keepalived VIP deadlock (sentry holds VIP 10.1.1.100 but its k3s
+      role = "server";
+      clusterInit = false;
+      # 2026-08-16: sentry rejoins the nexus cluster as a SERVER (control
+      # plane + etcd) for 3-node HA. Previously agent: the 2026-08-08 nexus
+      # recovery demoted sentry to agent to avoid the flannel-backend
+      # mismatch, but that left a 2-server etcd with zero fault tolerance
+      # (both nexus AND forge had to be up for quorum — the 2026-08-16 outage
+      # when forge lost its k3s token). The k3s-cluster module now passes
+      # --flannel-backend=none on every server, so a joining server no longer
+      # disagrees with the initialized datastore. Direct nexus address avoids
+      # the keepalived VIP deadlock (sentry holds VIP 10.1.1.100 but its k3s
       # was down — the VIP routed kubectl to a dead API server).
       serverAddr = "https://10.1.1.120:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
@@ -185,7 +188,8 @@
       # never evaluated because enable=false) was vestigial.
     };
 
-    # Auto-apply K8s manifests on boot (control-plane only; sentry is agent)
+    # Auto-apply K8s manifests on boot (control-plane only; sentry is a
+    # server now — keep disabled; manifests apply from nexus, the primary).
     k8s-manifest-autoapply.enable = false;
 
     keepalived-vip = {
