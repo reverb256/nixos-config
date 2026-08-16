@@ -546,14 +546,15 @@
 
   # ----------------------------------------------------------------------------
   # BONSAI 27B 1-bit on AMD RX 5600 XT via Vulkan (mainline llama-cpp-b9048).
-  # 2026-08-11: weights at /srv/models/bonsai/1bit-27b (sentry has no /models).
+  # 2026-08-16: weights moved to /storage/models (HDD, 896G free) — the SSD
+  # was at 91% and kubelet image GC was failing. /storage is the 1TB HDD.
   # ICD path forced in the module so RADV is found without the system icd.d symlink.
   # ----------------------------------------------------------------------------
   services.bonsai = {
     enable = true;
     # Mainline llama.cpp with Vulkan + CUDA disabled (module default).
-    # Sentry has no /models mount; weights live at /srv/models.
-    onebitModel = "/srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
+    # Weights live at /storage/models (HDD) — see comment above.
+    onebitModel = "/storage/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
   };
 
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.

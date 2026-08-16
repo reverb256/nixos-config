@@ -231,7 +231,7 @@ in {
             {
               id = "gemma-e2b";
               name = "Gemma 4 E2B 128k";
-              model = "/srv/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf";
+              model = "/storage/models/gemma4/gemma-4-E2B-it-Q4_K_M.gguf";
               vkDevice = "0";
               ctx = 131072;
               fa = "off"; # RDNA1: -fa on costs 10x decode (2026-08-14, measured 84 t/s)
