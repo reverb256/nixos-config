@@ -35,8 +35,8 @@ niri-unstable.overrideAttrs (old: {
   src = fetchFromGitHub {
     owner = "reverb256";
     repo = "niri-hdr-fork";
-    rev = "7cf48e822b2ad5c39b308e838777891778dd3ee2";
-    hash = "sha256-AhOcPZBah5xoyczdKwQZCeXZ1vOITjiOyj7O09RezwY=";
+    rev = "5a8e0001e97ec2d4a637e90f11a63975ca8080c7";
+    hash = "sha256-9d3piVTT8QPW8CuyNXK1jngx1mvYngaaC0990HMS04A=";
   };
 
   # Replace the fork's path-based smithay [patch] with a git-based one, and
