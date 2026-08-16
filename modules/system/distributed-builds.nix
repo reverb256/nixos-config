@@ -121,10 +121,12 @@ in {
 
   # nix-daemon memory guard — protect builder host services from builds.
   # MemoryMax=90% + OOMScoreAdjust=500 (nix.dev "Optimise the remote builder
-  # configuration"): builds are killed first, nexus (46 GB, k3s + AI gateway
-  # + monitoring) survives a runaway CUDA/llvm compile.
-  systemd.services.nix-daemon.serviceConfig = lib.mkIf (currentHost == "nexus" || currentHost == "sentry") {
+  # configuration"): builds are killed first, the host survives a runaway
+  # CUDA/llvm compile. Applies to all builder-capable hosts including zephyr
+  # (local builds for desktop packages).
+  systemd.services.nix-daemon.serviceConfig = {
     MemoryAccounting = true;
+    MemoryHigh = "80%";
     MemoryMax = "90%";
     OOMScoreAdjust = 500;
   };
