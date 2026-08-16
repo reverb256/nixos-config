@@ -390,6 +390,20 @@
   };
 
   # ============================================================================
+  # RAM CACHE — /build on tmpfs (nix sandbox build dir)
+  # ============================================================================
+  # Nix builds with sandbox-build-dir = /build. On SSD the build scratch
+  # (configure, compile .o files, linking) hits disk constantly. A tmpfs
+  # keeps it all in RAM — the single biggest speedup for fresh C++/Rust
+  # builds (gamescope master ~15 min on SSD → near-IO-free in RAM).
+  # 24GB of 46GB total; ccache dir gets 4GB more, still ~6GB headroom.
+  fileSystems."/build" = {
+    device = "tmpfs";
+    fsType = "tmpfs";
+    options = [ "size=24G" "mode=1777" "nr_inodes=1M" ];
+  };
+
+  # ============================================================================
   # STORAGE CONFIGURATION
   # ============================================================================
   # Nexus has additional storage beyond the root filesystem:
