@@ -151,7 +151,7 @@ in {
             {
               id = "bonsai-1bit";
               name = "Bonsai 1bit 256k q4_0";
-              model = "/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
+              model = "/data/shared/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
               # 2026-08-14: KV fix for Crash A. mkCatalog defaults cacheK/V to
               # turbo4; on nexus 8 GB that overflowed @ 262144 -> illegal access.
@@ -163,7 +163,7 @@ in {
             {
               id = "nemotron-30b-a3b";
               name = "Nemotron 3.5 Lightning 30B-A3B (IQ3_M)";
-              model = "/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ3_M.gguf";
+              model = "/data/shared/models/nemotron-3.5-30b/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ3_M.gguf";
               gpuUuid = "GPU-6bc1c22c-41e5-0ab7-285e-911c43b1b29e";
               ctx = 262144;
               # 2026-08-15 (FIX): the default unified turboquant build
