@@ -87,4 +87,16 @@
         # PRIxPTR requires <inttypes.h> which libxserver-os already pulls in
       '';
   });
+  # 2026-08-15: gamescope HDR exposure fix (gamescope#2221, PR #2222).
+  # Root cause (verified via WAYLAND_DEBUG): niri-hdr advertises
+  # wp_color_manager_v1 transfer functions gamma22/PQ/HLG but NOT SRGB.
+  # gamescope 3.16.25's WaylandBackend.cpp:2031 gate requires
+  # TRANSFER_FUNCTION_SRGB before exposing HDR -> bExposeHDRSupport=false ->
+  # SRGB swapchain, grayed in-game HDR toggle, generic monitor names
+  # (gamescope only patches EDID with HDR colorimetry when HDR is exposed).
+  # PR #2222 removes the SRGB requirement, keeps the PQ check (the fork
+  # DOES advertise PQ). Applies cleanly to 3.16.25.
+  gamescope = prev.gamescope.overrideAttrs (old: {
+    patches = (old.patches or []) ++ [./gamescope-2222-nosrgb-tf-gate.patch];
+  });
 }
