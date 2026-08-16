@@ -45,33 +45,39 @@ let
   };
   packageNix = "${forkSource}/.devops/nix/package.nix";
 in
-(pkgs.callPackage packageNix {
-  inherit useCuda;
-  useVulkan = true;
-  useBlas = false;
-  useMpi = false;
-  useRocm = false;
-  useRpc = false;
-  useWebUi = true; # build tools/ui so the llama.cpp webpage serves on --port
-  llamaVersion = "turboquant-fca3093";
-  # x86-64-v3 CPU tuning (2026-08-16): all fleet CPUs are AVX2-capable
-  # (zephyr 5950X, nexus 3900X, sentry 1700, forge i5-9500). The CPU-side
-  # hot paths (prompt eval, rerank head, embeddings) get the AVX2/FMA
-  # uplift. CUDA/Vulkan backends are compiled separately and unaffected.
-  cmakeFlags = [
-    (lib.cmakeBool "LLAMA_NATIVE" false)
+let
+  # The fork's package.nix at the pinned rev (main-qwen35 @ 329c616c) does NOT
+  # accept a cmakeFlags argument — it hardcodes its own flag list (GGML_NATIVE
+  # already false). Pass only the flags it accepts via callPackage, then append
+  # the x86-64-v3 CPU tuning with overrideAttrs (2026-08-16): all fleet CPUs
+  # are AVX2-capable (zephyr 5950X, nexus 3900X, sentry 1700, forge i5-9500).
+  # The CPU-side hot paths (prompt eval, rerank head, embeddings) get the
+  # AVX2/FMA uplift. CUDA/Vulkan backends are compiled separately.
+  base = pkgs.callPackage packageNix {
+    inherit useCuda;
+    useVulkan = true;
+    useBlas = false;
+    useMpi = false;
+    useRocm = false;
+    useRpc = false;
+    useWebUi = true; # build tools/ui so the llama.cpp webpage serves on --port
+    llamaVersion = "turboquant-fca3093";
+    # CRITICAL (2026-08-13): pin CUDA archs to fleet hardware ONLY (sm_86:
+    # zephyr 3090/3060 Ti + nexus 3060 Ti; sm_89: forge 4060s). nixpkgs
+    # cudaPackages default builds ALL supported archs (75..121a, 9 archs);
+    # TheTom's larger kernel set made the 9-arch libggml-cuda.so exceed the
+    # 32-bit PLT limit at link -> "relocation truncated to fit: R_X86_64_PC32"
+    # (verified failure). 2 archs fix the overflow AND cut compile ~4x.
+    cudaPackages = pkgs.cudaPackages.overrideScope (final: prev: {
+      flags = prev.flags // {
+        cudaCapabilities = ["8.6" "8.9"];
+      };
+    });
+  };
+in
+base.overrideAttrs (old: {
+  cmakeFlags = (old.cmakeFlags or []) ++ [
     (lib.cmakeFeature "CMAKE_C_FLAGS" "-march=x86-64-v3")
     (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-march=x86-64-v3")
   ];
-  # CRITICAL (2026-08-13): pin CUDA archs to fleet hardware ONLY (sm_86:
-  # zephyr 3090/3060 Ti + nexus 3060 Ti; sm_89: forge 4060s). nixpkgs
-  # cudaPackages default builds ALL supported archs (75..121a, 9 archs);
-  # TheTom's larger kernel set made the 9-arch libggml-cuda.so exceed the
-  # 32-bit PLT limit at link -> "relocation truncated to fit: R_X86_64_PC32"
-  # (verified failure). 2 archs fix the overflow AND cut compile ~4x.
-  cudaPackages = pkgs.cudaPackages.overrideScope (final: prev: {
-    flags = prev.flags // {
-      cudaCapabilities = ["8.6" "8.9"];
-    };
-  });
 })
