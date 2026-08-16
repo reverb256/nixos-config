@@ -284,7 +284,7 @@ in {
                 }
               }
               handle /oauth2/* {
-                reverse_proxy 127.0.0.1:30890
+                reverse_proxy 127.0.0.1:4180
               }
               handle {
                 reverse_proxy 127.0.0.1:32556

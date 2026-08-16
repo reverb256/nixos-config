@@ -25,6 +25,16 @@
       url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=880fec9d10c8874d787eb2588e65fbc218950009";
       flake = false;
     };
+    # astral-key — passkey-first auth + OIDC provider (replaces the retired
+    # casdoor deployment for central-auth SSO). Consumed as a source tree
+    # (flake = false) and built with nixpkgs' rustPlatform in
+    # hosts/nexus/astral-key.nix — same pattern as the lix fork: pin a rev,
+    # keep nixpkgs' build glue in charge. Bump by pushing astral-key master
+    # then pinning the new rev here.
+    astral-key = {
+      url = "git+https://github.com/reverb256/astral-key?rev=5c09e5374c3178bfe147eba16923bf9c586ce5d7";
+      flake = false;
+    };
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
     # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
     # embeds the zen version; following our nixpkgs made it drift every time
