@@ -50,9 +50,9 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 2 # 12 cores x 2 jobs = 24 threads (SMT) — never over-sold (nix.dev manual)
+        then 1 # 12 cores x 1 job = 12 threads — half of SMT to prevent OOM (2026-08-16)
         else if currentHost == "sentry"
-        then 2 # 8 cores x 2 jobs = 16 threads (SMT) — never over-sold
+        then 1 # 8 cores x 1 job = 8 threads — half to prevent OOM
         else 0
       );
 
