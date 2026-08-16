@@ -558,18 +558,16 @@ in {
       #     on such a boot the fresh 1.1.0 is covered by (1) until the next
       #     boot's swap.
       path = [pkgs.nftables];
-      preStart = [
-        (pkgs.writeShellScript "k3s-replace-aux-nft" ''
-          set -eu
-          host_nft=${pkgs.nftables}/bin/nft
-          for f in ${cfg.dataDir}/data/*/bin/aux/nft; do
-            [ -e "$f" ] || continue
-            if ! ${pkgs.diffutils}/bin/cmp -s "$f" "$host_nft"; then
-              ${pkgs.coreutils}/bin/cp -f "$host_nft" "$f"
-            fi
-          done
-        '')
-      ];
+      preStart = ''
+        set -eu
+        host_nft=${pkgs.nftables}/bin/nft
+        for f in ${cfg.dataDir}/data/*/bin/aux/nft; do
+          [ -e "$f" ] || continue
+          if ! ${pkgs.diffutils}/bin/cmp -s "$f" "$host_nft"; then
+            ${pkgs.coreutils}/bin/cp -f "$host_nft" "$f"
+          fi
+        done
+      '';
       serviceConfig = {
         Restart = lib.mkForce "on-failure";
         RestartSec = lib.mkForce "15s";
