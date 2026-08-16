@@ -54,6 +54,15 @@ in
   useRpc = false;
   useWebUi = true; # build tools/ui so the llama.cpp webpage serves on --port
   llamaVersion = "turboquant-fca3093";
+  # x86-64-v3 CPU tuning (2026-08-16): all fleet CPUs are AVX2-capable
+  # (zephyr 5950X, nexus 3900X, sentry 1700, forge i5-9500). The CPU-side
+  # hot paths (prompt eval, rerank head, embeddings) get the AVX2/FMA
+  # uplift. CUDA/Vulkan backends are compiled separately and unaffected.
+  cmakeFlags = [
+    (lib.cmakeBool "LLAMA_NATIVE" false)
+    (lib.cmakeFeature "CMAKE_C_FLAGS" "-march=x86-64-v3")
+    (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-march=x86-64-v3")
+  ];
   # CRITICAL (2026-08-13): pin CUDA archs to fleet hardware ONLY (sm_86:
   # zephyr 3090/3060 Ti + nexus 3060 Ti; sm_89: forge 4060s). nixpkgs
   # cudaPackages default builds ALL supported archs (75..121a, 9 archs);
