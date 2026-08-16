@@ -17,7 +17,10 @@ in {
     k3s-cluster = {
       enable = false;
       role = "server";
-      etcdClean = true;
+      # Dead/vestigial (enable = false, not imported by any host config) — but
+      # never leave a wipe flag true in source: it destroys the cluster if ever
+      # enabled. Set false (2026-08-16, sentry rejoin completed).
+      etcdClean = false;
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/secrets/k3s-cluster-token";
