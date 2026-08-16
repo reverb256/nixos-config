@@ -200,7 +200,9 @@
     # nemotron_h_moe + muse_glimmer and stalled on the Nemotron 30B tensor set.
     # Pinned: 2026-08-13 "Merge pull request #283 from jasstrong/tq3-fused-hip".
     llama-cpp-turboquant = {
-      url = "git+https://github.com/TheTom/llama-cpp-turboquant?ref=feature/turboquant-kv-cache&rev=fca3093c9e6544476bbb2a139a25e17dd63627e1";
+      # OUR fork (reverb256): mainline qwen35 + ssm_scan rollback + TurboQuant KV.
+      # main-qwen35 @ 478caed42 (merge of TheTom turbo onto mainline 1692f9e5).
+      url = "git+https://github.com/reverb256/llama-cpp-turboquant?ref=main-qwen35&rev=478caed42747ccc8a6fbd0d946252bc3e29a526b";
     };
   };
 
