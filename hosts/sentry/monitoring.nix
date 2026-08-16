@@ -45,6 +45,11 @@
           bind_addr = ["127.0.0.1"];
           bind_port = 7946;
         };
+        # Single-tenant homelab: without this, Loki 3.x requires an
+        # X-Scope-OrgID header on every push and alloy's loki.write gets
+        # "no org id" 401s (observed 2026-08-16 after the sentry reboot).
+        # auth_enabled=false maps everything to the implicit "fake" tenant.
+        auth_enabled = false;
       };
 
       # Metrics exporters
