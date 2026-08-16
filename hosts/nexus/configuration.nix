@@ -735,7 +735,7 @@
     onebitModel = "/data/shared/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
     ternaryModel = "/data/shared/models/bonsai/ternary-27b/Ternary-Bonsai-27B-Q2_0.gguf";
     dsparkModel = "/data/shared/models/bonsai/dspark/Ternary-Bonsai-27B-dspark-Q4_1.gguf";
-    mmprojModel = "/data/shared/models/bonsai/ternary-27b/Ternary-Bonsai-27B-mmproj-Q8_0.gguf";
+    mmproj = "/data/shared/models/bonsai/ternary-27b/Ternary-Bonsai-27B-mmproj-Q8_0.gguf";
   };
 
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
