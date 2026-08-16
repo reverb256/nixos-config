@@ -180,5 +180,7 @@
     # Auto-apply Kubernetes manifests on boot
     ./services/k8s-manifest-autoapply.nix
     ./services/fake-backlight-bridge.nix
+    # Freebuff Desktop — auto-updating AppImage launcher (via freebuff-flake)
+    ./services/freebuff-desktop.nix
   ];
 }

@@ -444,6 +444,9 @@
     };
   };
 
+  # Freebuff Desktop — auto-updating AppImage launcher via freebuff-flake
+  services.freebuff-desktop.enable = true;
+
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
 
@@ -1132,15 +1135,9 @@
     # programs.opencode.telegramDesktop, default true). A system copy
     # duplicated the org.telegram.desktop DBus service -> dbus-broker
     # "Ignoring duplicate name" warnings on every session start.
-    # Freebuff Desktop — packaged from the AppImage (appimageTools.wrapType2).
-    # Installed system-wide so noctalia's systemd-run (PATH=/run/current-system/sw/bin)
-    # can resolve `freebuff-desktop` for launcher clicks (was only in ~/.local/bin).
-    # 2026-08-15: override with the SYSTEM nvidia driver (new_feature 610) so
-    # freebuff's Vulkan ICD matches the running driver. The overlay default
-    # (linuxPackages.nvidia_x11) is 595.84 — mismatched libs.
-    (pkgs.freebuff-desktop.override {
-      nvidiaIcdPath = "${config.hardware.nvidia.package}/share/vulkan/icd.d/nvidia_icd.json";
-    })
+    # Freebuff Desktop — auto-updating wrapper via freebuff-flake.
+    # (services.freebuff-desktop.enable = true) below wires in the package.
+    # No manual entry needed here — the module adds it to environment.systemPackages.
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
