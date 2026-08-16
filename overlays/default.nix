@@ -10,6 +10,7 @@ let
   pythonOverlay = import ./python.nix { inherit inputs _final prev; };
   hardwareOverlay = import ./hardware.nix { inherit inputs _final prev; };
   llamaOverlay = import ./llama.nix { inherit inputs _final prev; };
+  nftablesOverlay = import ./nftables-crashfix.nix { inherit inputs _final prev; };
 in
 foldl' (acc: overlay: acc // overlay) {} [
   bugfixOverlay
@@ -17,4 +18,5 @@ foldl' (acc: overlay: acc // overlay) {} [
   pythonOverlay
   hardwareOverlay
   llamaOverlay
+  nftablesOverlay
 ]
