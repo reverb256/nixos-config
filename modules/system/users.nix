@@ -7,7 +7,9 @@
   users.users.j_kro = {
     isNormalUser = true;
     description = "Jeremy Kroeker";
-    shell = pkgs.fish;
+    # POSIX login shell so AI agents and SSH sessions get bash-compatible
+    # behavior (issue #645). Fish stays enabled for interactive use.
+    shell = pkgs.zsh;
     # NOTE (2026-07-21, issue #300): `initialHashedPassword` was the
     # upstream name for "set this hash only on first boot" (now called
     # `initialPassword` for plaintext / `hashedPassword` for hashed).

@@ -86,6 +86,7 @@
     # Fish system-level (PATH, packages): ./shell/fish.nix
     ./shell/bash.nix
     ./shell/fish.nix
+    ./shell/zsh.nix
 
     # Development
     ./development/tools.nix
