@@ -565,11 +565,11 @@
         "stable": "stable"
       },
       "locked": {
-        "lastModified": 1786862249,
-        "narHash": "sha256-pVV1SbtbNgMLi8Zk5+AUn6Pl3xYWZ4SMwC0gm13U8Nk=",
+        "lastModified": 1786862393,
+        "narHash": "sha256-Wqfy0s2mm6ATKr0/hyzKcuL/0wxK1UOR2FmFBzKkp7g=",
         "ref": "homelab/refs-retry",
-        "rev": "740d4013ea5ff2dc7e9fcd90c29685267a1a4f6c",
-        "revCount": 697,
+        "rev": "bf792a8eaf4bb26d8827bb6fd2b3ad35006215e5",
+        "revCount": 698,
         "type": "git",
         "url": "ssh://git@github.com/reverb256/colmena"
       },
