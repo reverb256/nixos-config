@@ -32,7 +32,7 @@
     # keep nixpkgs' build glue in charge. Bump by pushing astral-key master
     # then pinning the new rev here.
     astral-key = {
-      url = "git+https://github.com/reverb256/astral-key?rev=5c09e5374c3178bfe147eba16923bf9c586ce5d7";
+      url = "git+https://github.com/reverb256/astral-key?rev=af11fcc8603b239624bda9b95d891064c24d5570";
       flake = false;
     };
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
