@@ -43,10 +43,13 @@
       url = "git+https://gitlab.com/rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # NOTE: freebuff-flake input REMOVED (2026-08-13, duplication reconcile).
-    # The Freebuff binary is packaged locally at packages/freebuff-desktop.nix
-    # (wrapType2, verified hash) and installed via environment.systemPackages;
-    # the flake was declared but never consumed, and its pinned hash was stale.
+    # freebuff-flake — auto-updating AppImage wrapper + HM module.
+    # Provides: programs.freebuff-desktop (HM), freebuff-desktop-wrapper (auto-update script).
+    # The HM module manages .desktop entry; the wrapper handles download/extract/GPU on run.
+    freebuff-flake = {
+      url = "git+https://github.com/reverb256/freebuff-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # home-manager - Lix github:-fetcher cannot resolve implicit registry refs.
     # Declared explicitly with git+https:// transport (same sweep as other inputs).
     home-manager = {
@@ -211,6 +214,7 @@
     nixpkgs,
     home-manager,
     home-manager-config,
+    freebuff-flake,
     aagl,
     nur,
     claude-native,
