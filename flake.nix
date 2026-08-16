@@ -446,7 +446,11 @@
 
           apps.colmena = {
             type = "app";
-            program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
+            # lib.getExe sets the string context correctly for Lix 2.96
+            # strict placeholder validation (plain interpolation fails:
+            # "string ... is not the right placeholder for this derivation
+            # output" on `nix build .#apps.colmena.program`).
+            program = nixpkgs.lib.getExe colmena.packages.x86_64-linux.colmena;
             meta.description = "Colmena multi-host NixOS deployment";
           };
           # ── FORMATTING GATE ───────────────────────────────────────
