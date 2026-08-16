@@ -2,7 +2,7 @@
 
 **Status:** Canonical operator runbook  
 **Scope:** Zephyr, Nexus, Forge, Sentry, and future hosts with an explicit profile  
-**Last verified:** 2026-08-02  
+**Last verified:** 2026-08-16  
 **Owner:** Cluster operations
 
 This runbook repairs an existing NixOS installation from a NixOS USB/rescue

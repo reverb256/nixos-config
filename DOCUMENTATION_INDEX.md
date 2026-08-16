@@ -2,7 +2,7 @@
 
 **Status:** Canonical catalog
 **Owner:** j_kro
-**Last Verified:** 2026-08-09
+**Last Verified:** 2026-08-16
 **Scope:** Repository documentation navigation; not a live cluster-health report
 **Current-state reference:** [`docs/current-state.md`](docs/current-state.md)
 **Most recent broad audit indexed:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
@@ -16,8 +16,8 @@ for the authority boundaries and `just health`/`just provenance` for live claims
 ## Quick Start
 
 **For AI Agents:**
-1. Read `/etc/nixos/AGENTS.md` for universal cluster patterns
-2. Read agent-specific file: `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursorrules`, or `QWEN.md`
+1. Read `AGENTS.md` for universal cluster patterns and style
+2. Read the matching task guide in `agents/skills/`; `CLAUDE.md` is a pointer to `AGENTS.md`
 3. Read [`docs/current-state.md`](docs/current-state.md) for checked-in architecture and authority boundaries
 4. Treat `ROADMAP.md` and dated audits as planning/history; verify their claims against source and live state before acting.
 
@@ -41,7 +41,9 @@ for the authority boundaries and `just health`/`just provenance` for live claims
 | **Ops postmortem 2026-08-14** | Backup wedge (173G), deploy-chain failures, SSH CA pitfalls, dendritic eval quirk, gitlawb input fix | [`docs/ops-postmortem-2026-08-14.md`](docs/ops-postmortem-2026-08-14.md) |
 | **STATUS.md** | Generated status snapshot; verify its timestamp before relying on it | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
-| **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
+| **CLAUDE.md** | Pointer to `AGENTS.md` (no separate agent file) | `CLAUDE.md` |
+| **agents/skills/** | Task procedures: deploy, add-service, K8s workloads, secrets, worktrees, docs, OOM | `agents/skills/` |
+| **docs/reference/** | Reference: cluster architecture, services/auth, MCP, known issues | `docs/reference/` |
 | **CONTRIBUTING.md** | Worktree, PR, and contribution workflow | `CONTRIBUTING.md` |
 | **DOCS-MAINTENANCE.md** | Documentation classification and freshness policy | `DOCS-MAINTENANCE.md` |
 | **ROADMAP.md** | Historical Kubernetes migration roadmap and hardening notes | `ROADMAP.md` |
@@ -352,9 +354,12 @@ kubectl logs <pod> -n <namespace>
 - **2026-03-08-agent-instruction-files-spec-design.md** - Complete design specification
 
 ### Agent Files
-- **AGENTS.md** - Universal patterns (327 lines, target: 500)
-- **CLAUDE.md** - Claude Code specific (106 lines, target: 200)
-- **QWEN.md** - Qwen-Agent specific (98 lines, target: 200)
+- **AGENTS.md** - Universal rules, style, and conventions (lean hub; points to skills + reference)
+- **CLAUDE.md** - Pointer to `AGENTS.md` (`@AGENTS.md`)
+- **QWEN.md** - Qwen-Agent specific
+- **agents/skills/** - Task procedures (deploy, add-service, K8s workloads, secrets, worktrees, docs, OOM)
+- **docs/reference/** - Reference (cluster architecture, services/auth, MCP, known issues)
+- **.cursorrules** - Cursor shortcuts; pointer to `AGENTS.md`
 
 ---
 
@@ -392,5 +397,5 @@ kubectl logs <pod> -n <namespace>
 
 **Document Owner:** j_kro
 **Status:** Canonical catalog
-**Last Verified:** 2026-08-09
+**Last Verified:** 2026-08-16
 **Changes (2026-08-09):** Added the checked-in current-state authority boundary and removed obsolete current-state/Secret management guidance from the navigation spine.

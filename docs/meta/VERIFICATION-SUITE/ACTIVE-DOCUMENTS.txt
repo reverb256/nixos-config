@@ -11,6 +11,7 @@ docs/archive/ARCHIVE_INDEX.md
 docs/ci-cd/README.md
 docs/runbooks/nixos-usb-rescue.md
 docs/runbooks/cluster-rescue-quick-reference.md
+docs/runbooks/credential-rotation.md
 docs/kubernetes/README.md
 docs/kubernetes/amd-gpu-coexistence.md
 docs/kubernetes/caddy-ingress-architecture.md
@@ -20,3 +21,7 @@ docs/kubernetes/storage/README.md
 docs/operations/README.md
 kubernetes-manifests/AGENTS.md
 docs/portable-usb.md
+docs/reference/cluster-architecture.md
+docs/reference/services-and-auth.md
+docs/reference/mcp-and-agents.md
+docs/reference/known-issues.md
