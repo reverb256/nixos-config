@@ -130,6 +130,30 @@
     file = "k8s/central-auth-client-secret.yaml";
     owner = "root";
   };
+
+  # ── astral-key (OIDC provider) ──────────────────────────────
+  # OIDC client secret is the SAME secret central-auth/oauth2-proxy uses,
+  # materialized again at a second path readable by the astral-key user.
+  ASTRAL_KEY_OIDC_CLIENT_SECRET = {
+    path = "/run/secrets/astral-key-oidc-client-secret";
+    file = "k8s/central-auth-client-secret.yaml";
+    owner = "astral-key";
+    group = "astral-key";
+  };
+  ASTRAL_KEY_JWT_SECRET = {
+    path = "/run/secrets/astral-key-jwt-secret";
+    file = "k8s/astral-key-jwt-secret.yaml";
+    owner = "astral-key";
+    group = "astral-key";
+  };
+  # Ed25519 seed (64 hex) for OIDC id_token signing — must stay stable across
+  # restarts so the JWKS doesn't change.
+  ASTRAL_KEY_OIDC_SIGNING_KEY = {
+    path = "/run/secrets/astral-key-oidc-signing-key";
+    file = "k8s/astral-key-oidc-signing-key.yaml";
+    owner = "astral-key";
+    group = "astral-key";
+  };
   CENTRAL_AUTH_COOKIE_SECRET = {
     path = "/run/secrets/central-auth-cookie-secret";
     file = "k8s/central-auth-cookie-secret.yaml";

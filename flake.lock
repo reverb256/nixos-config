@@ -46,6 +46,23 @@
         "url": "https://github.com/ezKEa/aagl-gtk-on-nix"
       }
     },
+    "astral-key": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786854972,
+        "narHash": "sha256-n3lSxeD8uZWuOYARo2BH03w/6fLVzYHFslPkd6bd0PQ=",
+        "ref": "refs/heads/master",
+        "rev": "5c09e5374c3178bfe147eba16923bf9c586ce5d7",
+        "revCount": 33,
+        "type": "git",
+        "url": "https://github.com/reverb256/astral-key"
+      },
+      "original": {
+        "rev": "5c09e5374c3178bfe147eba16923bf9c586ce5d7",
+        "type": "git",
+        "url": "https://github.com/reverb256/astral-key"
+      }
+    },
     "base16": {
       "inputs": {
         "fromYaml": "fromYaml"
@@ -3322,6 +3339,7 @@
     "root": {
       "inputs": {
         "aagl": "aagl",
+        "astral-key": "astral-key",
         "cachyos-kernel": "cachyos-kernel",
         "caddy-ingress": "caddy-ingress",
         "claude-native": "claude-native",

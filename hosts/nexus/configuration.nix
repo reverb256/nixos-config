@@ -24,6 +24,8 @@
     ./services.nix
     ../../modules/services/cluster-services.nix
     ../../modules/services/central-auth.nix
+    # Passkey-first auth + OIDC provider (replaces casdoor for central-auth).
+    ./astral-key.nix
     ../../modules/system/initrd-ssh-recovery.nix
     ../../modules/system/recovery-specialisation.nix
     ../../modules/services/nexus-exec.nix
