@@ -1530,11 +1530,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785027134,
-        "narHash": "sha256-NMCooaj6T8SwcD9oMH1ojdtGekJ9hPxFlTaVTEdwy5U=",
+        "lastModified": 1786866372,
+        "narHash": "sha256-0ALUx4I5YO51m/V/2Tw+NRx65seuGgRG24SYG1xh+Uc=",
         "ref": "refs/heads/master",
-        "rev": "3441f9de41b40c3e8b6c504486f9aada778f37ed",
-        "revCount": 5,
+        "rev": "c7214964b2d24d140b65c274ad54c272f8106098",
+        "revCount": 6,
         "type": "git",
         "url": "https://github.com/reverb256/gpu-proxy"
       },
