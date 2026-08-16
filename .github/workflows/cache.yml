@@ -36,7 +36,18 @@ jobs:
         uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
         with:
           name: reverb-os
-          cachixBin: /run/current-system/sw/bin/cachix
+          # Self-hosted NixOS runners: /run/current-system/sw/bin/cachix does
+          # not exist and each host's store path differs. Resolve from the
+          # nix store at runtime instead of a hardcoded system path.
+          installCommand: |
+            CACHIX="$(find /nix/store -maxdepth 3 -name cachix -type f 2>/dev/null | head -1)"
+            if [ -z "$CACHIX" ]; then
+              echo "::error::cachix not found in nix store"
+              exit 2
+            fi
+            mkdir -p "$RUNNER_TEMP/bin"
+            ln -sf "$CACHIX" "$RUNNER_TEMP/bin/cachix"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           skipAddingSubstituter: true
           skipPush: true
           useDaemon: false
