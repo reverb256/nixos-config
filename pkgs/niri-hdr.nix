@@ -40,7 +40,7 @@ let
     owner = "reverb256";
     repo = "smithay";
     rev = "4c4317bbf51514986a8a2921689fcc516ccfd927";
-    hash = "sha256-prxUzP2Kf5YYmmUmjmTPMWHOx7wM/Fz5tH18BkQ7okU=";
+    hash = "sha256-633ReKCzn1n3gapbkZBOptlTdmFzdMKDHNpDiUSoR44=";
   };
 in
   niri-unstable.overrideAttrs (old: {
@@ -52,7 +52,7 @@ in
       owner = "reverb256";
       repo = "niri-hdr-fork";
       rev = "980aa465258a29c7c49cc2e2b55194e83a4efbf4";
-      hash = "sha256-jYhHPR8NyqV/IaZcd9jPGByUvBHyywcLtz18tkoZBO4=";
+      hash = "sha256-clwvdKg6XjfWNfGy0kcuix3u/c4aaT5TSmEpL4sTOOM=";
     };
 
     # The fork's Cargo.toml already carries direct git pins to reverb256/smithay
