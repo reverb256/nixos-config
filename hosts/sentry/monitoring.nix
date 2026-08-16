@@ -34,15 +34,18 @@
       };
 
       # Sentry runs Loki single-node (inmemory kvstore, replication_factor=1).
-      # The default memberlist bind scans interfaces [eth0 en0 lo] and fails on
-      # the (nonexistent) en0 interface. Pin memberlist to loopback so the
-      # gossip layer binds without interface autodiscovery. HTTP ingest still
-      # listens on 0.0.0.0:3100 for cluster-wide push.
+      # Loki 3.7.4 memberlist fails with "no useable address found for
+      # interfaces [eth0 en0 lo]" because en0 does not exist on Linux.
+      # Single-node Loki binds memberlist to 0.0.0.0; HTTP ingest listens on
+      # cfg.listenAddress (0.0.0.0:3100) for cluster-wide push.
       loki.extraConfiguration = {
         memberlist = {
-          # Loki's memberlist.bind_addr is a StringSlice -> must be a list,
-          # not a bare string (validate-loki-conf rejects !!str into it).
-          bind_addr = ["127.0.0.1"];
+          # memberlist.bind_addr is a StringSlice -> must be a list, not a
+          # bare string.  Bind to 0.0.0.0: single-node Loki with inmemory
+          # kvstore doesn't gossip across hosts, and binding to 127.0.0.1
+          # makes Loki 3.7.4 fail with "no useable address found for
+          # interfaces [eth0 en0 lo]" (en0 does not exist on Linux).
+          bind_addr = ["0.0.0.0"];
           bind_port = 7946;
         };
         # Single-tenant homelab: without this, Loki 3.x requires an
