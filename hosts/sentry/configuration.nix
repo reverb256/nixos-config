@@ -489,6 +489,25 @@
   };
 
   services.secretspec-validator = {
+
+  # Backup to Garage S3 — sentry had NO backup coverage before 2026-08-16
+  # (root cause of the unrecoverable gitlawb node-data wipe). Daily 02:00
+  # streamed to the nexus Garage (bucket backups), 30d retention.
+  backup-to-garage = {
+    enable = true;
+    endpoint = "http://10.1.1.120:3900";
+    region = "garage";
+    bucket = "backups";
+    accessKeyFile = "/run/secrets/garage-s3-access-key-id";
+    secretKeyFile = "/run/secrets/garage-s3-secret-key";
+    retentionDays = 30;
+    startAt = "02:00";
+    backupPaths = [
+      "/var/lib/gitlawb"            # decentralized git node (identity.pem + repos)
+      "/var/lib/containers/storage" # podman volumes (if any future containers)
+      "/persistent"                 # persistent subvol (memlawb-data etc.)
+    ];
+  };
     enable = true;
     production = true;
     failOnMissing = true;

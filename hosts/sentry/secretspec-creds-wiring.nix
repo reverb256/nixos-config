@@ -25,6 +25,26 @@
     owner = "root";
     group = "root";
   };
+  # ── storage (garage S3) ────────────────────────────────────────
+  # backup-to-garage reads these to authenticate to nexus garage
+  # (added 2026-08-16 so sentry gets backup coverage — the gitlawb
+  # node-data wipe was unrecoverable because sentry had NO backup).
+  GARAGE_ACCESS_KEY = {
+    path = "/run/secrets/garage-s3-access-key-id";
+    file = "storage/garage-s3-access-key-id.yaml";
+    key = "data";
+    owner = "root";
+    group = "root";
+    mode = "0440";
+  };
+  GARAGE_SECRET_KEY = {
+    path = "/run/secrets/garage-s3-secret-key";
+    file = "storage/garage-s3-secret-key.yaml";
+    key = "data";
+    owner = "root";
+    group = "root";
+    mode = "0440";
+  };
   SWITCH_ADMIN = {
     path = "/run/secrets/switch-admin";
     file = "infra/switch-admin.yaml";
