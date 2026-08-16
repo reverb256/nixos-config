@@ -110,6 +110,9 @@
       repo = "gamescope";
       rev = "df25cc1db980a1f545675763607faa0749bd6cac";
       hash = "sha256-RsEsMqooIqfrPh5vU5VzMKLplqxl6WGO+btKECowkBo=";
+      # openvr (and other deps) are git submodules; meson's cmake subproject
+      # resolver needs them present or it errors "Unknown git submodule output"
+      fetchSubmodules = true;
     };
     patches = (old.patches or []) ++ [./gamescope-force-hdr-support.patch];
   });
@@ -121,6 +124,7 @@
       repo = "gamescope";
       rev = "df25cc1db980a1f545675763607faa0749bd6cac";
       hash = "sha256-RsEsMqooIqfrPh5vU5VzMKLplqxl6WGO+btKECowkBo=";
+      fetchSubmodules = true;
     };
   });
 }
