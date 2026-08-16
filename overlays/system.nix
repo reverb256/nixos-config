@@ -39,10 +39,8 @@
     doCheck = false;
     nativeBuildInputs = (old.nativeBuildInputs or []) ++ [prev.cacert];
   });
-  # NOTE: nvidiaPackage for freebuff is NOT passed here — overlays cannot
-  # see config.hardware.nvidia.package. The host config (zephyr) overrides
-  # freebuff-desktop with the system driver in environment.systemPackages.
-  freebuff-desktop = prev.callPackage ../packages/freebuff-desktop.nix {};
+  # freebuff-desktop REMOVED — superseded by freebuff-flake wrapper (auto-updating)
+  # via modules/services/freebuff-desktop.nix (services.freebuff-desktop.enable).
   herdr = prev.callPackage ../packages/herdr.nix {};
   llama-cpp = prev.callPackage ../packages/llama-cpp.nix {
     cudaSupport = true;
