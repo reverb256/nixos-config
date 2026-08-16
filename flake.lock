@@ -2042,23 +2042,6 @@
         "url": "https://github.com/dividebysandwich/niri"
       }
     },
-    "niri-hdr_2": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1783683903,
-        "narHash": "sha256-Y8X2bTuboCAQ9E67ri9kTMkzBYU+1o3iCHCOVWctxLo=",
-        "ref": "hdr-smithay-master",
-        "rev": "2516a83b3eef5f3a766af5113244357a11e255a6",
-        "revCount": 2828,
-        "type": "git",
-        "url": "https://github.com/dividebysandwich/niri"
-      },
-      "original": {
-        "ref": "hdr-smithay-master",
-        "type": "git",
-        "url": "https://github.com/dividebysandwich/niri"
-      }
-    },
     "niri-stable": {
       "flake": false,
       "locked": {
@@ -3402,7 +3385,6 @@
         "lsfg-vk-nix": "lsfg-vk-nix_2",
         "mcp-registry": "mcp-registry_2",
         "niri": "niri_4",
-        "niri-hdr": "niri-hdr_2",
         "nix-cachyos-kernel": "nix-cachyos-kernel_2",
         "nixcord": "nixcord_4",
         "nixpkgs": "nixpkgs_13",

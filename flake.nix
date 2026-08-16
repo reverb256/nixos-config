@@ -90,12 +90,11 @@
       url = "git+https://github.com/OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Community HDR fork for niri — HDR metadata + hdr { enabled } config.
-    # Trade-off: lags behind upstream. Switch programs.niri.package to use it.
-    niri-hdr = {
-      url = "git+https://github.com/dividebysandwich/niri?ref=hdr-smithay-master";
-      flake = false;
-    };
+    # HDR niri is built by pkgs/niri-hdr.nix from the reverb256 fork pair
+    # (reverb256/niri-hdr-fork @ hdr-latest + reverb256/smithay @ hdr-modern)
+    # via fetchFromGitHub with a regenerated Cargo.lock — no flake input.
+    # (The old dividebysandwich niri-hdr input was removed 2026-08-16 when the
+    # reverb256 fork took over.)
     nixcord = {
       url = "git+https://github.com/FlameFlag/nixcord";
       inputs.nixpkgs.follows = "nixpkgs";
