@@ -22,7 +22,7 @@
     # new tip here. flake=false: we only consume the source tree; nixpkgs'
     # common-lix.nix build glue stays in charge.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=880fec9d10c8874d787eb2588e65fbc218950009";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=bf49e347bc7dcdee0bd25374832cfff64b6fe955";
       flake = false;
     };
     # astral-key — passkey-first auth + OIDC provider (replaces the retired
