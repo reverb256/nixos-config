@@ -43,11 +43,13 @@ jobs:
             echo ""
             echo "▶ $test_name"
 
-            # Skip lib.nix (helper, not a test)
-            if [ "$test_name" = "lib" ]; then
-              echo "  ⊘ skip (helper library)"
+            # Skip lib.nix (helper, not a test) and lix-vm.nix (NixOS VM
+            # test built via `nix build .#lix-vm-test`, needs `inputs` arg —
+            # not a source-level test).
+            if [ "$test_name" = "lib" ] || [ "$test_name" = "lix-vm" ]; then
+              echo "  ⊘ skip (helper/VM test)"
               SKIP=$((SKIP + 1))
-              RESULTS="$RESULTS\n  ⊘ $test_name (helper)"
+              RESULTS="$RESULTS\n  ⊘ $test_name (helper/VM test)"
               continue
             fi
 

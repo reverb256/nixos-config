@@ -224,7 +224,11 @@ jobs:
           FAILED=0
           for test in tests/*.nix; do
             name=$(basename "$test" .nix)
+            # lib is a helper library; lix-vm is a NixOS VM test (built via
+            # `nix build .#lix-vm-test`, needs `inputs`) — neither is a
+            # source-level test and both fail this eval harness.
             [ "$name" = "lib" ] && continue
+            [ "$name" = "lix-vm" ] && continue
             echo "=== $name ==="
             out=$(nix-instantiate --eval --strict --arg pkgs 'import <nixpkgs> {}' "$test" 2>&1)
             rc=$?
