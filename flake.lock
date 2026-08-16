@@ -49,16 +49,15 @@
     "astral-key": {
       "flake": false,
       "locked": {
-        "lastModified": 1786854972,
-        "narHash": "sha256-n3lSxeD8uZWuOYARo2BH03w/6fLVzYHFslPkd6bd0PQ=",
-        "ref": "refs/heads/master",
-        "rev": "5c09e5374c3178bfe147eba16923bf9c586ce5d7",
-        "revCount": 33,
+        "lastModified": 1786858764,
+        "narHash": "sha256-FVoZ+Zuf2tvBuchGvcd/4WiMHBOzSoF++cOBhPfBqlo=",
+        "rev": "af11fcc8603b239624bda9b95d891064c24d5570",
+        "revCount": 34,
         "type": "git",
         "url": "https://github.com/reverb256/astral-key"
       },
       "original": {
-        "rev": "5c09e5374c3178bfe147eba16923bf9c586ce5d7",
+        "rev": "af11fcc8603b239624bda9b95d891064c24d5570",
         "type": "git",
         "url": "https://github.com/reverb256/astral-key"
       }
