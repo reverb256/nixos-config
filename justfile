@@ -364,6 +364,12 @@ attach:
 
 # ── VALIDATION & LOCAL OPS ────────────────────────────────────────────────────
 
+# Standalone preflight check — run before any deploy
+preflight:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec {{FLAKE}}/scripts/preflight-check.sh
+
 check:
     #!/usr/bin/env bash
     set -e
