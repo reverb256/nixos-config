@@ -580,7 +580,7 @@ in {
         # /var/lib/systemd/coredump filled the disk (88%) and forced a
         # watchdog reset. Overrides the upstream rancher/k3s default
         # LimitCORE=infinity.
-        LimitCORE = 0;
+        LimitCORE = lib.mkForce 0;
       };
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # k3s waits on /run/secrets/k3s-cluster-token (provisioned by
