@@ -12,8 +12,8 @@
 # are the ONLY recipients that survive a host compromise. Don't treat the
 # 4-of-4 recipient count as 4 independent attack vectors.
 keys:
-  - &cluster_age age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe
-  - &zephyr_age_v2 age163ce5qyznc8vsfq9ppkk5jwtuj66yasxup3hge2t625y4xmw5ffqcmczdx
+  - &cluster_age age1567g6raae4adh97lrfhalc9wwhmtsulh89k9pkx24m5ezfh8a4xqndrt6l
+  - &zephyr_age_v2 age12k7ch5r9sczu42zc6eutxtl6leudn47uv5fvsjrlq5ms0f0hz9nshm3t7q
   - &yubikey_nano age1yubikey1qtrfqkheehc6dlyux9stwq67dq3kcledlwzzrckx0wk639mh0wqh54auh7v
   - &yubikey_nfc age1yubikey1qvh5yeguawe89kr9muzn6xvfwjkcja7rf0j6afxgyula6p9vql4kkjh52h2
 creation_rules:
