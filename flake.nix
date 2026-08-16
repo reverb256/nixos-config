@@ -115,7 +115,9 @@
     };
     # Colmena - Multi-host deployment
     colmena = {
-      url = "git+https://github.com/zhaofengli/colmena";
+      # Homelab fork (2026-08-16): reverb256/colmena homelab/refs-retry —
+      # refs.nix source-race retry in realize_remote + --skip-unchanged.
+      url = "git+ssh://git@github.com/reverb256/colmena?ref=homelab/refs-retry";
       # 2026-08-16: REMOVED inputs.nixpkgs.follows. It forced colmena to
       # compile from source on every nixpkgs bump (upstream CI builds against
       # colmena's own pin -> cache miss). colmena.cachix.org is in the cache
