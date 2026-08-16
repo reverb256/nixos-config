@@ -50,9 +50,9 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 1 # 12 cores x 1 job = 12 threads — half of SMT to prevent OOM (2026-08-16)
+        then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
         else if currentHost == "sentry"
-        then 1 # 8 cores x 1 job = 8 threads — half to prevent OOM
+        then 2 # 8 cores x 2 jobs = 8 threads — half to prevent OOM
         else 0
       );
 
@@ -302,7 +302,7 @@ in {
               systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 1; # sync with nix.settings.max-jobs on nexus (2026-08-16)
+              maxJobs = 2; # sync with nix.settings.max-jobs on nexus (2026-08-16)
               speedFactor = 10; # exclusive builder
               connectTimeout = 1;
               supportedFeatures = [
@@ -324,7 +324,7 @@ in {
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 1;
+              maxJobs = 2;
               speedFactor = 6; # secondary — below nexus's 10
               connectTimeout = 1;
               supportedFeatures = [
