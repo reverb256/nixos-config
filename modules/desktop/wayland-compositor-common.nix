@@ -80,5 +80,11 @@ in {
       # environment; with the user service gone we set it session-wide so the
       # spawn-at-startup child inherits it.
       environment.sessionVariables.NOCTALIA_CONFIG_HOME = "/etc";
+
+      # Disable NVIDIA explicit-sync present path — driver bug 371770 leaks
+      # ~2 MiB/host-RSS per present in libEGL_nvidia (per-present alloc never
+      # reclaimed). Implicit sync fallback is fine at 60 Hz. Takes effect on
+      # next niri/app start.
+      environment.sessionVariables.__NV_DISABLE_EXPLICIT_SYNC = "1";
     };
 }
