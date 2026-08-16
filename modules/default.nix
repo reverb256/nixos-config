@@ -24,6 +24,7 @@
     # System-level configuration
     ./system/system-packages.nix
     ./system/nix-config.nix
+    ./system/x86-64-v3-tuning.nix
     ./system/users.nix
     ./system/networking.nix
     ./system/ssh.nix
