@@ -87,4 +87,40 @@
         # PRIxPTR requires <inttypes.h> which libxserver-os already pulls in
       '';
   });
+
+  # 2026-08-15: gamescope HDR support flag wiring (gamescope#2008 pattern).
+  # Root cause (proven via WAYLAND_DEBUG): niri-hdr's wp_color_manager_v1
+  # output image description reports primaries_named(1)=SRGB,
+  # tf_named(9)=SRGB even though the DRW wire is genuinely HDR (10-bit
+  # XB30/AB30, hdr=true). gamescope 3.16.25's SupportsColorManagement()
+  # returns false -> bExposeHDRSupport=false -> SRGB swapchain, grayed
+  # in-game HDR toggle, generic monitor names.
+  #
+  # 2026-08-16: upgraded gamescope to MASTER HEAD (df25cc1d) — past the
+  # 3.16.25 tag, with the swapchain use-after-free fix (1c0e42c) and
+  # Xwayland/nested fixes since Aug-13. The --hdr-debug-force-support flag
+  # is STILL not wired into WaylandBackend::SupportsColorManagement() on
+  # master (verified 2026-08-16: impl lacks `|| g_bForceHDRSupportDebug`),
+  # so our one-line patch is re-applied. Scopebuddy passes
+  # --hdr-debug-force-support; forcing the support flag yields CORRECT HDR
+  # output on niri-hdr's genuinely-HDR wire.
+  gamescope = prev.gamescope.overrideAttrs (old: {
+    src = prev.fetchFromGitHub {
+      owner = "ValveSoftware";
+      repo = "gamescope";
+      rev = "df25cc1db980a1f545675763607faa0749bd6cac";
+      hash = "sha256-RsEsMqooIqfrPh5vU5VzMKLplqxl6WGO+btKECowkBo=";
+    };
+    patches = (old.patches or []) ++ [./gamescope-force-hdr-support.patch];
+  });
+  # gamescope-wsi: keep the FROG implicit layer on the same master rev as
+  # gamescope so the WSI/HDR handshake stays in lockstep.
+  gamescope-wsi = prev.gamescope-wsi.overrideAttrs (old: {
+    src = prev.fetchFromGitHub {
+      owner = "ValveSoftware";
+      repo = "gamescope";
+      rev = "df25cc1db980a1f545675763607faa0749bd6cac";
+      hash = "sha256-RsEsMqooIqfrPh5vU5VzMKLplqxl6WGO+btKECowkBo=";
+    };
+  });
 }
