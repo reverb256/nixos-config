@@ -82,6 +82,9 @@ private:
     // Read buffer
     std::string read_buffer_;
     static constexpr size_t BUFFER_SIZE = 8192;
+    // Cap on buffered input awaiting a newline (prevents unbounded growth
+    // when a peer sends a very long line without a terminator).
+    static constexpr size_t MAX_BUFFER_SIZE = 1 << 20;  // 1 MiB
 
     // Callbacks
     MessageCallback message_cb_;

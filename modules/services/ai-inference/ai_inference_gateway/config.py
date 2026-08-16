@@ -547,6 +547,16 @@ class GatewayConfig(BaseSettings):
         default=None, description="Path to file containing Pollinations API key"
     )
 
+    # Astral Key authentication (admin endpoints)
+    astral_key_url: Optional[str] = Field(
+        default=None,
+        description="Astral Key service base URL for admin auth (e.g. http://astral-key:8080). Empty disables admin endpoints.",
+    )
+    astral_key_admin_scopes: str = Field(
+        default="",
+        description="Comma-separated scopes required for admin access (empty = any valid credential)",
+    )
+
     # Middleware configuration
     middleware: MiddlewareConfig = Field(
         default=MiddlewareConfig(), description="Middleware configuration"

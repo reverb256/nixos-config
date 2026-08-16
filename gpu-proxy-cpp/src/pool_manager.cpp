@@ -143,8 +143,8 @@ void PoolManager::send_login() {
 
     // Monero-style login (NOT Bitcoin Stratum!)
     // Format: {"method":"login","params":{"login":wallet,"pass":password,"agent":"gpu-proxy/2.0"},"id":1}
-    std::string msg = R"({"method":"login","params":{"login":")" + pool.wallet +
-        R"(","pass":")" + pool.password +
+    std::string msg = R"({"method":"login","params":{"login":")" + json_escape(pool.wallet) +
+        R"(","pass":")" + json_escape(pool.password) +
         R"(","agent":"gpu-proxy/2.0"},"id":)" + std::to_string(get_next_id()) + R"(})";
 
     auto* conn = loop_.get_connection(
@@ -171,11 +171,11 @@ void PoolManager::handle_response(const StratumResponse& resp) {
         // Format: {"result":{"job":{"algo":"cuckaroo","job_id":"...","blob":"...","target":"...","height":...}}}
         auto result_job = resp.result["job"];
         if (result_job.contains("job_id") && result_job.contains("blob")) {
-            current_job_.job_id = result_job["job_id"];
-            current_job_.blob = result_job["blob"];
-            current_job_.target = result_job["target"];
+            current_job_.job_id = json_as_string(result_job["job_id"]);
+            current_job_.blob = json_as_string(result_job["blob"]);
+            current_job_.target = json_as_string(result_job["target"]);
             if (result_job.contains("height")) {
-                current_job_.height = result_job["height"];
+                current_job_.height = json_as_u64(result_job["height"]);
             }
             has_job_ = true;
 
@@ -235,10 +235,10 @@ void PoolManager::handle_notification(const StratumRequest& req) {
     else if (req.method == StratumMethod::JOB) {
         // Monero sends: {"method":"job","params":{"algo":"cuckaroo","job_id":"...","blob":"...","target":"...","height":...}}
         if (req.params.contains("job_id") && req.params.contains("blob")) {
-            current_job_.job_id = req.params["job_id"];
-            current_job_.blob = req.params["blob"];
-            current_job_.target = req.params["target"];
-            current_job_.height = req.params["height"];
+            current_job_.job_id = json_as_string(req.params["job_id"]);
+            current_job_.blob = json_as_string(req.params["blob"]);
+            current_job_.target = json_as_string(req.params["target"]);
+            current_job_.height = json_as_u64(req.params["height"]);
             has_job_ = true;
 
             fprintf(stderr, "[PoolManager] Received Monero job: %s (height: %lu)\n",
@@ -266,10 +266,10 @@ void PoolManager::submit_share(const std::string& worker_id,
     // Monero Stratum submit format: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":N}
     // Note: For CR29/Tari, we forward the nonce as-is (worker already computed full result)
     std::string msg = R"({"id": )" + std::to_string(id) +
-        R"(, "method": "submit", "params": {"id": ")" + worker_id +
-        R"(", "job_id": ")" + job_id +
-        R"(", "nonce": ")" + nonce +
-        R"(", "result": ")" + result +
+        R"(, "method": "submit", "params": {"id": ")" + json_escape(worker_id) +
+        R"(", "job_id": ")" + json_escape(job_id) +
+        R"(", "nonce": ")" + json_escape(nonce) +
+        R"(", "result": ")" + json_escape(result) +
         R"("}, "jsonrpc": "2.0"})";
 
     auto* conn = loop_.get_connection(

@@ -295,6 +295,16 @@ ssize_t Connection::read_data() {
     }
 
     buf[received] = '\0';
+
+    // Reject runaway input: if a peer sends a very long line without a
+    // newline, read_buffer_ would otherwise grow without bound.
+    if (read_buffer_.size() + received > MAX_BUFFER_SIZE) {
+        fprintf(stderr, "[%s] Read buffer exceeded %zu bytes, closing connection\n",
+                name_.c_str(), MAX_BUFFER_SIZE);
+        should_close_ = true;
+        return -1;
+    }
+
     read_buffer_.append(buf, received);
 
     // Process complete lines

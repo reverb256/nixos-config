@@ -6,11 +6,15 @@ Provides CRUD for virtual API keys with budget enforcement.
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from ai_inference_gateway.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["virtual-keys"])
+router = APIRouter(
+    tags=["virtual-keys"], dependencies=[Depends(require_admin)]
+)
 
 
 def _get_key_manager(request: Request):
