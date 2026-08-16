@@ -81,12 +81,6 @@ in {
     enable = true;
   };
 
-  systemd.services.tailscaled.environment = {
-    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
-    TS_ROUTES = "";
-    TS_SSH = "true";
-  };
-
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
     enable = true;

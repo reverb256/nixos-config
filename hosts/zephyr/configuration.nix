@@ -270,6 +270,10 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.zephyr-workstation.enable = true;
 
+  # Tailscale authkey: sops-managed preauth key (declarative join).
+  # Ignored once the node is already joined; used on first boot / rejoin.
+  services.tailscale-cluster.authKeyFile = "/run/secrets/tailscale/authkey";
+
   # MONITORING DISABLED - Protect 31GB RAM for gaming/VR/AI workloads
   # Monitoring stack moved to Nexus (46GB RAM) to prevent OOM on Zephyr
   # Prometheus/Grafana running on Kubernetes (ai-inference namespace)

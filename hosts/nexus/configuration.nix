@@ -191,6 +191,10 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.nexus-gaming.enable = true;
 
+  # Tailscale authkey: sops-managed preauth key (declarative join).
+  # Ignored once the node is already joined; used on first boot / rejoin.
+  services.tailscale-cluster.authKeyFile = "/run/secrets/tailscale/authkey";
+
   # Enable workstation role for full Plasma desktop environment
   # This matches Zephyr's desktop setup (enables services.gaming)
   profiles.role.workstation = true;
@@ -593,14 +597,6 @@
 
     # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
   };
-  # Host-specific override: Nexus does not advertise routes (zephyr handles that)
-  # This overrides the base Tailscale configuration from node profile
-  systemd.services.tailscaled.environment = {
-    TS_ADVERTISE_ROUTES = "";
-    TS_ROUTES = "";
-    TS_SSH = "true";
-  };
-
   # Grant user-space RGB tools the native, group-scoped I2C access rather
   # than the old world-writable catch-all udev rule.
   hardware.i2c.enable = true;

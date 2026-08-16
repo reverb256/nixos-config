@@ -180,6 +180,10 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.forge-mining.enable = true;
 
+  # Tailscale: forge has the sops registry disabled (k3s secretspec
+  # orphaning fix), so no authKeyFile — node is already joined, tags-only.
+  services.tailscale-cluster.authKeyFile = null;
+
   # GPU COMPUTE - CUDA + ROCm + Vulkan support for AI inference
 
   # Forge has BOTH AMD (5700XT) and NVIDIA GPUs (RTX 4060)

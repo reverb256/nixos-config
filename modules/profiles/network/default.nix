@@ -15,14 +15,9 @@ in {
     };
   };
 
-  config = lib.mkIf config.profiles.network.tailscale.enable {
-    services.tailscale.enable = true;
-
-    systemd.services.tailscaled.environment = lib.mkMerge [
-      (lib.mkIf (config.profiles.network.tailscale.advertiseRoutes != []) {
-        TS_ADVERTISE_ROUTES = builtins.concatStringsSep " " config.profiles.network.tailscale.advertiseRoutes;
-      })
-      {TS_SSH = "true";}
-    ];
-  };
+  # NOTE: superseded by services.tailscale-cluster (modules/system/tailscale.nix,
+  # wired per-node in modules/profiles/node-profiles.nix). Kept only for the
+  # option surface; the env injection was removed 2026-08-16 (issue #653) to
+  # eliminate the TS_ADVERTISE_ROUTES contradiction.
+  config = {};
 }

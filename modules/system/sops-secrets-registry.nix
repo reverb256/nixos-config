@@ -81,6 +81,16 @@ in {
         group = "root";
         mode = "0440";
       };
+      # Tailscale preauth key (declarative join; ignored once a node is joined).
+      # Declared in secretspec.toml:177-178 as TAILSCALE_AUTH_KEY.
+      "tailscale/authkey" = {
+        sopsFile = "${inputs.self}/secrets/cloud/tailscale-oauth.yaml";
+        format = "yaml";
+        key = "data";
+        owner = "root";
+        group = "root";
+        mode = "0400";
+      };
     };
   };
 }

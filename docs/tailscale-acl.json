@@ -1,0 +1,66 @@
+// Tailnet policy - reverb256/nixos-config (Issue #653)
+// Versioned SPOC for tailnet Access Controls. Default-deny: only the
+// rules below are allowed. Push via GitOps or paste into the admin
+// console (Access Controls).
+{
+  "tagOwners": {
+    "tag:workstation": [
+      "autogroup:admin"
+    ],
+    "tag:server": [
+      "autogroup:admin"
+    ],
+    "tag:mining": [
+      "autogroup:admin"
+    ],
+    "tag:mobile": [
+      "autogroup:admin"
+    ]
+  },
+  "acls": [
+    {
+      "action": "accept",
+      "src": [
+        "tag:workstation",
+        "tag:server"
+      ],
+      "dst": [
+        "tag:workstation:*",
+        "tag:server:*"
+      ]
+    },
+    {
+      "action": "accept",
+      "src": [
+        "tag:mining"
+      ],
+      "dst": [
+        "autogroup:internet:*"
+      ]
+    }
+  ],
+  "ssh": [
+    {
+      "action": "accept",
+      "src": [
+        "tag:workstation",
+        "tag:server"
+      ],
+      "dst": [
+        "tag:workstation",
+        "tag:server"
+      ],
+      "users": [
+        "autogroup:nonroot",
+        "root"
+      ]
+    }
+  ],
+  "autoApprovers": {
+    "routes": {
+      "10.1.1.0/24": [
+        "autogroup:admin"
+      ]
+    }
+  }
+}
