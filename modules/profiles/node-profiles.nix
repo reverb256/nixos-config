@@ -67,7 +67,11 @@
         };
 
         # Apply network profiles
-        profiles.network.tailscale.enable = true;
+        services.tailscale-cluster = {
+          enable = true;
+          role = profileCfg.tailscaleRole or "server";
+          advertiseRoutes = profileCfg.tailscaleAdvertiseRoutes or [];
+        };
 
         # Networking configuration
         networking = {
@@ -92,6 +96,19 @@ in {
 
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
+
+
+      # Tailscale
+      tailscaleRole = mkOption {
+        type = types.enum ["workstation" "server" "mining"];
+        default = "workstation";
+        description = "Tailscale role -> ACL tag (tag:<role>)";
+      };
+      tailscaleAdvertiseRoutes = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "Subnets to advertise on Tailscale";
+      };
 
       # Hardware-specific
       nvidia = mkOption {
@@ -150,6 +167,19 @@ in {
     nexus-gaming = {
       enable = mkEnableOption "Nexus gaming profile (gaming + VR + mining + AI)";
 
+
+      # Tailscale
+      tailscaleRole = mkOption {
+        type = types.enum ["workstation" "server" "mining"];
+        default = "server";
+        description = "Tailscale role -> ACL tag (tag:<role>)";
+      };
+      tailscaleAdvertiseRoutes = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "Subnets to advertise on Tailscale";
+      };
+
       nvidia = mkOption {
         type = types.attrs;
         default = {
@@ -203,6 +233,19 @@ in {
 
     forge-mining = {
       enable = mkEnableOption "Forge mining profile (GPU/CPU mining + AI inference)";
+
+
+      # Tailscale
+      tailscaleRole = mkOption {
+        type = types.enum ["workstation" "server" "mining"];
+        default = "mining";
+        description = "Tailscale role -> ACL tag (tag:<role>)";
+      };
+      tailscaleAdvertiseRoutes = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "Subnets to advertise on Tailscale";
+      };
 
       nvidia = mkOption {
         type = types.attrs;
@@ -272,6 +315,19 @@ in {
 
     sentry-monitoring = {
       enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
+
+
+      # Tailscale
+      tailscaleRole = mkOption {
+        type = types.enum ["workstation" "server" "mining"];
+        default = "server";
+        description = "Tailscale role -> ACL tag (tag:<role>)";
+      };
+      tailscaleAdvertiseRoutes = mkOption {
+        type = types.listOf types.str;
+        default = ["10.1.1.0/24"];
+        description = "Subnets to advertise on Tailscale";
+      };
 
       amdgpu = mkOption {
         type = types.attrs;

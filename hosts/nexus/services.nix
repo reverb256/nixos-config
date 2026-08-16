@@ -128,12 +128,6 @@ in {
       nvtopPackages.full
     ];
 
-    systemd.services.tailscaled.environment = {
-      TS_ADVERTISE_ROUTES = "";
-      TS_ROUTES = "";
-      TS_SSH = "true";
-    };
-
     # Hermes Agent — REMOVED from nixos-config (issue #334).
     # Hermes is now provided by the user nix profile
     # (`nix profile install github:NousResearch/hermes-agent`); nixos-config no
