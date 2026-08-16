@@ -74,13 +74,13 @@
       && lib.strings.hasInfix "nodeName = \"forge\";" nixSources.forge;
     sentry =
       contract.observedNix.sentry.enabled
-      && contract.observedNix.sentry.role == "agent"
+      && contract.observedNix.sentry.role == "server"
       && !contract.observedNix.sentry.clusterInit
       &&      contract.observedNix.sentry.serverAddr == "https://10.1.1.120:6443"
       && contract.observedNix.sentry.nodeIP == "10.1.1.140"
       && lib.strings.hasInfix "k3s-cluster = {" nixSources.sentry
       && lib.strings.hasInfix "enable = true;" nixSources.sentry
-      && lib.strings.hasInfix "role = \"agent\";" nixSources.sentry
+      && lib.strings.hasInfix "role = \"server\";" nixSources.sentry
       && lib.strings.hasInfix "serverAddr = \"https://10.1.1.120:6443\";" nixSources.sentry
       && lib.strings.hasInfix "nodeIP = \"10.1.1.140\";" nixSources.sentry;
     zephyr =

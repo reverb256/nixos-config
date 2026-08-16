@@ -17,13 +17,13 @@
   },
   "firewall": {
     "allowedTCPPorts": [
-     22,
-     10250,
-     3100,
-     3900,
-     3901,
-     9100,
-     9900
+      22,
+      10250,
+      3100,
+      3900,
+      3901,
+      9100,
+      9900
     ],
     "allowedTCPPortRanges": [
       {
@@ -50,7 +50,7 @@
   },
   "k3s": {
     "enable": true,
-    "role": "agent",
+    "role": "server",
     "nvidia": {
       "enable": false
     },
