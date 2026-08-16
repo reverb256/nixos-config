@@ -1,8 +1,0 @@
---- a/src/Backends/WaylandBackend.cpp
-+++ b/src/Backends/WaylandBackend.cpp
-@@ -2396,4 +2396,4 @@ bool CWaylandBackend::SupportsColorManagement() const
-     bool CWaylandBackend::SupportsColorManagement() const
-     {
--        return m_pFrogColorMgmtFactory != nullptr || ( m_pWPColorManager != nullptr && m_WPColorManagerFeatures.bSupportsGamescopeColorManagement );
-+        return m_pFrogColorMgmtFactory != nullptr || ( m_pWPColorManager != nullptr && m_WPColorManagerFeatures.bSupportsGamescopeColorManagement ) || g_bForceHDRSupportDebug;
-     }
