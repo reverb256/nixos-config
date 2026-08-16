@@ -126,6 +126,11 @@
     };
     patches = (old.patches or [])
       ++ prev.lib.optional (!hasHdrPatch) ./gamescope-force-hdr-support.patch;
+  
+    # x86-64-v3: gamescope is C++ (Vulkan composition, FSR upscaling,
+    # latch/timing hot paths) — v3 gives AVX2/BMI2 on those loops.
+    NIX_CFLAGS = "-O3 -march=x86-64-v3 -DNDEBUG";
+    NIX_CXXFLAGS = "-march=x86-64-v3";
   });
   # gamescope-wsi: keep the FROG implicit layer on the same master rev as
   # gamescope so the WSI/HDR handshake stays in lockstep.
