@@ -4,7 +4,7 @@
 # HOLD (already done by nixpkgs or low impact):
 #   openssl - AES-NI already used, v3 adds marginal SHA gains
 #   openssh - fast enough already
-#   jq/fzg/rg - already fast enough
+#   jq/fzf/rg - already fast enough
 #
 # Phased approach: cheap/everywhere first, heavy/specific later.
 
@@ -15,12 +15,16 @@
 
   # sqlite: query processing, sorting, hashing, index lookups → AVX2
   sqlite = prev.sqlite.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3 -DNDEBUG";
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
+    };
   });
 
   # curl: TLS handshake (SHA-256), HTTP/2 header parsing → AVX2
   curl = prev.curl.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3 -DNDEBUG";
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
+    };
   });
 
   # caddy: Go runtime + crypto, TLS edge on your critical path
@@ -31,14 +35,14 @@
   # pipewire: audio resampling (FMA dot products), mixing, FFT → AVX2
   pipewire = prev.pipewire.overrideAttrs (old: {
     env = (old.env or {}) // {
-      NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3 -DNDEBUG";
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
     };
   });
 
   # wireplumber: pipewire session manager (profiles, routing, policy)
   wireplumber = prev.wireplumber.overrideAttrs (old: {
     env = (old.env or {}) // {
-      NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3 -DNDEBUG";
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
     };
   });
 
@@ -47,19 +51,25 @@
   # ffmpeg: every codec is textbook AVX2 — motion estimation (SAD on
   # 32-pixel blocks), DCT, color space conversion (FMA), deblocking, scaling
   ffmpeg = prev.ffmpeg.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3 -DNDEBUG";
-    NIX_CXXFLAGS_COMPILE = "-march=x86-64-v3";
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
+      NIX_CXXFLAGS_COMPILE = ((old.env or {}).NIX_CXXFLAGS_COMPILE or "") + " -march=x86-64-v3";
+    };
   });
 
   # zstd: compression/decompression — xxHash (AVX2 on 64-byte chunks),
   # match finding (BMI2), Huffman. Default nix store compression.
   zstd = prev.zstd.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3";
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3";
+    };
   });
 
   # pixman: 2D rasterizer — composite/blend/scale/fill over 32-byte AVX2
   # pixels. Backing library for cairo, X11, Wayland software fallback.
   pixman = prev.pixman.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = "-O3 -march=x86-64-v3";
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3";
+    };
   });
 }
