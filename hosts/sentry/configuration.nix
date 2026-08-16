@@ -50,6 +50,12 @@
     ../../modules/services/gpu-workload-registry.nix
   ];
 
+
+  # Gitlawb decentralized git node (private mirror, podman, LAN-scoped).
+  # dataDir /var/lib/gitlawb — DEDICATED persistent dir, never the
+  # containers/storage tmp subtree (that got wiped 2026-07-29).
+  services.gitlawb-node.enable = true;
+
   # ============================================================================
   # DESKTOP — disabled for minimal headless recovery
   # ============================================================================
