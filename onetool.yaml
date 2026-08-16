@@ -13,7 +13,6 @@ tools_dir: []
 # tools:
 #   # ot_llm — LLM calls from within OneTool (code generation, transforms, etc.)
 #   ot_llm:
-#     model: google/gemini-3-flash-preview
 #     base_url: https://openrouter.ai/api/v1
 #   # mem — persistent memory (semantic search and recall)
 #   # mem: {}
