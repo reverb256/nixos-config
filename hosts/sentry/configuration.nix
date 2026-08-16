@@ -16,6 +16,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Per-host firewall rules (source-restricted ports, extra rules)
+    ./firewall.nix
 
     # GitHub Actions runners (site-agency + nixos-config) — imported 2026-08-14
     # (was dead code; sentry had no runner, site-agency CI queued forever).

@@ -18,6 +18,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Per-host firewall rules (source-restricted ports, extra rules)
+    ./firewall.nix
     # Desktop configuration (SDR brightness, Samsung TV, SDDM)
     ./desktop.nix
     # Kubernetes control plane (zephyr does NOT enable k3s — see services block below)

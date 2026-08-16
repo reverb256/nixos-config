@@ -22,6 +22,13 @@
   firewallNonEmpty = host:
     builtins.stringLength (builtins.readFile ./../hosts/${host}/firewall.nix) > 10;
 
+  # The firewall.nix file must actually be wired into the host config —
+  # an orphaned file (exists but never imported) silently drops all its
+  # rules (e.g. nexus port 50000 binary cache, 2026-08-16).
+  firewallImported = host:
+    lib.strings.hasInfix "./firewall.nix"
+    (builtins.readFile ./../hosts/${host}/configuration.nix);
+
   correctIPRef = host: ip: let
     src = builtins.readFile ./../hosts/${host}/configuration.nix;
   in
@@ -81,6 +88,9 @@
 
     allFirewallsNonEmpty =
       builtins.filter (h: !(firewallNonEmpty h)) existingHosts == [];
+
+    allFirewallsImported =
+      builtins.filter (h: !(firewallImported h)) existingHosts == [];
 
     allHaveCorrectIPRef =
       lib.all (
