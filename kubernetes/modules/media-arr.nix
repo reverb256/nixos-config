@@ -312,5 +312,50 @@ in {
         ports = [{port = 8096; targetPort = 8096;}];
       };
     };
+    # ============================================================
+    # Plex (playback — alongside Jellyfin; different client ecosystems)
+    # ============================================================
+    media.Deployment.plex = {
+      metadata.labels = managed // {app = "plex";};
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "plex";
+        template.metadata.labels = managed // {app = "plex";};
+        template.spec = {
+          nodeSelector."kubernetes.io/hostname" = "nexus";
+          containers.plex = {
+            image = "ghcr.io/linuxserver/plex:latest";
+            imagePullPolicy = "IfNotPresent";
+            env = [
+              {name = "PUID"; value = "1000";}
+              {name = "PGID"; value = "1000";}
+              {name = "TZ"; value = "America/Winnipeg";}
+              {name = "VERSION"; value = "docker";}
+            ];
+            ports = [{containerPort = 32400;}];
+            volumeMounts = [
+              {name = "config"; mountPath = "/config";}
+              {name = "media"; mountPath = "/data/media";}
+            ];
+          };
+          volumes = [
+            {name = "config"; emptyDir = {};}
+            {
+              name = "media";
+              persistentVolumeClaim.claimName = "media-data";
+            }
+          ];
+        };
+      };
+    };
+
+    media.Service.plex = {
+      metadata.labels = managed // {app = "plex";};
+      spec = {
+        selector.app = "plex";
+        ports = [{port = 32400; targetPort = 32400;}];
+      };
+    };
+
   };
 }
