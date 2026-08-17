@@ -99,10 +99,8 @@
     ./gaming/dualsense.nix
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
-    # 2026-08-14: hoyoverse-launcher-env moved to modules/desktop/
-    # desktop-modules.nix (the aagl overlay that provides
-    # pkgs.anime-game-launcher is desktop-only; importing it globally broke
-    # eval on headless hosts).
+    # 2026-08-16: hoyoverse-launcher-env consolidated INTO
+    # modules/desktop/aagl.nix (the aagl module owns ALL launcher config).
     ./gaming/scopebuddy.nix
 
     # Mining

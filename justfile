@@ -579,11 +579,6 @@ test-apply:
         sudo nixos-rebuild test --flake .#$HOST
     fi
 
-preflight:
-    #!/usr/bin/env bash
-    set -e
-    {{FLAKE}}/scripts/preflight-check.sh
-
 # ── TOPGRADE (super-upgrade) ──────────────────────────────────────
 # Comprehensive flake upgrade: unpins stale inputs, updates ALL flake
 # inputs to latest, collapses redundant nixpkgs variants, validates,
