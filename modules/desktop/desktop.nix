@@ -5,7 +5,12 @@
 # desktop hosts. KDE Plasma is not used on this cluster; its (previously
 # gated) configuration has been removed. Monitor/TV management lives in
 # modules/desktop/desktop-monitor.nix.
-{ pkgs, lib, config, ... }: {
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: {
   services = {
     xserver = {
       enable = lib.mkDefault true;
@@ -83,7 +88,7 @@
   # + NixOS auto-override. Clear ExecStart explicitly to replace (not add to)
   # the packaged unit.
   systemd.user.services.blueman-applet.serviceConfig.ExecStart =
-    lib.mkForce [ "" "${pkgs.blueman}/bin/blueman-applet" ];
+    lib.mkForce ["" "${pkgs.blueman}/bin/blueman-applet"];
 
   hardware.bluetooth = {
     enable = lib.mkDefault true;
@@ -117,12 +122,12 @@
 
   environment = {
     sessionVariables = {
-      ELECTRON_OZONE_PLATFORM_HINT = "auto";
+      ELECTRON_OZONE_PLATFORM_HINT = "wayland";
 
       GTK_USE_PORTAL = "1";
 
       QT_MEDIA_BACKEND = "pipewire";
-      LD_LIBRARY_PATH = lib.mkBefore [ "/run/current-system/sw/lib/pipewire-0.3" ];
+      LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
 
       QT_QPA_PLATFORM = lib.mkOptionDefault "wayland;xcb";
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
