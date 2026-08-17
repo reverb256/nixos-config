@@ -32,12 +32,19 @@ in {
       trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
 
       cores = lib.mkForce (
+        # Reserve 25% of cores for the host's own workloads (k3s / inference /
+        # AI-gateway) under full build concurrency. With max-jobs=2, set
+        # cores so (max-jobs * cores) = 75% of logical cores:
+        #   nexus  24 logical -> 18 build threads, 6 (25%) reserved
+        #   sentry 16 logical -> 12 build threads, 4 (25%) reserved
+        # RAM pressure is bounded separately by the nix-daemon MemoryMax
+        # guard below; this is the CPU-headroom reservation. (2026-08-17)
         if currentHost == "zephyr"
-        then 2 # minimal for coordination
+        then 2 # minimal for coordination (zephyr never builds: max-jobs=0)
         else if currentHost == "nexus"
-        then 6 # 3900X = 12 physical cores; use half to prevent OOM (2026-08-16)
+        then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
         else if currentHost == "sentry"
-        then 4 # R7 1700 = 8 physical cores; use half to prevent OOM
+        then 6 # R7 1700 = 16 logical; 2*6=12 threads, 25% reserved
         else 2
       );
 
