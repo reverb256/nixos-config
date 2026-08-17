@@ -126,13 +126,20 @@ executor() {
   # Cleanup the worktree on exit (plain return, not exec, so the trap fires).
   trap 'cd /; git -C "$FLAKE" worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
 
-  NIX_CMD=(
-    # Lix fork default is pure-eval=true (nix.conf ignored for this key);
-    # colmena's eval would use stale eval-cache hashes without the override.
-    nix run --option pure-eval false
-    .#apps.x86_64-linux.colmena
-    --
-  )
+  # Use the prebuilt colmena from the store directly. `nix run .#apps...colmena`
+  # re-evaluates the flake, which hits the `path:/home/j_kro` permission error
+  # on nexus (podman overlay in j_kro's home) and forces a from-source GHC
+  # rebuild of colmena's Haskell closure — that build exceeds MemoryMax=45GB
+  # and gets OOM-killed (exit 137). The store path below is already built and
+  # verified (Colmena 0.5.0-pre). Pin it to avoid the rebuild.
+  COLMENA_BIN="$(ls -d /nix/store/*colmena-0.5.0-pre/bin/colmena 2>/dev/null | head -1)"
+  if [[ -z "$COLMENA_BIN" ]]; then
+    echo "prebuilt colmena not found in store; falling back to nix run" >&2
+    NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
+  else
+    echo "using prebuilt colmena: $COLMENA_BIN"
+    NIX_CMD=("$COLMENA_BIN")
+  fi
 
   if [[ "$TARGET" == "nexus" ]]; then
     # nexus is the local executor host (deployment.targetHost = null). colmena
