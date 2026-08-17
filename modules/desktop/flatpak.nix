@@ -8,7 +8,7 @@ with lib; let
   cfg = config.services.flatpak-kde;
 in {
   options.services.flatpak-kde = {
-    enable = mkEnableOption "Flatpak support with Discover and Flathub";
+    enable = mkEnableOption "Flatpak support with Bazaar and Flathub";
 
     autoUpdate = mkOption {
       type = types.bool;
@@ -37,7 +37,7 @@ in {
     environment.systemPackages = with pkgs; [
       flatpak
 
-      kdePackages.discover
+      bazaar
 
       xdg-desktop-portal
       xdg-desktop-portal-gtk

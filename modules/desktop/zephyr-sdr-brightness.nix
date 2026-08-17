@@ -72,7 +72,7 @@ in {
         # systemd-run could not resolve user-profile launchers
         # (freebuff-desktop-latest, vesktop, hermes). Keep /run/current-system/sw/bin
         # first (ddcutil + niri backend discovery), then the user profile dirs.
-        Environment = "PATH=/run/current-system/sw/bin:/home/j_kro/.nix-profile/bin:/home/j_kro/.local/bin";
+        Environment = "PATH=/run/current-system/sw/bin:/home/j_kro/.nix-profile/bin:/home/j_kro/.local/bin:/home/j_kro/bin";
         # ── cgroup memory caps (2026-07-27 OOM emergency) ───────────────
         # Root cause: on zephyr (31 GB RAM, near-constant pressure from
         # control-plane + gaming + AI + mining), systemd-oomd marked
