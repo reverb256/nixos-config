@@ -5,17 +5,7 @@
 }: {
   hardware.gpu-compute = {
     enable = true;
-    rocm.enable = true;
     vulkan.enable = true;
-  };
-  hardware.amdgpu.powerLimits = {
-    enable = true;
-    gpus = {
-      "rx5600xt-0" = {
-        index = 0;
-        limit = 120;
-      };
-    };
   };
 
   hardware = {
@@ -28,17 +18,6 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      wraithRgb.enable = true;
-      temperatureReactive = {
-        enable = true;
-        sensor = "cpu";
-        thresholds = {
-          cool = 45;
-          warm = 60;
-          hot = 70;
-        };
-        interval = 5;
-      };
     };
   };
 
@@ -62,36 +41,13 @@
 
   environment = {
     variables = {
-      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
       rocmPackages.rocminfo
     ];
   };
-
-  # 2026-08-06 recovery: drop rocblas/hipblas/rpp from /opt/rocm.
-  # TensileCreateLibrary for rocblas rebuilds for every gfx arch (~hours) and
-  # blocks a mandatory new generation while llamafile is already disabled.
-  # Keep clr + tools only; restore full math stack when inference is re-enabled.
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocm-smi
-        rocminfo
-        rocm-runtime
-      ];
-    };
-  in [
-    "R /var/lib/etcd - - - - -"
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
 
   # Re-enable SMT — CachyOS kernel defaults to mitigations=auto,nosmt which
   # offlines all sibling threads. We override mitigations but the kernel
@@ -127,4 +83,8 @@
       RemainAfterExit = true;
     };
   };
+
+  systemd.tmpfiles.rules = [
+    "R /var/lib/etcd - - - - -"
+  ];
 }

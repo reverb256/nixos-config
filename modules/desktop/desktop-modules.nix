@@ -28,7 +28,6 @@
   imports = [
     inputs.aagl.nixosModules.default
     ./aagl.nix
-    ../gaming/hoyoverse-launcher-env.nix
     ./alacritty-system.nix
 
     {

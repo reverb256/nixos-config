@@ -16,8 +16,10 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
-    # Per-host firewall rules (source-restricted ports, extra rules)
-    ./firewall.nix
+    # Host-specific hardware (rgb-control, GPU, etc.)
+    ./hardware.nix
+    # RGB backend support
+    ../../modules/hardware/rgb-control.nix
 
     # GitHub Actions runners (site-agency + nixos-config) — imported 2026-08-14
     # (was dead code; sentry had no runner, site-agency CI queued forever).
@@ -124,10 +126,6 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.sentry-monitoring.enable = true;
-
-  # Tailscale authkey: sops-managed preauth key (declarative join).
-  # Ignored once the node is already joined; used on first boot / rejoin.
-  services.tailscale-cluster.authKeyFile = "/run/secrets/tailscale/authkey";
   # Mining role disabled — mining module removed with compute-market purge
   profiles.role.mining = lib.mkForce false;
 
@@ -368,6 +366,9 @@
     #       wallet = "krxXVNVMM7.sentry-gpu";
     #       password = "x";
 
+    # TAILSCALE
+    tailscale.enable = true;
+
     # Encrypted cross-session memory backend (Hermes MCP points MEMLAWB_URL
     # here). Runs the memlawb fs-store server on :8080. Interim: app is the
     # /persistent/memlawb git checkout until memlawb is Nix-packaged.
@@ -425,6 +426,14 @@
   # SECONDARY STORAGE (sda - 1TB SSD)
   # Defined in hardware-configuration.nix with subvol=@data
   # ============================================================================
+
+  # Host-specific Tailscale override: Sentry advertises subnet routes (backup gateway)
+  # This overrides the base Tailscale configuration from node profile
+  systemd.services.tailscaled.environment = {
+    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    TS_ROUTES = "";
+    TS_SSH = "true";
+  };
 
   programs = {
     # 2026-08-06: ROCm fully disabled — no rocmPackages referenced here

@@ -47,16 +47,6 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      temperatureReactive = {
-        enable = true;
-        sensor = "gpu";
-        thresholds = {
-          cool = 60;
-          warm = 70;
-          hot = 75;
-        };
-        interval = 10;
-      };
     };
   };
 
