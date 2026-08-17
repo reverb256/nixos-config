@@ -15,12 +15,10 @@
 # x86-64-v3 is meaningless on i686 anyway, and aarch64 has its own tuning.
 # Vanilla i686 packages stay cacheable from cache.nixos.org (Steam/Wine deps
 # are channel blockers upstream).
-
 { inputs, _final, prev }:
 
 if prev.stdenv.hostPlatform.isx86_64
 then {
-
   # ── Tier 1: cheap, everywhere (tiny builds, broad benefit) ──
 
   # sqlite: query processing, sorting, hashing, index lookups → AVX2
@@ -56,6 +54,20 @@ then {
     };
   });
 
+  # opus: audio codec (Discord, Steam, VoIP) → AVX2 MDCT/LPC/cpldn; low build cost
+  opus = prev.opus.overrideAttrs (old: {
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
+    };
+  });
+
+  # openal-soft: 3D audio framework → AVX2 distance filtering, HRTF convolution; used by games/gamescope
+  openal-soft = prev.openal-soft.overrideAttrs (old: {
+    env = (old.env or {}) // {
+      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
+    };
+  });
+
   # ── Tier 2: moderate build, specific workloads ──
 
   # ffmpeg: every codec is textbook AVX2 — motion estimation (SAD on
@@ -63,8 +75,8 @@ then {
   ffmpeg = prev.ffmpeg.overrideAttrs (old: {
     env = (old.env or {}) // {
       NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
-      NIX_CXXFLAGS_COMPILE = ((old.env or {}).NIX_CXXFLAGS_COMPILE or "") + " -march=x86-64-v3";
     };
+    NIX_CXXFLAGS_COMPILE = ((old.env or {}).NIX_CXXFLAGS_COMPILE or "") + " -march=x86-64-v3";
   });
 
   # zstd: compression/decompression — xxHash (AVX2 on 64-byte chunks),
@@ -83,5 +95,4 @@ then {
     };
   });
 
-}
-else {}
+}\nelse {}\n
