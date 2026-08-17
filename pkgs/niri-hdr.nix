@@ -51,8 +51,8 @@ in
     src = fetchFromGitHub {
       owner = "reverb256";
       repo = "niri-hdr-fork";
-      rev = "980aa465258a29c7c49cc2e2b55194e83a4efbf4";
-      hash = "sha256-jYhHPR8NyqV/IaZcd9jPGByUvBHyywcLtz18tkoZBO4=";
+      rev = "9dd71262ac660652eb9847badfc6789cd1238f8c";
+      hash = "sha256-ouPNpk32hd+zRQ42unIvpSuN5hx+lhiJZOCz+gJonEY=";
     };
 
     # The fork's Cargo.toml already carries direct git pins to reverb256/smithay
