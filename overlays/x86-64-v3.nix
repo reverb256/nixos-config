@@ -7,10 +7,20 @@
 #   jq/fzf/rg - already fast enough
 #
 # Phased approach: cheap/everywhere first, heavy/specific later.
+#
+# GUARD: only apply on x86_64 hosts. NixOS applies this overlay to EVERY
+# package set, including pkgsi686Linux (32-bit Steam/Wine libs). Forking
+# i686 packages with -march=x86-64-v3 makes them non-cacheable and forces a
+# from-source i686 rustc/clang bootstrap on the builder (OOM on nexus).
+# x86-64-v3 is meaningless on i686 anyway, and aarch64 has its own tuning.
+# Vanilla i686 packages stay cacheable from cache.nixos.org (Steam/Wine deps
+# are channel blockers upstream).
 
 { inputs, _final, prev }:
 
-{
+if prev.stdenv.hostPlatform.isx86_64
+then {
+
   # ── Tier 1: cheap, everywhere (tiny builds, broad benefit) ──
 
   # sqlite: query processing, sorting, hashing, index lookups → AVX2
@@ -72,4 +82,6 @@
       NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3";
     };
   });
+
 }
+else {}
