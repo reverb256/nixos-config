@@ -105,6 +105,22 @@ in
     # themed app, add `stylix.targets.<x>.enable = true` in the correct
     # namespace or it will silently stay unthemed (no error, just wrong colors).
 
+    # ── BOOT-TIME THEMING (terminal from boot) ────────────────────────
+    # Explicitly theme the surfaces BETWEEN power-on and the DE so each
+    # host's base16 palette shows before/at login, not after:
+    #  - console: the Linux virtual console / boot TTY colors (Ctrl+Alt+F*,
+    #    early boot log) — the literal "terminal from boot".
+    #  - plymouth: themed boot splash between bootloader and DM.
+    # NOTE: systemd-boot + SDDM (this stack) have NO Stylix target —
+    #   systemd-boot colors are hardcoded upstream (systemd#10139);
+    #   Stylix only themes grub/limine/lightdm. So we autoEnable=false and
+    #   enable exactly the boot surfaces that exist. autoEnable=true would
+    #   instead enable lightdm+grub+limine which this host does NOT use.
+    targets = {
+      console.enable = true;
+      plymouth.enable = true;
+    };
+
     homeManagerIntegration = {
       followSystem = true;
       autoImport = true;
@@ -125,6 +141,10 @@ in
   # fastfetch / starship render Nerd glyphs as missing-character squares.
   # Adding the package to `fonts.packages` symlinks it into the font dir and
   # registers it with fontconfig system-wide.
+  # Enable the plymouth service itself — Stylix's target only sets the
+  # theme, not whether the splash runs. Exposes the themed boot splash.
+  boot.plymouth.enable = true;
+
   fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
 
 }
