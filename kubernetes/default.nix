@@ -66,6 +66,7 @@ in {
       ./modules/nixkube.nix
       ./modules/vane.nix
       ./modules/haven.nix
+      ./modules/media-arr.nix
       ./modules/cert-manager.nix
       ./modules/oauth2-proxy.nix
       ./modules/monitoring
