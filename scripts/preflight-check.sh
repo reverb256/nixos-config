@@ -75,9 +75,10 @@ for HOST in $HOSTS; do
     pass "$HOST matches origin/main"
   fi
 done
-# 4. In-flight build check — detect ALL build types, not just systemd services.
-#    This prevents concurrent colmena/nix-build processes from racing.
-BUILD_TYPES=("colmena" "nix-build" "nix-eval" "nix-instantiate" "nix-copy" "nixos-rebuild" "switch-to-configuration")
+# 4. In-flight build check — detect build types that indicate a DEPLOY or long build.
+#    nix-instantiate is EXCLUDED because it's a short-lived helper that spawns during
+#    any nix operation (including preflight itself) — counting it causes self-blocking.
+BUILD_TYPES=("colmena" "nix-build" "nix-copy" "nixos-rebuild" "switch-to-configuration")
 DETECTED=""
 for btype in "${BUILD_TYPES[@]}"; do
     PIDS=$(ssh nexus "pgrep -x '$btype' 2>/dev/null | wc -l" 2>/dev/null)
