@@ -17,26 +17,34 @@ in {
     };
 
     # ============================================================
-    # Shared media PV (large-nfs-storage = portable RWX, survives nodes)
+    # Shared media PV — /data/media on the 3.6TB bcache btrfs (nexus)
     # ============================================================
     none.PersistentVolume.media-data-nexus-pv = {
       spec = {
-        capacity.storage = "150Gi";
-        accessModes = ["ReadWriteMany"];
+        capacity.storage = "3400Gi";
+        accessModes = ["ReadWriteOnce"];
         persistentVolumeReclaimPolicy = "Retain";
-        storageClassName = "large-nfs-storage";
-        nfs = {
-          server = "10.1.1.120";
-          path = "/srv/nfs/media";
-        };
+        storageClassName = "fast-local-ssd";
+        local.path = "/data/media";
+        nodeAffinity.required.nodeSelectorTerms = [
+          {
+            matchExpressions = [
+              {
+                key = "kubernetes.io/hostname";
+                operator = "In";
+                values = ["nexus"];
+              }
+            ];
+          }
+        ];
       };
     };
 
     media.PersistentVolumeClaim.media-data = {
       spec = {
-        accessModes = ["ReadWriteMany"];
-        storageClassName = "large-nfs-storage";
-        resources.requests.storage = "150Gi";
+        accessModes = ["ReadWriteOnce"];
+        storageClassName = "fast-local-ssd";
+        resources.requests.storage = "3000Gi";
       };
     };
 
