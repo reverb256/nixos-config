@@ -95,14 +95,14 @@ in {
         # for memory pressure. Kernel OOM would still apply as last resort.
         ManagedOOMSwap = "off";
         # 2026-08-06: systemd-oomd killed 346 procs in this unit's cgroup at
-# 18:25:33 (slice-wide memory pressure: 4 peakminers + llama-server +
-# PoE2). `OOMScoreAdjust` alone was insufficient because oomd kills by
-# cgroup under global slice pressure, not by per-process score.
-# ManagedOOMPreference=avoid sets the user.oomd_avoid xattr so oomd
-# deprioritizes this cgroup as a kill candidate (only selected if no
-# other viable candidate exists). NOTE: ManagedOOMMemoryPressure=avoid
-# is INVALID (that key only takes auto|kill); the avoid/omit preference is
-# the correct knob.
+        # 18:25:33 (slice-wide memory pressure: 4 peakminers + llama-server +
+        # PoE2). `OOMScoreAdjust` alone was insufficient because oomd kills by
+        # cgroup under global slice pressure, not by per-process score.
+        # ManagedOOMPreference=avoid sets the user.oomd_avoid xattr so oomd
+        # deprioritizes this cgroup as a kill candidate (only selected if no
+        # other viable candidate exists). NOTE: ManagedOOMMemoryPressure=avoid
+        # is INVALID (that key only takes auto|kill); the avoid/omit preference is
+        # the correct knob.
         ManagedOOMPreference = "avoid";
         # 2026-07-27 (code-review G1): prevent thrashing if the Sdr backend
         # persistently leaks past MemoryMax (self-kill → Restart=on-failure
