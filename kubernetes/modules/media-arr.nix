@@ -64,14 +64,19 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
               {name = "WEBUI_PORT"; value = "8080";}
+              {name = "TORRENTING_PORT"; value = "6881";}
             ];
-            ports = [{containerPort = 8080;}];
+            ports = [
+              {containerPort = 8080;}
+              {containerPort = 6881;}
+              {containerPort = 6881; protocol = "UDP";}
+            ];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
-              {name = "media"; mountPath = "/media";}
+              {name = "media"; mountPath = "/data";}
             ];
           };
           volumes = [
@@ -109,13 +114,13 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
             ];
             ports = [{containerPort = 8989;}];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
-              {name = "media"; mountPath = "/media";}
+              {name = "media"; mountPath = "/data";}
             ];
           };
           volumes = [
@@ -153,13 +158,13 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
             ];
             ports = [{containerPort = 7878;}];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
-              {name = "media"; mountPath = "/media";}
+              {name = "media"; mountPath = "/data";}
             ];
           };
           volumes = [
@@ -197,7 +202,7 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
             ];
             ports = [{containerPort = 9696;}];
@@ -236,13 +241,13 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
             ];
             ports = [{containerPort = 6767;}];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
-              {name = "media"; mountPath = "/media";}
+              {name = "media"; mountPath = "/data";}
             ];
           };
           volumes = [
@@ -280,14 +285,14 @@ in {
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
-              {name = "PGID"; value = "100";}
+              {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
               {name = "VERSION"; value = "docker";}
             ];
             ports = [{containerPort = 32400;}];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
-              {name = "media"; mountPath = "/media";}
+              {name = "media"; mountPath = "/data/media";}
             ];
           };
           volumes = [
