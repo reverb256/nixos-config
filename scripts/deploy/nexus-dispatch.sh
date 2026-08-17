@@ -149,6 +149,11 @@ executor() {
     echo "Deploying local node: nexus (apply-local)"
     # NOTE: apply-local does NOT accept --evaluator (verified); only the
     # remote `apply` path below gets the streaming evaluator.
+    # Close lock fds BEFORE exec: colmena's child `nix-store --realise`
+    # inherits open fds and deadlocks waiting on its own parent's flock
+    # (observed 2026-08-17: 54-min hang, empty nexus.lock, realise in
+    # ep_poll). flock releases when the fd closes, so closing here is safe.
+    for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
     "${NIX_CMD[@]}" apply-local --sudo --node nexus
     return
   fi
@@ -163,6 +168,8 @@ executor() {
   fi
 
   echo "Deploying remote target: $TARGET"
+  # Close lock fds BEFORE exec (same fd-leak deadlock as apply-local above).
+  for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
   "${CMD[@]}"
 
   # `apply` skips the local node (targetHost = null); deploy it last so the
