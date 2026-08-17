@@ -66,7 +66,13 @@ in {
         ExecStart = "${lib.getExe noctalia-patched}";
         Restart = "on-failure";
         RestartSec = "3";
-        Environment = "PATH=/run/current-system/sw/bin";
+        # Broadened 2026-08-17 (issue #661): Noctalia launches desktop apps
+        # via `systemd-run` (launch_apps_as_systemd_services = true). The
+        # pinned PATH stripped ~/.nix-profile/bin and ~/.local/bin, so
+        # systemd-run could not resolve user-profile launchers
+        # (freebuff-desktop-latest, vesktop, hermes). Keep /run/current-system/sw/bin
+        # first (ddcutil + niri backend discovery), then the user profile dirs.
+        Environment = "PATH=/run/current-system/sw/bin:/home/j_kro/.nix-profile/bin:/home/j_kro/.local/bin";
         # ── cgroup memory caps (2026-07-27 OOM emergency) ───────────────
         # Root cause: on zephyr (31 GB RAM, near-constant pressure from
         # control-plane + gaming + AI + mining), systemd-oomd marked
