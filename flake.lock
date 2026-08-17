@@ -2438,27 +2438,26 @@
         "home-manager": [
           "home-manager"
         ],
-        "inir": "inir",
         "niri": "niri",
         "nixcord": "nixcord",
         "nixos-config": "nixos-config",
         "nixpkgs": [
           "nixpkgs"
         ],
-        "nur": "nur_8",
         "stylix": "stylix_5",
         "zen-browser": "zen-browser_5"
       },
       "locked": {
-        "lastModified": 1786889176,
-        "narHash": "sha256-+oao3FsAlB9eAZhmEicVU01qRwitPuqzi/cpjBGpbEQ=",
+        "lastModified": 1786958253,
+        "narHash": "sha256-KBIgKUo0ZOOC+6/+Aq9MEZg4++2FUJx95Wy74Xne7PI=",
         "ref": "refs/heads/master",
-        "rev": "28debbd4659908eac77719a3204cafe5fa204617",
-        "revCount": 144,
+        "rev": "8c2142ac56da7352297a572d2fb594ecab182908",
+        "revCount": 158,
         "type": "git",
         "url": "ssh://git@github.com/reverb256/home-manager-config"
       },
       "original": {
+        "rev": "8c2142ac56da7352297a572d2fb594ecab182908",
         "type": "git",
         "url": "ssh://git@github.com/reverb256/home-manager-config"
       }
@@ -2471,7 +2470,7 @@
           "nixos-config",
           "home-manager"
         ],
-        "inir": "inir_2",
+        "inir": "inir",
         "niri": "niri_2",
         "nixcord": "nixcord_2",
         "nixos-config": "nixos-config_2",
@@ -2712,27 +2711,6 @@
       }
     },
     "inir": {
-      "inputs": {
-        "nixpkgs": [
-          "home-manager-config",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786494043,
-        "narHash": "sha256-xXv5z6mToAM/Ev09jZMz54R8CKL0uRhtqfq7yzWTnh4=",
-        "ref": "refs/heads/main",
-        "rev": "fdb723afbde6396985fa0b67accaa6f96a05c393",
-        "revCount": 2294,
-        "type": "git",
-        "url": "https://github.com/snowarch/iNiR"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/snowarch/iNiR"
-      }
-    },
-    "inir_2": {
       "inputs": {
         "nixpkgs": [
           "home-manager-config",
@@ -4801,29 +4779,6 @@
     "nur_10": {
       "inputs": {
         "flake-parts": [
-          "flake-parts"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786886372,
-        "narHash": "sha256-X4EBAOEbf/Hy4yUSY7wHNf1A8QTdB8x/zRNwr8pFE4Y=",
-        "ref": "refs/heads/main",
-        "rev": "0b041aa735d17f1dca13d409106d4c1a454d7bd3",
-        "revCount": 47978,
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
-      }
-    },
-    "nur_11": {
-      "inputs": {
-        "flake-parts": [
           "stylix",
           "flake-parts"
         ],
@@ -5030,31 +4985,6 @@
       "inputs": {
         "flake-parts": [
           "home-manager-config",
-          "flake-parts"
-        ],
-        "nixpkgs": [
-          "home-manager-config",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786714404,
-        "narHash": "sha256-sJ5XCSCNlZwQUe2Rn8gM4UADo+zjkRlaTldzULMMLwQ=",
-        "ref": "refs/heads/main",
-        "rev": "a57815e37cdc2dc9b17172517ed5af22f9e95927",
-        "revCount": 47798,
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
-      }
-    },
-    "nur_9": {
-      "inputs": {
-        "flake-parts": [
-          "home-manager-config",
           "stylix",
           "flake-parts"
         ],
@@ -5076,6 +5006,29 @@
         "owner": "nix-community",
         "repo": "NUR",
         "type": "github"
+      }
+    },
+    "nur_9": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786886372,
+        "narHash": "sha256-X4EBAOEbf/Hy4yUSY7wHNf1A8QTdB8x/zRNwr8pFE4Y=",
+        "ref": "refs/heads/main",
+        "rev": "0b041aa735d17f1dca13d409106d4c1a454d7bd3",
+        "revCount": 47978,
+        "type": "git",
+        "url": "https://github.com/nix-community/NUR"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/nix-community/NUR"
       }
     },
     "nvfetcher": {
@@ -5255,7 +5208,7 @@
         "nixcord": "nixcord_6",
         "nixpkgs": "nixpkgs_21",
         "nixpkgs-xr": "nixpkgs-xr_3",
-        "nur": "nur_10",
+        "nur": "nur_9",
         "preservation": "preservation_3",
         "scopebuddy": "scopebuddy_3",
         "sops-nix": "sops-nix_3",
@@ -5767,7 +5720,7 @@
           "home-manager-config",
           "nixpkgs"
         ],
-        "nur": "nur_9",
+        "nur": "nur_8",
         "systems": "systems_18",
         "tinted-kitty": "tinted-kitty_5",
         "tinted-schemes": "tinted-schemes_5",
@@ -5777,7 +5730,6 @@
       "locked": {
         "lastModified": 1785518890,
         "narHash": "sha256-BeXpCHTPZ+ZlRR12nYe/0JHjfp/fgJVY2YV2xAz8JHs=",
-        "ref": "refs/heads/master",
         "rev": "6316d1d03e7a12cae7cdb007f34d2eaebbfc802a",
         "revCount": 1455,
         "type": "git",
@@ -5801,7 +5753,7 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "nur": "nur_11",
+        "nur": "nur_10",
         "systems": "systems_21",
         "tinted-kitty": "tinted-kitty_6",
         "tinted-schemes": "tinted-schemes_6",

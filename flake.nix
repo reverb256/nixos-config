@@ -64,7 +64,9 @@
     # home-manager-config - standalone Home Manager configuration (Layer 2)
     # Migrated from modules/home-manager/ to separate flake per 3-layer model.
     home-manager-config = {
-      url = "git+ssh://git@github.com/reverb256/home-manager-config";
+      # iNiR removed (j_kro does not want it) — 2026-08-16 edb9d9a
+      # Bumped 2026-08-17 to 8c2142a: HDR enable + DRY niri keybinds + XDG_DATA_DIRS
+      url = "git+ssh://git@github.com/reverb256/home-manager-config?rev=8c2142ac56da7352297a572d2fb594ecab182908";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
