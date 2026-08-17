@@ -13,7 +13,6 @@
     mkOption
     mkIf
     types
-    optional
     optionalString
     ;
 
@@ -281,7 +280,11 @@ in {
     systemd.services.opencode-model-update = {
       description = "OpenCode Model Synchronization Service";
       after = ["network.target"]; # Gateway moved to K8s
-      wants = optional cfg.autoSync.onGatewayStart "network-online.target";
+      # BOOT DECOUPLING (issue #665): do NOT add Wants=network-online.target.
+      # A model sync is never a boot-critical dependency — waiting for
+      # network-online can stall the boot for tens of seconds on hosts with
+      # slow link detection (OMARCHY PR #223 pattern). network.target + the
+      # retry logic below is enough; the timer (OnBootSec) drives it post-boot.
 
       serviceConfig = {
         Type = "oneshot";
