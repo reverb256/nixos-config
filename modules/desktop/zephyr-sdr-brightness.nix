@@ -66,7 +66,13 @@ in {
         ExecStart = "${lib.getExe noctalia-patched}";
         Restart = "on-failure";
         RestartSec = "3";
-        Environment = "PATH=/run/current-system/sw/bin";
+        # Broadened 2026-08-17 (issue #661): Noctalia launches desktop apps
+        # via `systemd-run` (launch_apps_as_systemd_services = true). The
+        # pinned PATH stripped ~/.nix-profile/bin and ~/.local/bin, so
+        # systemd-run could not resolve user-profile launchers
+        # (freebuff-desktop-latest, vesktop, hermes). Keep /run/current-system/sw/bin
+        # first (ddcutil + niri backend discovery), then the user profile dirs.
+        Environment = "PATH=/run/current-system/sw/bin:/home/j_kro/.nix-profile/bin:/home/j_kro/.local/bin";
         # ── cgroup memory caps (2026-07-27 OOM emergency) ───────────────
         # Root cause: on zephyr (31 GB RAM, near-constant pressure from
         # control-plane + gaming + AI + mining), systemd-oomd marked
@@ -89,14 +95,14 @@ in {
         # for memory pressure. Kernel OOM would still apply as last resort.
         ManagedOOMSwap = "off";
         # 2026-08-06: systemd-oomd killed 346 procs in this unit's cgroup at
-# 18:25:33 (slice-wide memory pressure: 4 peakminers + llama-server +
-# PoE2). `OOMScoreAdjust` alone was insufficient because oomd kills by
-# cgroup under global slice pressure, not by per-process score.
-# ManagedOOMPreference=avoid sets the user.oomd_avoid xattr so oomd
-# deprioritizes this cgroup as a kill candidate (only selected if no
-# other viable candidate exists). NOTE: ManagedOOMMemoryPressure=avoid
-# is INVALID (that key only takes auto|kill); the avoid/omit preference is
-# the correct knob.
+        # 18:25:33 (slice-wide memory pressure: 4 peakminers + llama-server +
+        # PoE2). `OOMScoreAdjust` alone was insufficient because oomd kills by
+        # cgroup under global slice pressure, not by per-process score.
+        # ManagedOOMPreference=avoid sets the user.oomd_avoid xattr so oomd
+        # deprioritizes this cgroup as a kill candidate (only selected if no
+        # other viable candidate exists). NOTE: ManagedOOMMemoryPressure=avoid
+        # is INVALID (that key only takes auto|kill); the avoid/omit preference is
+        # the correct knob.
         ManagedOOMPreference = "avoid";
         # 2026-07-27 (code-review G1): prevent thrashing if the Sdr backend
         # persistently leaks past MemoryMax (self-kill → Restart=on-failure
