@@ -272,24 +272,23 @@ in {
     # ============================================================
     # Plex (playback)
     # ============================================================
-    media.Deployment.plex = {
-      metadata.labels = managed // {app = "plex";};
+    media.Deployment.jellyfin = {
+      metadata.labels = managed // {app = "jellyfin";};
       spec = {
         replicas = 1;
-        selector.matchLabels.app = "plex";
-        template.metadata.labels = managed // {app = "plex";};
+        selector.matchLabels.app = "jellyfin";
+        template.metadata.labels = managed // {app = "jellyfin";};
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
-          containers.plex = {
-            image = "ghcr.io/linuxserver/plex:latest";
+          containers.jellyfin = {
+            image = "ghcr.io/linuxserver/jellyfin:latest";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
               {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
-              {name = "VERSION"; value = "docker";}
             ];
-            ports = [{containerPort = 32400;}];
+            ports = [{containerPort = 8096;}];
             volumeMounts = [
               {name = "config"; mountPath = "/config";}
               {name = "media"; mountPath = "/data/media";}
@@ -306,11 +305,11 @@ in {
       };
     };
 
-    media.Service.plex = {
-      metadata.labels = managed // {app = "plex";};
+    media.Service.jellyfin = {
+      metadata.labels = managed // {app = "jellyfin";};
       spec = {
-        selector.app = "plex";
-        ports = [{port = 32400; targetPort = 32400;}];
+        selector.app = "jellyfin";
+        ports = [{port = 8096; targetPort = 8096;}];
       };
     };
   };
