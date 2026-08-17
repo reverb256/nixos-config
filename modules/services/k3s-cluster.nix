@@ -359,9 +359,19 @@ in {
 
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
+    #
+    # BOOT DECOUPLING (issue #665): we intentionally do NOT declare
+    # `after = [ "systemd-udev-settle.service" ]` here. The generator writes a
+    # STATIC CDI spec from a heredoc (see ExecStart below) — it does not probe
+    # live GPU state and so does not need udev to settle. Keeping the
+    # udev-settle dependency made every sys-devices-* unit wait ~8s and gated
+    # multi-user.target -> graphical.target (OMARCHY anti-pattern: a heavy init
+    # service blocking the graphical target). Consumers still pull the generator
+    # in on demand (podman-dcgm-exporter `wants` it), so GPU containers keep
+    # working — just without the boot-plateau. See systemd-analyze critical-chain
+    # before/after in the issue.
     systemd.services.nvidia-container-toolkit-cdi-generator = mkIf cfg.nvidia.enable {
       wantedBy = ["multi-user.target"];
-      after = ["systemd-udev-settle.service"];
       path = with pkgs; [nvidia-container-toolkit jq];
       serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "cdi-generate-static" ''
         mkdir -p /var/run/cdi
