@@ -7,11 +7,11 @@
 }:
 stdenv.mkDerivation {
   pname = "peakminer";
-  version = "2.9.1";
+  version = "2.10.0";
 
   src = fetchurl {
-    url = "https://github.com/peakminer/peakminer/releases/download/v2.9.1/peakminer-2.9.1.tar.gz";
-    hash = "sha256-SuTR2J8mlw5JlwGBobD03qeVDusR/vWSjZQINgGABpw=";
+    url = "https://github.com/peakminer/peakminer/releases/download/v2.10.0/peakminer-2.10.0.tar.gz";
+    hash = "sha256-dg14mtFwetAYM/tntSBTwL4fZfp3+LAGgBffMjWCq9g=";
   };
 
   nativeBuildInputs = [autoPatchelfHook];
