@@ -469,6 +469,7 @@
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
   programs.omarchy.enable = true;
+  programs.omarchy.shell.enable = true;
 
   # Autologin into Niri (niri-uwsm) on boot.
   services.displayManager.autoLogin.enable = true;

@@ -73,6 +73,16 @@
   # installed to $out/share/omarchy + bin/omarchy* symlink farm by
   # pkgs/omarchy.nix. Consumed by modules/omarchy/default.nix.
   omarchy = prev.callPackage ../pkgs/omarchy.nix { inherit (inputs) omarchy; };
+  # qml-niri — third-party `import Niri` QML plugin (Phase 2, #657). The
+  # plugin itself installs to $out/lib/qt-6/qml/Niri (its default.nix already
+  # derives the qtQmlPrefix from qt6), so adding it to quickshell's buildInputs
+  # makes wrapQtAppsHook put it on QML_IMPORT_PATH automatically. This is
+  # quickshell with the Niri plugin wired in, NOT the nonexistent
+  # `Quickshell.Niri` native module #657 assumed.
+  qml-niri = inputs.qml-niri.packages.x86_64-linux.default;
+  quickshell-niri = prev.quickshell.overrideAttrs (old: {
+    buildInputs = (old.buildInputs or []) ++ [inputs.qml-niri.packages.x86_64-linux.default];
+  });
   privacy-filter = prev.callPackage ../packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };
