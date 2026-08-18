@@ -63,12 +63,70 @@ modules/omarchy/default.nix  ──►  programs.omarchy.enable
                                   OMARCHY_PATH = $out/share/omarchy (session-wide)
 ```
 
-- **No fork, no vendored copy, no divergence to rebase.** Upstream sync = bump
-  the `omarchy` rev + `nix flake update omarchy`.
+- **Phase 1 ships verbatim (no fork); the target state is the downstream fork**
+  (see "Downstream fork" below) — upstream sync becomes a fork rebase, not a
+  rev bump. The `flake = false` pin + patch/shims stay correct in the interim.
 - **Adaptation layers** under `modules/omarchy/`:
   - `niri-shim/` — Phases 2-3: `Quickshell.Hyprland` → Niri QML swap +
     `hyprctl` → `niri msg` re-targeting.
   - `pkg-shim/` — Phase 4: nix-backed `omarchy-pkg-add/drop`, `omarchy-update`.
+
+## Downstream fork + distribution method (decision 2026-08-18)
+
+Upstream distributes as a data-file runtime at `OMARCHY_PATH` + a `bin/` script
+farm + stable/rc/edge channels + pacman. As a downstream fork, that becomes:
+
+- **`reverb256/omarchy`** tracks `basecamp/omarchy` (quattro). Branch = channel:
+  `niri-stable` / `niri-rc` / `niri-edge`. `omarchy channel set` = re-point the
+  flake input + rebuild (data-only, fast) + generation rollback.
+- **Additive niri layer, not in-place patches.** Upstream files stay pristine;
+  the fork adds parallel `shell-niri/` + `bin-niri/` trees selected by
+  `OMARCHY_COMPOSITOR=niri`. Upstream sync = near-clean rebase (additive only).
+- **The fork is a flake** — `packages.<system>.omarchy`, an `overlay`, and
+  `nixosModules.default` — so `modules/omarchy/*-shim/` + `pkgs/omarchy.nix`
+  dissolve into the fork and the cluster keeps only a thin enable module.
+- **Downstream CI gates the sync**: the fork builds `quickshell-niri` + lints
+  the niri QML on every upstream merge before the cluster consumes it.
+
+Migration: create the fork, port `quickshell-niri.patch` + `pkg-shim/` into
+additive `shell-niri/` + `bin-niri/`, re-point `inputs.omarchy`, collapse the
+shim modules. The Phase-1 `flake = false` pin + patch/shims stay correct in the
+interim; the fork is the target state.
+
+## Theme system — three layers + generator (decision 2026-08-18)
+
+Theming spans three layers; Omarchy is the *palette source*, Stylix is the
+*render backend* for the surfaces Omarchy can't reach:
+
+| Layer | Surface | Mechanism |
+|-------|---------|-----------|
+| NixOS / Stylix | console TTY, plymouth, fonts, cursor, icons, system Qt | declarative, boot-time, **host identity** |
+| Home Manager / Stylix | btop, starship, lazygit, obsidian, dolphin, telegram, nixcord, niri focus-ring/cursor, fish, hermes skin | declarative, `config.lib.stylix.colors` → `stylix-bridges` |
+| Omarchy | Quickshell shell, neovim, vscode, live "current theme" | imperative, instant |
+
+Decisions:
+
+- **Omarchy `colors.toml` is the single source of truth.** A generator maps it
+  to a base16/base24 scheme feeding both Stylix layers, so palettes stop
+  drifting on upstream rev bumps. `omarchy theme set` applies the session
+  instantly; the recorded choice re-derives the declarative layers on the next
+  `home-manager switch` / `just deploy`.
+- **Feed, don't absorb.** Keep the HM `stylix-bridges` (they cover the long tail
+  — telegram, nixcord, dolphin, obsidian — that Omarchy doesn't theme); Omarchy
+  owns only its native surfaces (shell + editors). No file is written by both.
+- **Host identity vs user theme are separate axes.** The 6 non-Omarchy host
+  palettes (copper/ice/ember/amethyst/tangerine/slate) stay declarative
+  per-host identities; the user's session theme is whatever `omarchy theme set`
+  says.
+
+### osaka-jade reconciliation (verified 2026-08-18)
+
+The cluster's `osaka-jade.nix` base16 **already matches** Omarchy's
+`themes/osaka-jade/colors.toml` on the core colors (base00/base02/base05 and
+base08–base0E are exact). The shaded slots (base01/03/04/06/07/0F and base24
+base10–17) are hand-interpolated and do not map to Omarchy's semantic fields —
+that is the only drift. The generator closes it. Full mapping in
+`docs/reference/omarchy-theme-stylix-integration.md`.
 
 ## Runtime vs declarative boundary (decision 2026-08-18)
 
@@ -124,7 +182,7 @@ Consequences for Phase 2 (#657):
 ## Phases (one PR each)
 
 - [x] #656 — Foundation: flake input + Tier 1 verbatim + drop iNiR (PR #706)
-- [ ] #657 — Shell port: Omarchy shell on `Quickshell.Niri`
+- [ ] #657 — Shell port: Omarchy shell on the qml-niri `Niri` plugin
 - [ ] #658 — Command re-target: hyprctl → `niri msg`, lock/picker/sunset
 - [ ] #659 — Package parity: nix-backed pkg/update commands
 - [ ] #660 — HDR validation: HDR + themes + plugins on niri-hdr fork, acceptance on Zephyr
@@ -134,7 +192,8 @@ Consequences for Phase 2 (#657):
 - No Arch/pacman/AUR runtime, no Hyprland runtime.
 - No `Quickshell.Hyprland` shim (Niri-native only, not dual-compositor).
 - iNiR and PR #620's iNiR work are retired.
-- No changes to upstream `basecamp/omarchy`.
+- No *edits* to upstream files: the fork keeps `basecamp/omarchy` pristine and
+  adds a parallel niri layer (additive, not in-place).
 
 ## Niri IPC baseline (verified against niri-26.04 in the store)
 
@@ -154,3 +213,5 @@ lives in `docs/reference/omarchy-phase3-hyprctl-niri-map.md`.
   shell port (corrects #657's "native Niri plugin" assumption).
 - `docs/reference/omarchy-phase3-hyprctl-niri-map.md` — the hyprctl→niri map.
 - `docs/reference/omarchy-phase4-pkg-parity.md` — nix-backed package commands.
+- `docs/reference/omarchy-theme-stylix-integration.md` — three-layer theme
+  model + `colors.toml` → base16 generator spec.
