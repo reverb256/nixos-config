@@ -97,7 +97,7 @@ jobs:
 
   update-nixpkgs:
     name: Update nixpkgs
-    if: github.event.inputs.target == 'nixpkgs' || github.event.inputs.target == 'all'
+    if: github.event.inputs.target == 'nixpkgs' || github.event.inputs.target == 'all' || github.event_name == 'schedule'
     runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
