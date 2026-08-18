@@ -497,7 +497,10 @@
   services.secretspec-validator = {
     enable = true;
     production = true;
-    failOnMissing = true;
+    # Aligned with cluster default 2026-08-10 (see SECRETSPEC-CONSOLIDATION.md):
+    # 33 manifest entries are intentionally env/dotenv-fallback with no sops
+    # route; failOnMissing=true caused permanent unit failure on every run.
+    failOnMissing = false;
   };
 
   # Backup to Garage S3 — sentry had NO backup coverage before 2026-08-16
