@@ -770,7 +770,6 @@
     # which is zephyr-only). Point SOPS_AGE_KEY_FILE at the real key so sops -d works.
     ageKeyFile = "/home/j_kro/.config/sops/age/keys.txt";
     enable = true;
-    ageKeyFile = "/etc/sops/age/key.txt";
     secrets = import ./secretspec-creds-wiring.nix;
   };
 

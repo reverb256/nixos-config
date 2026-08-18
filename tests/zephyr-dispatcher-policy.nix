@@ -22,10 +22,11 @@
     && lib.strings.hasInfix "then 0" distributedBuilds;
 
   # Nexus is the primary builder; the shared module forces its capacity
-  # (12 physical cores, 2 max-jobs per the nix.dev over-sell guidance).
+  # (9 cores = 25% reserved of the 3900X's 24 logical threads, 2 max-jobs
+  # per the nix.dev over-sell guidance — 8f3b6dbef, 2026-08-17).
   sharedForcesNexusCapacity =
     lib.strings.hasInfix "currentHost == \"nexus\"" distributedBuilds
-    && lib.strings.hasInfix "then 12 # 3900X = 12 physical cores" distributedBuilds
+    && lib.strings.hasInfix "then 9 # 3900X = 24 logical" distributedBuilds
     && lib.strings.hasInfix "then 2 # 12 cores x 2 jobs" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
