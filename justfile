@@ -441,7 +441,7 @@ hm-switch:
     # is a NixOS-module-only option): HM moves any differing plain file to
     # <file>.backup and links the store version instead of aborting. Remove
     # stale <file>.backup files if a switch reports "would be clobbered".
-    NIX_CONFIG='pure-eval = false; builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm' \
+    NIX_CONFIG=$'pure-eval = false\nbuilders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm' \
       home-manager switch -b backup --flake github:reverb256/home-manager-config#${HOST}
 
 # Build (dry) the HM config for a host without activating — CI/verification.
@@ -465,7 +465,7 @@ hm-audit:
 
     FLAKE="github:reverb256/home-manager-config"
     # nexus-only builder, same constraint as hm-switch (issue #389).
-    export NIX_CONFIG='pure-eval = false; builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
+    export NIX_CONFIG=$'pure-eval = false\nbuilders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
 
     # Resolve the CURRENT upstream rev with --refresh and pin builds to it.
     # An unpinned `github:` ref is served from nix's branch-resolution cache
@@ -534,7 +534,7 @@ hm-deploy host="zephyr":
     set -euo pipefail
 
     FLAKE="github:reverb256/home-manager-config"
-    export NIX_CONFIG='pure-eval = false; builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
+    export NIX_CONFIG=$'pure-eval = false\nbuilders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
     HOST="{{host}}"
 
     # Resolve the CURRENT upstream rev fresh (same rationale as hm-audit) and
