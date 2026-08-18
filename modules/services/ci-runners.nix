@@ -149,19 +149,23 @@
         # so the runner stays offline indefinitely with no listener. Poll up
         # to 5 min, then proceed — setup still fails loudly if the secret is
         # genuinely absent (drift / wrong wiring).
-        ${if patFile != null then ''
-        if [ ! -f "${patFile}" ]; then
-          echo "Waiting for PAT file ${patFile} to mount (secretspec may lag boot)..."
-          for i in $(seq 1 60); do
-            [ -f "${patFile}" ] && break
-            sleep 5
-          done
-        fi
-        if [ ! -f "${patFile}" ]; then
-          echo "ERROR: PAT file ${patFile} still missing after 5 min wait"
-          exit 1
-        fi
-        '' else ""}
+        ${
+          if patFile != null
+          then ''
+            if [ ! -f "${patFile}" ]; then
+              echo "Waiting for PAT file ${patFile} to mount (secretspec may lag boot)..."
+              for i in $(seq 1 60); do
+                [ -f "${patFile}" ] && break
+                sleep 5
+              done
+            fi
+            if [ ! -f "${patFile}" ]; then
+              echo "ERROR: PAT file ${patFile} still missing after 5 min wait"
+              exit 1
+            fi
+          ''
+          else ""
+        }
         rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
               "${runnerHome}/.credentials_rsaparams" \
               "${runnerHome}/.runner_migrated" \
