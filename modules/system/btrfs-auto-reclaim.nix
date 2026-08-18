@@ -62,13 +62,43 @@ in {
       type = lib.types.ints.between 0 100;
       default = 0;
       description = ''
-        Optional `bg_reclaim_threshold` percentage. A Data block group whose
-        usage falls below this percent becomes a reclaim candidate.
+        FIXED reclaim threshold percentage, as an ALTERNATIVE to dynamic reclaim.
+        A Data block group whose usage falls below this percent becomes a
+        reclaim candidate.
 
-        0 means "leave the kernel default alone", which is the conservative
-        choice: reclaim still happens via dynamic/periodic reclaim, just at the
-        kernel's own thresholds. Raise it only with evidence, since aggressive
-        reclaim means more background rewriting and more SSD wear.
+        MUTUALLY EXCLUSIVE with `dynamic`. The kernel refuses a write to
+        `bg_reclaim_threshold` with EINVAL while `dynamic_reclaim` is set —
+        upstream `btrfs_sinfo_bg_reclaim_threshold_store()` begins with
+        `if (READ_ONCE(space_info->dynamic_reclaim)) return -EINVAL;`, and the
+        file becomes a read-only view of the current dynamic threshold. Setting
+        both is therefore not a "belt and braces" configuration; it is a
+        guaranteed failed write.
+
+        Leave at 0 and keep `dynamic = true` unless you have measured evidence
+        that a fixed threshold suits this host better. Upstream experience at
+        scale found a fixed threshold either works perfectly or falls apart
+        depending on the value, and a workload that oscillates around it causes
+        unbounded reclaim churn; a fixed 30 produced ~150 reclaims/day/host
+        versus ~5/day with dynamic.
+
+        Only consulted when `dynamic = false`.
+      '';
+    };
+
+    dynamic = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Use the kernel's DYNAMIC reclaim threshold instead of a fixed percentage.
+
+        The dynamic threshold targets a fixed amount of unallocated space
+        (upstream: ~10 block-group-sized chunks) and scales its aggression
+        linearly as unallocated falls below that target — no reclaim while
+        unallocated is healthy, progressively harder as it trends toward zero.
+        That is precisely the failure mode this fleet hit: eager Data allocation
+        starving Metadata until no chunk could be created.
+
+        This is the recommended setting and excludes `bgReclaimThreshold`.
       '';
     };
   };
@@ -100,27 +130,50 @@ in {
           fsid="$(basename "$(dirname "$(dirname "$data")")")"
           found=1
 
-          # Each knob is written independently and guarded: a kernel without
-          # one of them must not abort the whole unit.
-          for knob in dynamic_reclaim periodic_reclaim; do
-            if [ -w "$data/$knob" ]; then
-              if echo 1 > "$data/$knob" 2>/dev/null; then
-                echo "$fsid: $knob = 1"
+          # ORDER MATTERS. The kernel rejects a write to bg_reclaim_threshold
+          # with EINVAL while dynamic_reclaim is set, so the fixed threshold
+          # must be written FIRST (and only when dynamic is off).
+          ${
+          if cfg.dynamic
+          then ''
+            # Dynamic threshold: the kernel computes the reclaim aggression from
+            # how far unallocated has fallen below its target. bg_reclaim_threshold
+            # is deliberately NOT written — it is read-only in this mode.
+            for knob in dynamic_reclaim periodic_reclaim; do
+              if [ -w "$data/$knob" ]; then
+                if echo 1 > "$data/$knob" 2>/dev/null; then
+                  echo "$fsid: $knob = 1"
+                else
+                  echo "$fsid: $knob present but write failed" >&2
+                fi
               else
-                echo "$fsid: $knob present but write failed" >&2
+                echo "$fsid: $knob unavailable on this kernel — skipping"
               fi
-            else
-              echo "$fsid: $knob unavailable on this kernel — skipping"
+            done
+          ''
+          else ''
+            # Fixed threshold mode: ensure dynamic is OFF first so the
+            # bg_reclaim_threshold write is accepted, then set the value.
+            if [ -w "$data/dynamic_reclaim" ]; then
+              echo 0 > "$data/dynamic_reclaim" 2>/dev/null \
+                && echo "$fsid: dynamic_reclaim = 0 (fixed-threshold mode)"
             fi
-          done
 
-          ${lib.optionalString (cfg.bgReclaimThreshold > 0) ''
-          if [ -w "$data/bg_reclaim_threshold" ]; then
-            echo ${toString cfg.bgReclaimThreshold} > "$data/bg_reclaim_threshold" 2>/dev/null \
-              && echo "$fsid: bg_reclaim_threshold = ${toString cfg.bgReclaimThreshold}" \
-              || echo "$fsid: bg_reclaim_threshold write failed" >&2
-          fi
-        ''}
+            if [ -w "$data/bg_reclaim_threshold" ]; then
+              echo ${toString cfg.bgReclaimThreshold} > "$data/bg_reclaim_threshold" 2>/dev/null \
+                && echo "$fsid: bg_reclaim_threshold = ${toString cfg.bgReclaimThreshold}" \
+                || echo "$fsid: bg_reclaim_threshold write failed" >&2
+            else
+              echo "$fsid: bg_reclaim_threshold unavailable — skipping"
+            fi
+
+            # Periodic sweep still applies to a fixed threshold.
+            if [ -w "$data/periodic_reclaim" ]; then
+              echo 1 > "$data/periodic_reclaim" 2>/dev/null \
+                && echo "$fsid: periodic_reclaim = 1"
+            fi
+          ''
+        }
         done
 
         if [ "$found" -eq 0 ]; then
