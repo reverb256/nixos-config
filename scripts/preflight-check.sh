@@ -86,10 +86,15 @@ for btype in "${BUILD_TYPES[@]}"; do
         DETECTED="$DETECTED $btype($PIDS)"
     fi
 done
+# 4a. nix-daemon worker children (REAL compile/sign workers)
+DAEMON_WORKERS=$(ssh nexus "D_PID=\$(pgrep -x nix-daemon | head -1); if [ -n "\$D_PID" ]; then pgrep -P "\$D_PID" 2>/dev/null | wc -l; else echo 0; fi" 2>/dev/null)
+if [[ "${DAEMON_WORKERS:-0}" -gt 0 ]]; then
+    DETECTED="$DETECTED nix-daemon-workers($DAEMON_WORKERS)"
+fi
 if [[ -n "$DETECTED" ]]; then
     fail "in-flight build processes on nexus:$DETECTED — wait for them to finish before deploying"
 else
-    pass "no in-flight builds on nexus"
+    pass "no in-flight builds on nexus (incl. nix-daemon workers)"
 fi
 
 # 4b. Nexus nix-daemon health check
@@ -98,6 +103,14 @@ if [[ -z "${NEXUS_DAEMON:-}" || "$NEXUS_DAEMON" == "0" ]]; then
     fail "nix-daemon not running on nexus — builds will fail"
 else
     pass "nix-daemon running on nexus (pid $NEXUS_DAEMON)"
+fi
+
+# 4c. Nexus store DB lock check — a lingering daemon can hold the SQLite lock
+LOCK_CHECK=$(ssh nexus "timeout 10 nix eval --raw nixpkgs#hello.outPath 2>&1" 2>/dev/null)
+if echo "$LOCK_CHECK" | grep -qi "busy\|locked\|database is locked"; then
+    fail "nexus store DB is locked — a lingering daemon holds /nix/var/nix/db/db.sqlite; run: ssh nexus 'sudo pkill -9 -f nix-daemon'"
+else
+    pass "nexus store DB not locked"
 fi
 
 log "=== Preflight result: $([ "$FAIL" -eq 0 ] && echo PASS || echo BLOCKED) ==="
