@@ -66,7 +66,7 @@
     home-manager-config = {
       # iNiR removed (j_kro does not want it) — 2026-08-16 edb9d9a
       # Bumped 2026-08-17 to 8c2142a: HDR enable + DRY niri keybinds + XDG_DATA_DIRS
-      url = "git+ssh://git@github.com/reverb256/home-manager-config?rev=a4ec36a570426a937df512b86085757a275e474d";
+      url = "git+ssh://git@github.com/reverb256/home-manager-config?rev=360d8c86c37430a2ea943fbb047110f98975c2fe";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
