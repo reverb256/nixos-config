@@ -3927,6 +3927,22 @@
         "url": "https://github.com/reverb256/nixos-config"
       }
     },
+    "nixos-secrets": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787059944,
+        "narHash": "sha256-c3IhqIGWByI//UHrVY23jWD6cqwH14gX9dhT5e9BOvU=",
+        "ref": "refs/heads/main",
+        "rev": "ac5030b9cfb49d170dca7edc14c006bb831f28d1",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@github.com/reverb256/nixos-secrets"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/reverb256/nixos-secrets"
+      }
+    },
     "nixos-wsl": {
       "inputs": {
         "flake-compat": "flake-compat_15",
@@ -5330,6 +5346,7 @@
         "niri": "niri_6",
         "nix-cachyos-kernel": "nix-cachyos-kernel_3",
         "nixcord": "nixcord_6",
+        "nixos-secrets": "nixos-secrets",
         "nixos-wsl": "nixos-wsl",
         "nixpkgs": "nixpkgs_22",
         "nixpkgs-xr": "nixpkgs-xr_3",
