@@ -81,7 +81,7 @@
         Persistent = true;
         # Stagger across the fleet: four hosts GC'ing simultaneously all churn
         # metadata at once, which is the pressure we are trying to relieve.
-        RandomizedDelaySec = "45m";
+        RandomizedDelaySec = lib.mkForce "45m";
       };
     };
 
