@@ -22,13 +22,15 @@
   # config-schema migrations, wallpaper startup-fade, and theme palette-change
   # fixes. This is a targeted src override, NOT a full nixpkgs bump (beta.8
   # already built in the store). Pin the version string so it's greppable.
-  noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
-    version = "5.0.0-beta.8";
+  # Canonical src override (per cluster convention): bump only `src` to the
+  # latest upstream tag. `overrideAttrs` on pkgs.noctalia trips the
+  # makeOverridable drvPath assert on the builder host, so use `.override`.
+  noctalia-patched = pkgs.noctalia.override {
     src = pkgs.fetchurl {
       url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.8.tar.gz";
       sha256 = "17jk52vmrhr5233anc47cjaa99ma25wckfm2p48qwhizfaw4l3m6";
     };
-  });
+  };
 
   # ── TOML config for noctalia brightness ──────────────────────────────
   # Written to /etc/noctalia/config.toml. The NOCTALIA_CONFIG_HOME env var
