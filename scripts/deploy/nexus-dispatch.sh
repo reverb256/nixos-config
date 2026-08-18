@@ -198,7 +198,10 @@ if [[ "$HOSTNAME_SHORT" != "zephyr" ]]; then
 fi
 
 cd "$FLAKE"
-run_preflight
+if ! run_preflight; then
+    echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
+    exit 1
+fi
 
 if [[ "$MODE" == "sync" ]]; then
   exec ssh nexus \
