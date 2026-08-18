@@ -1407,4 +1407,8 @@
   # rendered from Nix by hermes-config-emit. Dendritic SPOC — peers live here,
   # token values stay in the hermes-owned config.yaml.
   services.hermes-a2a.enable = true;
+
+  # Periodic memlawb health check (reachability + passphrase decrypt round-trip).
+  # Runs on zephyr because the MCP client + zero-knowledge passphrase live here.
+  services.memlawb-healthcheck.enable = true;
 }

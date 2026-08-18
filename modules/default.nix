@@ -144,6 +144,8 @@
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
     ./services/memlawb-server.nix # opt-in encrypted memory server (Hermes MCP backend)
+    ./services/memlawb-backup.nix # daily Garage S3 backup of the fs blobstore
+    ./services/memlawb-healthcheck.nix # periodic reachability + passphrase round-trip check
     ./services/gitlawb-node.nix # opt-in decentralized git node (private mirror)
     ./services/thermal-monitor.nix # Read-only CPU thermal watchdog (cross-fleet)
 

@@ -222,6 +222,17 @@
       # main-qwen35 @ 478caed42 (merge of TheTom turbo onto mainline 1692f9e5).
       url = "git+https://github.com/reverb256/llama-cpp-turboquant?ref=main-qwen35&rev=329c616c025e9be8fa9158249fd6166162c2f088";
     };
+    # memlawb - encrypted zero-knowledge agent memory (Bun app: server + mcp
+    # client). Packaged into the Nix store via pkgs/memlawb.nix, replacing the
+    # interim /persistent/memlawb git-checkout on sentry. Consumed as a plain
+    # source tree (flake = false) and built with nixpkgs' stdenv in
+    # pkgs/memlawb.nix - same pattern as the lix/astral-key fork inputs. Pinned
+    # to a known rev; bump by pushing upstream then re-pinning here +
+    # `nix flake update`.
+    memlawb = {
+      url = "git+https://github.com/Gitlawb/memlawb?rev=0c9f82d022dace631bd8582ca3508adfab6809a8";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {

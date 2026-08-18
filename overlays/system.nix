@@ -64,6 +64,10 @@
   llama-cpp-vulkan-nocuda = prev.callPackage ../packages/llama-cpp-vulkan-nocuda.nix {};
   nixos-cluster-mcp = prev.callPackage ../packages/nixos-cluster-mcp {};
   switchyard-server = prev.callPackage ../pkgs/switchyard-server {};
+  # memlawb encrypted-memory server (Bun app). Exposed as pkgs.memlawb so the
+  # host module (modules/services/memlawb-server.nix) can reference
+  # pkgs.memlawb/bin/memlawb-server. Source is the pinned `memlawb` flake input.
+  memlawb = prev.callPackage ../pkgs/memlawb.nix { inherit (inputs) memlawb; };
   privacy-filter = prev.callPackage ../packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };
