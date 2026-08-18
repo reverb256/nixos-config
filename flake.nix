@@ -259,6 +259,18 @@
       url = "git+https://github.com/basecamp/omarchy?rev=7be59e1f4b7451d352d4673c560168290792590f";
       flake = false;
     };
+    # qml-niri — third-party QML plugin (`import Niri`) for the niri Wayland
+    # compositor, used to port Omarchy's shell off `Quickshell.Hyprland`
+    # (Phase 2, #657). Verified against niri v26.04. Consumed as a real flake
+    # so we can use its `packages.<system>.default` (the plugin) and
+    # `packages.<system>.quickshell` (quickshell with the plugin wired in);
+    # its nixpkgs follows ours so the Qt6 ABI matches the quickshell we pin.
+    # NOT the `Quickshell.Niri` native module #657 assumed — see
+    # docs/reference/omarchy-phase2-quickshell-niri.md.
+    qml-niri = {
+      url = "git+https://github.com/imiric/qml-niri?rev=93e603901bed2c4465d5675ae43fd52b7f7c4adf";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
