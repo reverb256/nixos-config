@@ -121,12 +121,16 @@ in {
           services.gnome.gnome-keyring.enable = true;
         }
         {
-          environment.systemPackages = with pkgs.kdePackages;
+          # Omarchy stack: GTK/GNOME apps avoid the kio-extras -> pyside6 ->
+          # qtwebengine (56k-80k object Chromium) local build that Dolphin's
+          # kdePackages pulls. Portals above are GNOME-based
+          # (xdg-desktop-portal-gnome/gtk), so this completes the GTK DE.
+          # dolphin -> nautilus, konsole -> foot (Super+Return), ark -> file-roller
+          environment.systemPackages = with pkgs;
             [
-              dolphin
-              dolphin-plugins
-              konsole # Provides konsolepart plugin for Dolphin terminal
-              ark
+              nautilus
+              file-roller
+              sushi # file previews in nautilus (replaces dolphin-plugins)
             ]
             ++ [
               pkgs.swaylock
