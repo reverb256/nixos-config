@@ -522,6 +522,10 @@
     ];
   };
 
+  # Encrypted-memory blobstore backup (additive Garage S3 sync, complements
+  # the tar-based /persistent backup above). Runs daily.
+  services.memlawb-backup.enable = true;
+
   # Override specific secret permissions for mining service
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)

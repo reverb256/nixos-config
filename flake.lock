@@ -3062,6 +3062,23 @@
         "url": "https://github.com/reverb256/mcp-registry"
       }
     },
+    "memlawb": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782532527,
+        "narHash": "sha256-7ev9u9RJZBKChWWeGKdbuhyMUx8+gHLb5EZzf1QSxQc=",
+        "ref": "refs/heads/main",
+        "rev": "0c9f82d022dace631bd8582ca3508adfab6809a8",
+        "revCount": 8,
+        "type": "git",
+        "url": "https://github.com/Gitlawb/memlawb"
+      },
+      "original": {
+        "rev": "0c9f82d022dace631bd8582ca3508adfab6809a8",
+        "type": "git",
+        "url": "https://github.com/Gitlawb/memlawb"
+      }
+    },
     "niri": {
       "inputs": {
         "niri-stable": "niri-stable",
@@ -5202,6 +5219,7 @@
         "llm-agents": "llm-agents_3",
         "lsfg-vk-nix": "lsfg-vk-nix_3",
         "mcp-registry": "mcp-registry_3",
+        "memlawb": "memlawb",
         "niri": "niri_6",
         "nix-cachyos-kernel": "nix-cachyos-kernel_3",
         "nixcord": "nixcord_6",
