@@ -84,11 +84,29 @@ in {
     # When the kernel changes, the new userspace libs don't match the running
     # kernel driver, causing the generator to fail. This blocks activation.
     # The generator will work correctly after reboot when kernel and driver match.
+    #
+    # BOOT DECOUPLING (issue #665 + #690): the upstream
+    # hardware.nvidia-container-toolkit module declares
+    # `wantedBy = ["multi-user.target"]` AND
+    # `ExecStartPre = udevadm settle --timeout=180`, both of which gate
+    # multi-user.target -> graphical.target every boot (~6.4s; see
+    # systemd-analyze critical-chain in #665/#690). NixOS merges service
+    # definitions, so removing the wantedBy line in a consumer module is a
+    # no-op — only a mkForce in a module active on every NVIDIA host wins.
+    # The generator is pulled on demand (podman-dcgm-exporter `wants` + `after`
+    # it, upstream udev rule KERNEL=="nvidia" -> --no-block restart at driver
+    # load populates /var/run/cdi), so it must not sit in the boot chain.
     systemd.services.nvidia-container-toolkit-cdi-generator = {
+      wantedBy = lib.mkForce [];
       unitConfig.OnFailure = "";
-      serviceConfig.Type = "oneshot";
-      serviceConfig.RemainAfterExit = true;
-      serviceConfig.SuccessExitStatus = "0 1";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        SuccessExitStatus = "0 1";
+        # The static/upstream generator never needs udev to settle; drop the
+        # upstream ExecStartPre so a boot-pulled run can't stall on it.
+        ExecStartPre = lib.mkForce [];
+      };
     };
 
     # ============================================================================
