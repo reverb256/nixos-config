@@ -215,7 +215,7 @@ in {
       # 2026-08-15: without this, the default service PATH lacks openssh and
       # the script's bare `ssh-keygen` fails to resolve -> "no CA key
       # available, skipping" despite a valid key on disk.
-      path = [ pkgs.openssh ];
+      path = [pkgs.openssh];
       # 2026-08-15: secretspec-creds is oneshot RemainAfterExit — after an
       # activation re-provisions secrets (removes ssh-ca-key), the service
       # does NOT re-write it. Force a fresh provisioning right before
