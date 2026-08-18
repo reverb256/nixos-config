@@ -45,20 +45,16 @@ else
     pass "local /etc/nixos matches origin/main"
 fi
 
-# 2–4. All remote hosts must match canonical.
-# NOTE: sentry + forge are intentionally excluded from this gate.
-# - sentry: usb-rescue ISO SSH host key (stale/unreachable from zephyr).
+# 2-4. All remote hosts must match canonical.
+# NOTE: forge is intentionally excluded from this gate.
 # - forge: its SSH is broken by the world-writable systemd-ssh-proxy store
 #   include (OpenSSH secure_permission rejects mode 1777; chmod is impossible
 #   on the immutable Nix store). Fix = systemd-ssh-proxy.enable=false in
-#   forge config. Forge is a miner (not a builder) and not in the zephyr
-#   deploy closure, so excluding it here is safe for zephyr deploys. — its SSH host key is
-# the usb-rescue ISO key (stale / unreachable from zephyr), so testing it here
-# would block every zephyr deploy. Sentry remains a valid builder in
-# distributed-builds.nix; this only stops the preflight from requiring it.
+#   forge config. Forge is a GPU miner (not a builder) and not in the zephyr
+#   deploy closure, so excluding it here is safe for zephyr deploys.
 # Uses sequential SSH checks so a failed self-heal is reported clearly.
 log "  checking remote hosts..."
-HOSTS="nexus"
+HOSTS="nexus sentry"
 
 for HOST in $HOSTS; do
   REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
