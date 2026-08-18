@@ -23,10 +23,10 @@
   # fixes. This is a targeted src override, NOT a full nixpkgs bump (beta.8
   # already built in the store). Pin the version string so it's greppable.
   noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
-    version = "5.0.0-beta.6";
+    version = "5.0.0-beta.8";
     src = pkgs.fetchurl {
-      url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.6.tar.gz";
-      sha256 = "1j1xx7zqfms9qppjprlvdwfxaqk5v147gqznvx88fpk35fa920zj";
+      url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.8.tar.gz";
+      sha256 = "17jk52vmrhr5233anc47cjaa99ma25wckfm2p48qwhizfaw4l3m6";
     };
   });
 
