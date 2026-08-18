@@ -8,29 +8,15 @@
   inherit (lib) mkIf mkForce mkOverride mkOption types;
   cfg = config.desktop.zephyr-sdr-brightness;
 
-  # ── Noctalia daemon (version override to beta.8) ──────────────────────
+  # ── Noctalia daemon ─────────────────────────────────────────────────
   # HDMI-A-1 (Samsung TV) now runs HDR natively under niri-unstable, so its
   # brightness backend is set to `normal` (niri owns the output via max_bpc /
   # HDR). The custom niri SDR-brightness patch was dropped 2026-07-25 and is
   # NOT re-applied — it never worked (#667).
   #
-  # Version override (#667): the nixpkgs `pkgs.noctalia` at the locked flake
-  # rev sources v5.0.0-beta.6 (tag v5.0.0-beta.6), which only supports
-  # config_version up to 8. Bump to the latest upstream release v5.0.0-beta.8,
-  # which accepts config_version 12 (the format the GUI state file
-  # ~/.local/state/noctalia/settings.toml already uses). beta.8 also carries
-  # config-schema migrations, wallpaper startup-fade, and theme palette-change
-  # fixes. This is a targeted src override, NOT a full nixpkgs bump (beta.8
-  # already built in the store). Pin the version string so it's greppable.
-  # Canonical src override (per cluster convention): bump only `src` to the
-  # latest upstream tag. `overrideAttrs` on pkgs.noctalia trips the
-  # makeOverridable drvPath assert on the builder host, so use `.override`.
-  noctalia-patched = pkgs.noctalia.override {
-    src = pkgs.fetchurl {
-      url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.8.tar.gz";
-      sha256 = "17jk52vmrhr5233anc47cjaa99ma25wckfm2p48qwhizfaw4l3m6";
-    };
-  };
+  # No version override: the pinned nixpkgs `pkgs.noctalia` already ships
+  # v5.0.0-beta.8 (accepts config_version 12, the format the GUI state file
+  # ~/.local/state/noctalia/settings.toml uses). Use it directly.
 
   # ── TOML config for noctalia brightness ──────────────────────────────
   # Written to /etc/noctalia/config.toml. The NOCTALIA_CONFIG_HOME env var
@@ -166,7 +152,7 @@ in {
     # ── Patched noctalia daemon ─────────────────────────────────────────
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
     # a mkOption (priority 100). mkForce beats the default.
-    desktop.noctalia.daemonPackage = mkForce noctalia-patched;
+    desktop.noctalia.daemonPackage = mkForce pkgs.noctalia;
     # Direct systemd user service for patched noctalia daemon
     systemd.user.services.noctalia = {
       description = "Noctalia shell daemon (patched with Sdr brightness backend)";
@@ -175,7 +161,7 @@ in {
       after = ["graphical-session.target"];
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${lib.getExe noctalia-patched}";
+        ExecStart = "${lib.getExe pkgs.noctalia}";
         Restart = "on-failure";
         RestartSec = "3";
         # Broadened 2026-08-17 (issue #661): Noctalia launches desktop apps
@@ -226,7 +212,7 @@ in {
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
-    environment.systemPackages = [noctalia-patched];
+    environment.systemPackages = [pkgs.noctalia];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;
