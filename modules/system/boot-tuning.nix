@@ -23,7 +23,9 @@
   # Quiet console: fewer boot messages, cleaner niri handoff.
   boot.consoleLogLevel = 3;
 
-  # Bounded journald: cap disk use, keep logs for debugging.
-  services.journald.systemMaxUse = "200M";
-  services.journald.maxLevelStore = "info";
+  # Bounded journald: cap disk use, keep logs for debugging (auto = persist).
+  services.journald.extraConfig = ''
+    SystemMaxUse=200M
+    MaxLevelStore=info
+  '';
 }
