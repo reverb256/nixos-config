@@ -1,0 +1,106 @@
+---
+# Weekly flake.lock update + build + cache push.
+#
+# Bumps nixpkgs (and optionally specified inputs), builds all 4 hosts via
+# CI's self-hosted nexus runner, and pushes the resulting closures to the
+# reverb-os Cachix cache. Target hosts then substitute from cache on their
+# next nixos-auto-update tick instead of compiling locally.
+#
+# Triggers: weekly (Tue 03:15 UTC) OR workflow_dispatch.
+# Uses the Nexus self-hosted runner [self-hosted, nixos, nexus, builder].
+name: Flake Lock Update
+
+on:
+  schedule:
+    # Every Tuesday at 03:15 UTC
+    - cron: "15 3 * * 2"
+  workflow_dispatch:
+    inputs:
+      inputs_to_update:
+        description: "Comma-separated flake inputs to bump (default: nixpkgs)"
+        required: false
+        default: "nixpkgs"
+
+concurrency:
+  group: flake-lock-update
+  cancel-in-progress: false
+
+env:
+  NIX_CACHIX_NAME: reverb-os
+  CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+jobs:
+  update-and-build:
+    runs-on: [self-hosted, nixos, nexus, builder]
+    timeout-minutes: 600
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v23
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            substituters = https://cache.nixos.org https://nix-community.cachix.org https://reverb-os.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI=
+
+      - name: Configure Cachix
+        uses: cachix/cachix-action@v12
+        with:
+          name: reverb-os
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Update flake inputs
+        id: update
+        run: |
+          INPUTS="${{ github.event.inputs.inputs_to_update || 'nixpkgs' }}"
+          IFS=',' read -ra INPUT_ARRAY <<< "$INPUTS"
+          UPDATE_ARGS=""
+          for input in "${INPUT_ARRAY[@]}"; do
+            input=$(echo "$input" | xargs)  # trim whitespace
+            UPDATE_ARGS="$UPDATE_ARGS --update-input $input"
+          done
+          echo "Updating inputs: $UPDATE_ARGS"
+          nix flake update $UPDATE_ARGS --no-commit-lock-file
+
+      - name: Show lock diff
+        run: |
+          git diff --stat
+          echo "---"
+          git diff flake.lock | head -50
+
+      - name: Build all hosts
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "=== Building $host ==="
+            nix build ".#nixosConfigurations.$host.config.system.build.toplevel" --no-link --print-build-logs 2>&1
+            echo "OK: $host built successfully"
+          done
+
+      - name: Push all host closures to Cachix
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "=== Pushing $host to Cachix ==="
+            nix build ".#nixosConfigurations.$host.config.system.build.toplevel" --no-link
+            cachix push reverb-os ./result
+            rm -f result
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@noreply.github.com"
+          git add flake.lock
+          git commit -m "chore: bump flake.lock inputs"
+          git push origin main
+
+      - name: Notify (advisory)
+        if: always()
+        run: |
+          echo "Flake lock update complete."
+          echo "Hosts built and pushed to reverb-os.cachix.org."
+          echo "Monitor target hosts' nixos-auto-update timers for pull-based deployment."

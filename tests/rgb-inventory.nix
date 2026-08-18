@@ -1,32 +1,55 @@
-{ pkgs, ... }:
-let
+{pkgs, ...}: let
   inherit (pkgs) lib;
   contract = import ../contracts/rgb-inventory.nix;
   moduleSource = builtins.readFile ../modules/services/rgb-inventory.nix;
   rgbSource = builtins.readFile ../modules/hardware/rgb-control.nix;
   hostNames = builtins.attrNames contract.hosts;
-  expectedHosts = [ "forge" "nexus" "sentry" "zephyr" ];
-  allExpectedDevicesHaveRequiredFields = builtins.all
-    (host: builtins.all
-      (device: builtins.all (field: builtins.hasAttr field device) [
-        "id" "kind" "backend" "hint" "expectedCount" "capability" "controlAllowed" "status"
-      ])
+  expectedHosts = ["forge" "nexus" "sentry" "zephyr"];
+  allExpectedDevicesHaveRequiredFields =
+    builtins.all
+    (host:
+      builtins.all
+      (device:
+        builtins.all (field: builtins.hasAttr field device) [
+          "id"
+          "kind"
+          "backend"
+          "hint"
+          "expectedCount"
+          "capability"
+          "controlAllowed"
+          "status"
+        ])
       contract.hosts.${host}.expected)
-    hostNames;    controlListPolicy =
-      contract.hosts.zephyr.controlDevices != []
+    hostNames; # All four hosts now have OpenRGB-verified control devices: zephyr (7)
+  # and nexus (2) were the original control-capable hosts; forge gained the
+  # Sapphire RX 5700 XT (Nitro Glow V3 via AMDGPU DM i2c) and sentry the
+  # Corsair Scimitar Pro RGB (PID 0x1B3E) in the 2026-08-16 scan. The
+  # invariant to enforce is documentation completeness + allowlist safety,
+  # not a host allowlist.
+  controlListPolicy =
+    contract.hosts.zephyr.controlDevices
+    != []
     && contract.hosts.nexus.controlDevices != []
-    && contract.hosts.forge.controlDevices == []
-    && contract.hosts.sentry.controlDevices == []
+    && contract.hosts.forge.controlDevices != []
+    && contract.hosts.sentry.controlDevices != []
     && builtins.all
-      (device: builtins.hasAttr "matchAll" device)
-      (contract.hosts.zephyr.controlDevices ++ contract.hosts.nexus.controlDevices)
+    (device: builtins.hasAttr "matchAll" device)
+    (contract.hosts.zephyr.controlDevices
+      ++ contract.hosts.nexus.controlDevices
+      ++ contract.hosts.forge.controlDevices ++ contract.hosts.sentry.controlDevices)
     && builtins.all
-      (device: device.controlAllowed)
-      (builtins.filter
-        (device: builtins.any
-          (allowed: lib.hasInfix device.hint allowed.hint)
-          (contract.hosts.zephyr.controlDevices ++ contract.hosts.nexus.controlDevices))
-        (contract.hosts.zephyr.expected ++ contract.hosts.nexus.expected));
+    (device: device.controlAllowed)
+    (builtins.filter
+      (device:
+        builtins.any
+        (allowed: lib.hasInfix device.hint allowed.hint)
+        (contract.hosts.zephyr.controlDevices
+          ++ contract.hosts.nexus.controlDevices
+          ++ contract.hosts.forge.controlDevices ++ contract.hosts.sentry.controlDevices))
+      (contract.hosts.zephyr.expected
+        ++ contract.hosts.nexus.expected
+        ++ contract.hosts.forge.expected ++ contract.hosts.sentry.expected));
   checks = {
     schemaVersion = contract.schemaVersion == 1;
     interfaceVersion = contract.interfaceVersion == "1.0";
