@@ -183,7 +183,8 @@
     # Auto-apply Kubernetes manifests on boot
     ./services/k8s-manifest-autoapply.nix
     ./services/fake-backlight-bridge.nix
-    # Freebuff Desktop — auto-updating AppImage launcher (via freebuff-flake)
+    # Freebuff Desktop icon (hicolor) — launcher owned by home-manager-config
+    # appimage-updater (self-wrapped copy at ~/.local/opt/freebuff-desktop).
     ./services/freebuff-desktop.nix
   ];
 }
