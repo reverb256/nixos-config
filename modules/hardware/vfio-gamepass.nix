@@ -71,6 +71,9 @@ let
           <evmcs state="off"/>
           <vendor_id state="on" value="1234567890ab"/>
         </hyperv>
+        <kvm>
+          <hidden state="on"/>
+        </kvm>
         <vmport state="off"/>
       </features>
       <cpu mode="host-passthrough" check="none" migratable="on">
@@ -78,9 +81,6 @@ let
         <cache mode="passthrough"/>
         <feature policy="require" name="topoext"/>
       </cpu>
-      <kvm>
-        <hidden state="on"/>
-      </kvm>
       <clock offset="localtime">
         <timer name="rtc" tickpolicy="catchup" track="guest"/>
         <timer name="pit" tickpolicy="delay"/>
@@ -159,6 +159,7 @@ let
         <qemu:arg value="-object"/>
         <qemu:arg value="{'qom-type':'memory-backend-file','id':'looking-glass','mem-path':'/dev/kvmfr0','size':67108864,'share':true}"/>
       </qemu:commandline>
+    </domain>
   '';
 
   # SPICE install domain (no GPU passthrough, QXL+SPICE, for Windows install)
@@ -203,6 +204,9 @@ let
           <evmcs state="off"/>
           <vendor_id state="on" value="1234567890ab"/>
         </hyperv>
+        <kvm>
+          <hidden state="on"/>
+        </kvm>
         <vmport state="off"/>
       </features>
       <cpu mode="host-passthrough" check="none" migratable="on">
@@ -210,9 +214,6 @@ let
         <cache mode="passthrough"/>
         <feature policy="require" name="topoext"/>
       </cpu>
-      <kvm>
-        <hidden state="on"/>
-      </kvm>
       <clock offset="localtime">
         <timer name="rtc" tickpolicy="catchup" track="guest"/>
         <timer name="pit" tickpolicy="delay"/>

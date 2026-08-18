@@ -107,4 +107,4 @@ for host in "${ORDER[@]}"; do
 done
 
 log "Canary deploy complete: ${ORDER[*]}"
-echo "Verify with: just health / just cluster-status"
+echo "Verify with: just health / just status"
