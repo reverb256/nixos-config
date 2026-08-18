@@ -16,6 +16,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Per-host firewall rules (source-restricted ports, extra rules)
+    ./firewall.nix
     # Host-specific hardware (rgb-control, GPU, etc.)
     ./hardware.nix
     # RGB backend support
