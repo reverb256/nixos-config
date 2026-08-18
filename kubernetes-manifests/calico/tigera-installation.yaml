@@ -1,7 +1,33 @@
 # Calico Installation - Tigera Operator
 #
-# Deployed alongside tigera-operator.yaml (official manifest from projectcalico/calico v3.31.4)
+# Deployed alongside tigera-operator.yaml (official manifest from projectcalico/calico v3.31.6)
 # This CR tells the operator how to configure Calico.
+#
+# 2026-08-18 — bumped v3.31.4 -> v3.31.6 (operator v1.40.7 -> v1.40.13) to fix
+# an nft segfault storm on sentry. The operator version is the ONLY version pin;
+# it derives every calico image tag from itself, so this file's header comment
+# and tigera-operator.yaml:594 are the two places to keep in sync.
+#
+#   Symptom: `nft[PID]: segfault at 0 ip 0000000000000000 ... error 14` in HOST
+#   dmesg, thousands per boot (sentry boot -4: 1911, boot -1: 1081), plus felix
+#   logging "Failed to load maps state ... failed to run nft: signal:
+#   segmentation fault".
+#
+#   Cause: the HOST nft (1.1.6) writes udata on the sets it creates. The OLDER
+#   nft bundled inside calico/node cannot parse udata, NULL-derefs, and dies
+#   while LISTING the ruleset. Container crashes surface in host dmesg, so it
+#   looks host-side; the host's own nft is fine (`nft list ruleset` exits 0 and
+#   1.1.6 already contains the upstream fix be737a19, released in nftables
+#   1.1.4).
+#
+#   Fix: calico #12714 "Fixes nft binary segfaults in calico/node when newer
+#   nftables is in use elsewhere on the host" + #12470 (knftables -> v0.0.21),
+#   both in v3.31.6 (18 Jun 2026). Upstream tracking issue: calico #11750.
+#
+#   Do NOT "fix" this by downgrading host nftables or by flipping
+#   panic_on_oops. hosts/sentry/configuration.nix:414-417 already sets
+#   panic_on_oops=0 *because* of these segfaults, and
+#   tests/infrastructure-consistency.nix HW-4 enforces it.
 #
 # Cluster CIDRs (MUST match k3s --cluster-cidr and --service-cidr in modules/services/k3s-cluster.nix):
 #   Pod:      10.42.0.0/16   (clusterCIDR, confirmed by cluster-firewall.nix podCidr)

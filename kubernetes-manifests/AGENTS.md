@@ -8,7 +8,11 @@
 
 ## Overview
 Kubernetes YAML manifests for cluster workloads. Organized by application domain.
-Uses **Flannel CNI** (VXLAN, UDP 8472). Calico configs in `calico/` are archived reference material only.
+Uses **Calico CNI** (VXLAN encapsulation, policy-enforcing). `calico/` is LIVE and
+authoritative — k3s runs with `--flannel-backend=none` and
+`--disable-network-policy` (see `../modules/services/k3s-cluster.nix`), and
+`../modules/services/k8s-manifest-autoapply.nix` applies `calico/` in a dedicated
+two-phase order (operator first for CRDs, then the CR manifests).
 K8s Nix modules live in `../kubernetes/modules/` (Easykubenix, 21 `.nix` files) and are the source of truth where they generate the deployed workload. Raw YAML in this tree is authoritative only where the owning subsystem explicitly says so; otherwise it is bootstrap, test, vendor, or archived reference.
 
 ## Structure
@@ -18,7 +22,7 @@ kubernetes-manifests/
 ├── ai-inference/        # AI workload manifests
 ├── ai-coding-tools/     # Development tool manifests
 ├── monitoring/          # Prometheus/Grafana manifests
-├── calico/              # Archived Calico CNI reference configs (not active)
+├── calico/              # Calico CNI — LIVE (operator + Installation CR, IPPool, felix)
 ├── ingress/             # Ingress controllers (16 files)
 ├── spacebot/            # Discord bot (14 files)
 ├── pod-disruption-budgets/  # PDBs (18 files)
@@ -33,7 +37,7 @@ kubernetes-manifests/
 | Deploy AI workload | `ai-inference/` |
 | Configure mining | `mining/` |
 | Set up monitoring | `monitoring/` |
-| View archived CNI configs | `calico/` |
+| View archived CNI configs | `archive/` |
 | Add ingress rule | `ingress/` |
 | Block :latest tags | `security/deny-latest-tag.yaml` |
 
@@ -86,7 +90,8 @@ spec:
 - `ai-inference` → AI workloads
 - `monitoring` → Prometheus stack
 - `mining` → GPU miners
-- `calico-system` → Archived Calico configs (not active, Flannel is the CNI)
+- `calico-system` → Calico CNI components (LIVE — calico-node, typha, kube-controllers)
+- `tigera-operator` → the operator that manages `calico-system`
 
 ## Secret References
 
