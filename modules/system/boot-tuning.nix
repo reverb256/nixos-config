@@ -21,7 +21,7 @@
   boot.loader.timeout = 0;
 
   # Quiet console: fewer boot messages, cleaner niri handoff.
-  consoleLogLevel = 3;
+  boot.consoleLogLevel = 3;
 
   # Bounded journald: cap disk use, keep logs for debugging.
   services.journald.systemMaxUse = "200M";
