@@ -31,19 +31,24 @@ in {
       trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
 
       cores = lib.mkForce (
-        # Reserve 25% of cores for the host's own workloads (k3s / inference /
-        # AI-gateway) under full build concurrency. With max-jobs=2, set
-        # cores so (max-jobs * cores) = 75% of logical cores:
-        #   nexus  24 logical -> 18 build threads, 6 (25%) reserved
-        #   sentry 16 logical -> 12 build threads, 4 (25%) reserved
+        # CPU-headroom reservation. Per-host build-thread budget is
+        # (max-jobs * cores) as a share of logical cores:
+        #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
+        #   sentry 16 logical -> 2*4 =  8 threads = 50%, 8 reserved
+        # nexus keeps 75% (dedicated builder, 46 GiB). sentry drops to 50%
+        # (2026-08-18, j_kro): it is NOT a dedicated builder — it runs the k3s
+        # control plane (etcd), Vulkan AI inference, and the A2A gateway on a
+        # Zen 1 R7 1700 with 31 GiB. Under full build concurrency the etcd
+        # peer/apiserver timeouts and the calico reconcile loop degrade, and
+        # this host has a documented Zen 1 hard-lockup history under load.
         # RAM pressure is bounded separately by the nix-daemon MemoryMax
-        # guard below; this is the CPU-headroom reservation. (2026-08-17)
+        # guard below; this is the CPU half. (2026-08-17, revised 2026-08-18)
         if currentHost == "zephyr"
         then 2 # minimal for coordination (zephyr never builds: max-jobs=0)
         else if currentHost == "nexus"
         then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
         else if currentHost == "sentry"
-        then 6 # R7 1700 = 16 logical; 2*6=12 threads, 25% reserved
+        then 4 # R7 1700 = 16 logical; 2*4=8 threads, 50% reserved
         else 2
       );
 
@@ -56,9 +61,9 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
+        then 2 # x cores=9 -> 18 of 24 logical threads (75%); low job count bounds RAM
         else if currentHost == "sentry"
-        then 2 # 8 cores x 2 jobs = 8 threads — half to prevent OOM
+        then 2 # x cores=4 ->  8 of 16 logical threads (50%); control-plane headroom
         else 0
       );
 
@@ -321,13 +326,16 @@ in {
             }
             {
               hostName = "sentry";
-              # Secondary builder (R7 1700, 8 physical cores, 31 GiB RAM).
+              # Secondary builder (R7 1700, 8 physical / 16 logical, 31 GiB).
               # ssh-ng was wedged here before at 16-job oversubscription
               # (pipe-drain NixOS/nix#5701); the new low-jobs config (1 job,
               # connect-timeout=1) keeps pipe pressure low, and nexus has run
               # ssh-ng fine under this config since. If it wedges again,
               # flip protocol to "ssh" (nix-store --serve, no pipe-drain path).
-              # maxJobs=1 syncs with sentry's own nix.settings.max-jobs
+              # maxJobs=2 syncs with sentry's own nix.settings.max-jobs. The
+              # per-job thread count is set by sentry's nix.settings.cores=4,
+              # capping it at 8 of 16 logical threads (50%) — sentry also runs
+              # the k3s control plane and Vulkan inference. (2026-08-18)
               protocol = "ssh-ng";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
