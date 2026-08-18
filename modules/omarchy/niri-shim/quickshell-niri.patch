@@ -1,0 +1,539 @@
+--- a/shell/plugins/bar/widgets/Workspaces.qml	2026-08-13 05:10:13.066000285 -0500
++++ b/shell/plugins/bar/widgets/Workspaces.qml	2026-08-18 09:30:12.184780993 -0500
+@@ -1,6 +1,6 @@
+ import QtQuick
+ import QtQuick.Layouts
+-import Quickshell.Hyprland
++import Niri
+ import qs.Commons
+ import qs.Ui
+ 
+@@ -8,10 +8,17 @@
+   id: root
+   moduleName: "omarchy.workspaces"
+ 
+-  function workspaceById(id) {
+-    var values = Hyprland.workspaces.values
+-    for (var i = 0; i < values.length; i++) {
+-      if (values[i].id === id) return values[i]
++  // niri workspaces are indexed 1..N (matching `niri msg action
++  // focus-workspace <index>`). qml-niri exposes them as a list model whose
++  // `get(row)` returns a map with index/id/name/output/isActive/isFocused/
++  // activeWindowId roles. `occupied` approximates Hyprland's "has toplevels"
++  // via the workspace's active-window id (niri does not report a per-workspace
++  // window count over IPC).
++  function workspaceAt(index) {
++    var model = Niri.workspaces
++    for (var i = 0; i < model.count; i++) {
++      var w = model.get(i)
++      if (Number(w.index) === index) return w
+     }
+ 
+     return null
+@@ -19,20 +26,20 @@
+ 
+   function workspaceIds() {
+     var ids = [1, 2, 3, 4, 5]
+-    var values = Hyprland.workspaces.values
++    var model = Niri.workspaces
+ 
+-    for (var i = 0; i < values.length; i++) {
+-      var id = values[i].id
+-      if (id > 0 && id <= 10 && ids.indexOf(id) === -1) ids.push(id)
++    for (var i = 0; i < model.count; i++) {
++      var idx = Number(model.get(i).index)
++      if (idx > 0 && idx <= 10 && ids.indexOf(idx) === -1) ids.push(idx)
+     }
+ 
+     ids.sort(function(left, right) { return left - right })
+     return ids
+   }
+ 
+-  function focusWorkspace(id) {
+-    if (!root.bar) return
+-    root.bar.run("hyprctl dispatch " + Util.shellQuote("hl.dsp.focus({ workspace = \"" + id + "\" })"))
++  function focusWorkspace(index) {
++    // focusWorkspace takes a workspace index (1-based), not a niri window id.
++    Niri.focusWorkspace(index)
+   }
+ 
+   readonly property real trailingGap: root.vertical ? 0 : Style.spaceReal(1.5)
+@@ -54,9 +61,9 @@
+       WidgetButton {
+         required property int modelData
+ 
+-        readonly property var workspace: root.workspaceById(modelData)
+-        readonly property bool occupied: workspace !== null && workspace.toplevels.values.length > 0
+-        readonly property bool focused: Hyprland.focusedWorkspace !== null && Hyprland.focusedWorkspace.id === modelData
++        readonly property var workspace: root.workspaceAt(modelData)
++        readonly property bool occupied: workspace !== null && Number(workspace.activeWindowId) > 0
++        readonly property bool focused: workspace !== null && workspace.isFocused === true
+ 
+         bar: root.bar
+         text: focused ? "\uDB85\uDCFB" : (modelData === 10 ? "0" : String(modelData))
+--- a/shell/plugins/bar/widgets/KeyboardLayout.qml	2026-08-13 05:10:13.066000285 -0500
++++ b/shell/plugins/bar/widgets/KeyboardLayout.qml	2026-08-18 09:30:12.186781010 -0500
+@@ -1,7 +1,6 @@
+ import QtQuick
+-import Quickshell
+-import Quickshell.Hyprland
+ import Quickshell.Io
++import Niri
+ import qs.Ui
+ import qs.Commons
+ import "KeyboardLayoutModel.js" as KeyboardLayoutModel
+@@ -10,155 +9,36 @@
+   id: root
+   moduleName: "omarchy.keyboard-layout"
+ 
+-
++  // niri reports the configured xkb layouts and the active index directly
++  // (KeyboardLayoutsChanged / KeyboardLayoutSwitched), so there is no hyprctl
++  // device scan: Niri.keyboardLayouts.names is the layout list and
++  // Niri.keyboardLayouts.currentName is the active one. Niri names are xkb
++  // codes ("us"), which shortLabel renders as "US" via its fallback; the
++  // xkbcli briefs table still resolves any full description niri may report.
+   property string layoutFull: ""
+-  // The keyboard the last reading spoke for, which is the one a click switches,
+-  // and separately the one activelayout named as being typed on. A reading
+-  // confirms the first is really there, so the click has a keyboard to reach
+-  // from the first reading onwards rather than only after a switch, and stops
+-  // naming one that has been unplugged.
+-  property string keyboardName: ""
+-  property string typedKeyboardName: ""
+-  // Keyboards on the seat, buttons and virtual ones excluded, and whether the
+-  // last reading left that shape in doubt.
+-  property int keyboardCount: 0
+-  property bool keyboardUnresolved: false
+-  // Nothing to read or switch on the single-layout install most people run, so
+-  // the widget ships on the bar and stays out of the way until there are two.
+-  // An older Hyprland that doesn't report the list keeps showing the label.
+-  property bool multipleLayouts: true
+-  // Short language code per layout description ("English (US)": "en"), read from
+-  // xkb's own table rather than maintained by hand.
+   property var layoutBriefs: ({})
+   readonly property string layoutLabel: KeyboardLayoutModel.shortLabel(layoutFull, layoutBriefs)
+ 
+-  // A query already in flight was started before this event, so it may read the
+-  // layout the switch replaced. Remember the request and re-run once it lands
+-  // rather than dropping it; nothing else would correct the label afterwards.
+-  property bool refreshPending: false
+-
+-  function refresh() {
+-    if (queryProc.running) {
+-      refreshPending = true
+-      return
+-    }
+-
+-    refreshPending = false
+-    queryProc.running = true
+-  }
+-
+-  // Keyboards someone can actually type on, which is not everything Hyprland
+-  // calls a keyboard.
+-  function typedKeyboards(keyboards) {
+-    return keyboards.filter(k => KeyboardLayoutModel.isTypedKeyboard(k.name))
+-  }
+-
+-  // The main flag names no keyboard for long: fcitx5 takes it with the virtual
+-  // keyboard it binds to inject, which leaves no typed keyboard holding it and
+-  // nothing to read at all, and once that unbinds it lands on whichever device
+-  // Hyprland saw last, a power button included. Go by layout progress instead,
+-  // and by the keyboard activelayout named.
+-  function selectKeyboard(typed) {
+-    return KeyboardLayoutModel.selectKeyboard(typed, root.typedKeyboardName)
+-  }
++  readonly property var layouts: Niri.keyboardLayouts
++  readonly property bool multipleLayouts: layouts !== null && layouts.names && layouts.names.length > 1
+ 
+-  // switchxkblayout is a hyprctl command rather than a dispatcher, so it has to
+-  // be run rather than sent over the dispatch socket. It switches the keyboard
+-  // the last reading spoke for, so a click always advances the device the label
+-  // is describing. Switching the seat together would reach the typed keyboard
+-  // without having to name it, but it would also carry the buttons along, and
+-  // the whole read depends on those staying where they started: once a button
+-  // has been advanced too, a toggle that wraps the keyboard back to the first
+-  // layout leaves the button reading as the furthest along, and the label
+-  // follows the button.
+   function cycleLayout() {
+-    if (!root.keyboardName || !root.bar) return
+-    root.bar.run("hyprctl switchxkblayout " + Util.shellQuote(root.keyboardName) + " next")
+-    refreshTimer.restart()
++    Niri.switchKeyboardLayoutNext()
+   }
+ 
+   Component.onCompleted: {
+     briefsProc.running = true
+-    refresh()
++    layoutFull = layouts ? (layouts.currentName || "") : ""
+   }
+ 
+   Connections {
+-    target: Hyprland
+-    function onRawEvent(event) {
+-      if (!event || !event.name) return
+-      var name = String(event.name)
+-      // The event names the keyboard that switched ahead of the layout it moved
+-      // to, and that is the keyboard being typed on whatever holds the main flag.
+-      if (name === "activelayout") {
+-        const named = KeyboardLayoutModel.eventKeyboardName(event)
+-        if (named) root.typedKeyboardName = named
+-      }
+-
+-      // A reload that adds a layout to kb_layout decides whether the widget
+-      // shows at all, and leaves every keyboard on the layout it was already
+-      // reading, so it raises no activelayout to notice it by.
+-      if (name.indexOf("activelayout") !== -1 || name === "configreloaded") root.refresh()
++    target: Niri.keyboardLayouts
++    function onCurrentIndexChanged() {
++      root.layoutFull = root.layouts.currentName || ""
+     }
+   }
+ 
+   Process {
+-    id: queryProc
+-    command: ["hyprctl", "-j", "devices"]
+-    onRunningChanged: {
+-      if (running) {
+-        stallTimer.restart()
+-        return
+-      }
+-
+-      stallTimer.stop()
+-      if (root.refreshPending) root.refresh()
+-    }
+-    stdout: StdioCollector {
+-      waitForEnd: true
+-      onStreamFinished: {
+-        let listed
+-        try {
+-          listed = JSON.parse(text || "{}").keyboards
+-        } catch (e) {
+-          return
+-        }
+-
+-        // A query the watchdog killed reports nothing at all, and an empty
+-        // string parses into the same shape a seat with no keyboards would.
+-        // Tell them apart by the list itself, so only a reading that reached
+-        // hyprctl gets to speak for the seat.
+-        if (!Array.isArray(listed)) return
+-
+-        const typed = root.typedKeyboards(listed)
+-        const kb = root.selectKeyboard(typed)
+-        if (!kb || !kb.active_keymap) {
+-          // Either the last keyboard has been unplugged, which the label has to
+-          // stop describing and the click has to stop naming, or keyboards are
+-          // there and none of them reports a keymap. Both leave the shape in
+-          // doubt, so keep asking rather than letting a count from before it
+-          // changed settle the poll.
+-          root.keyboardUnresolved = true
+-          if (typed.length === 0) {
+-            root.layoutFull = ""
+-            root.keyboardName = ""
+-          }
+-          return
+-        }
+-
+-        root.keyboardUnresolved = false
+-        root.keyboardCount = typed.length
+-        root.keyboardName = String(kb.name || "")
+-        root.multipleLayouts = kb.layout === undefined || String(kb.layout).indexOf(",") !== -1
+-        root.layoutFull = kb.active_keymap
+-      }
+-    }
+-  }
+-
+-  // The table only changes when xkb data is upgraded, so read it at startup and
+-  // leave it alone. The bar is built per monitor, so this runs once per widget.
+-  // The exotic rulesets cover layouts like trans (IPA) that ship in the same xkb
+-  // package and set just as well, so load them or those labels lose their code.
+-  Process {
+     id: briefsProc
+     command: ["xkbcli", "list", "--load-exotic"]
+     stdout: StdioCollector {
+@@ -167,40 +47,6 @@
+     }
+   }
+ 
+-  Timer {
+-    id: refreshTimer
+-    interval: 600
+-    onTriggered: root.refresh()
+-  }
+-
+-  // A query that never returns would freeze the label until the shell restarts,
+-  // since a Process that is already running can't be re-run. Give up on one that
+-  // overstays so the next refresh gets through, and ask again: the reading it
+-  // never delivered may have been the only one due on a settled seat, and
+-  // nothing else would come back for it.
+-  Timer {
+-    id: stallTimer
+-    interval: 5000
+-    onTriggered: {
+-      queryProc.running = false
+-      refreshTimer.restart()
+-    }
+-  }
+-
+-  // Which keyboard on a crowded seat the label is describing can change without
+-  // Hyprland announcing it, since a device arriving or leaving raises no event
+-  // of its own, and that can only be learned by asking. Poll while there is that
+-  // ambiguity, until a first reading lands so a query that failed at login still
+-  // recovers, and while a reading has left the seat's shape in doubt. The
+-  // one-keyboard install has none of those, and is left alone rather than
+-  // spawning hyprctl forever for an answer that cannot change.
+-  Timer {
+-    interval: 10000
+-    running: !root.keyboardName || root.keyboardUnresolved || root.keyboardCount > 1
+-    repeat: true
+-    onTriggered: root.refresh()
+-  }
+-
+   visible: layoutLabel !== "" && multipleLayouts
+   implicitWidth: button.implicitWidth
+   implicitHeight: button.implicitHeight
+--- a/shell/plugins/bar/Bar.qml	2026-08-16 02:28:06.587074588 -0500
++++ b/shell/plugins/bar/Bar.qml	2026-08-18 09:31:30.440428504 -0500
+@@ -1,5 +1,5 @@
+ import Quickshell
+-import Quickshell.Hyprland
++import Niri
+ import Quickshell.Io
+ import Quickshell.Wayland
+ import QtQuick
+@@ -484,12 +484,17 @@
+     return window && window.screen ? String(window.screen.name || "") : ""
+   }
+ 
+-  // The output Hyprland has focused, which is where a keyboard-summoned panel
+-  // belongs. Empty until Hyprland reports one, which leaves panel routing on
+-  // its per-monitor fallback rather than guessing at an output.
++  // The output niri has focused, which is where a keyboard-summoned panel
++  // belongs. Empty until niri reports one, which leaves panel routing on its
++  // per-monitor fallback rather than guessing at an output. The focused
++  // workspace's `output` is the connector name, matching screen.name.
+   function focusedScreenName() {
+-    var monitor = Hyprland.focusedMonitor
+-    return monitor ? String(monitor.name || "") : ""
++    var model = Niri.workspaces
++    for (var i = 0; i < model.count; i++) {
++      var workspace = model.get(i)
++      if (workspace.isFocused === true) return String(workspace.output || "")
++    }
++    return ""
+   }
+ 
+   // Resolve the live bar-widget instance for a plugin id (e.g. "omarchy.bluetooth").
+--- a/shell/plugins/services/idle/Service.qml	2026-08-13 05:10:13.072860257 -0500
++++ b/shell/plugins/services/idle/Service.qml	2026-08-18 09:31:30.450428587 -0500
+@@ -1,6 +1,6 @@
+ import QtQuick
+ import Quickshell
+-import Quickshell.Hyprland
++import Niri
+ import Quickshell.Io
+ import Quickshell.Wayland
+ import "IdleModel.js" as IdleModel
+@@ -142,15 +142,18 @@
+     return IdleModel.eventParts(event, count)
+   }
+ 
+-  function handleHyprlandEvent(event) {
+-    var name = String(event && event.name ? event.name : "")
+-    if (name === "openwindow") {
+-      var open = eventParts(event, 4)
+-      if (String(open[2] || "") === root.screensaverClass) root.handleScreensaverWindowOpened(open[0])
+-    } else if (name === "closewindow") {
+-      var close = eventParts(event, 1)
+-      var address = String(close[0] || "")
+-      if (root.screensaverWindows[address]) root.handleScreensaverWindowClosed(address)
++  function handleNiriEvent(event) {
++    if (!event) return
++    // niri's raw events are JSON objects keyed by event type. The screensaver
++    // is a toplevel window whose app_id is org.omarchy.screensaver, keyed here
++    // by its niri window id (Hyprland keyed by address).
++    if (event.WindowOpenedOrChanged) {
++      var window = event.WindowOpenedOrChanged.window || {}
++      if (String(window.app_id || "") === root.screensaverClass)
++        root.handleScreensaverWindowOpened(String(window.id))
++    } else if (event.WindowClosed) {
++      var id = String(event.WindowClosed.id)
++      if (root.screensaverWindows[id]) root.handleScreensaverWindowClosed(id)
+     }
+   }
+ 
+@@ -281,8 +284,8 @@
+   }
+ 
+   Connections {
+-    target: Hyprland
+-    function onRawEvent(event) { root.handleHyprlandEvent(event) }
++    target: Niri
++    function onRawEventReceived(event) { root.handleNiriEvent(event) }
+   }
+ 
+   Process {
+--- a/shell/Ui/PopupCard.qml	2026-08-13 05:10:13.063361563 -0500
++++ b/shell/Ui/PopupCard.qml	2026-08-18 09:32:01.492685440 -0500
+@@ -1,6 +1,6 @@
+ import QtQuick
+ import Quickshell
+-import Quickshell.Hyprland
++import Niri
+ import qs.Commons
+ 
+ PopupWindow {
+@@ -17,7 +17,7 @@
+   property var borderSpec: Border.localOrSurfaceSpec("popups", "border", borderColor, Color.popups.border, Math.max(1, Style.space(2)))
+   property bool open: false
+   property bool centerOnBar: false
+-  // "click" — uses HyprlandFocusGrab so clicking outside dismisses the popup.
++  // "click" — closes on an outside toplevel focus change (see Connections below).
+   // "hover" — passive overlay; the owning widget controls open via hover.
+   property string triggerMode: "click"
+ 
+@@ -75,14 +75,16 @@
+     else if (bar.activePopout === coordinatorKey) bar.releasePopout(coordinatorKey)
+   }
+ 
+-  // Outside-click dismissal via Hyprland's focus grab. While `active`, input
+-  // is routed only to the listed windows; clicking anywhere else clears the
+-  // grab and we close the popup. Skipped for hover-mode popups so the cursor
+-  // can move freely between the trigger and the popup.
+-  HyprlandFocusGrab {
+-    active: root.open && root.triggerMode === "click"
+-    windows: root.anchorWindow ? [root, root.anchorWindow] : [root]
+-    onCleared: root.close()
++  // Outside-click dismissal. niri has no focus-grab IPC, so we approximate the
++  // HyprlandFocusGrab behavior: when the focused toplevel changes while a
++  // click-mode popup is open, the click landed outside the popup and we close
++  // it. Hover-mode popups are left alone so the cursor can move freely between
++  // the trigger and the popup. (Opening the popup itself does not change the
++  // focused toplevel, since layer surfaces are not toplevel windows.)
++  Connections {
++    target: Niri
++    enabled: root.open && root.triggerMode === "click"
++    function onFocusedWindowChanged() { root.close() }
+   }
+ 
+   anchor {
+--- a/shell/Commons/Style.qml	2026-08-13 05:10:13.062379397 -0500
++++ b/shell/Commons/Style.qml	2026-08-18 09:32:01.497685481 -0500
+@@ -8,13 +8,10 @@
+ // rounding, gap to screen edges, state affordances, spacing, typography
+ // scale, and bar dimensions.
+ //
+-// `cornerRadius` mirrors Hyprland's `decoration:rounding`. `gapsOut` is
+-// half of Hyprland's `general:gaps_out` — Hyprland's value works well as
+-// a window-to-window gap but feels too cavernous when used as the
+-// distance from a panel/notification to the screen edge, so the shell
+-// halves it. Themes and user Hyprland config own those values; the
+-// shell picks them up by re-running `hyprctl getoption` on startup and
+-// after theme IPC applies a theme.
++// `cornerRadius` and `gapsOut` are theme-driven defaults. Hyprland sourced
++// them from `hyprctl getoption`; niri has no `getoption` IPC, so they stay
++// at their defaults (0 and 5) until a theme pins them. Themes still own the
++// remaining tokens below.
+ //
+ // Typography, spacing, and bar size come from theme/shell.toml.
+ // `[font] base-size` is the rem root; every `Style.font.<token>` derives
+@@ -347,37 +344,17 @@
+     readonly property int statusSlot:     root.barToken("status-slot",     21)
+   }
+ 
++  // niri has no `getoption` IPC, so corner radius and outer gaps are not
++  // queryable from the compositor. cornerRadius/gapsOut keep their theme
++  // defaults; refresh() only re-resolves the fontconfig alias.
+   function refresh() {
+-    hyprctlProc.running = true
+-    gapsOutProc.running = true
++    resolveFontFamily()
+   }
+ 
+   function scheduleRefresh() {
+     refreshTimer.restart()
+   }
+ 
+-  function applyRoundingJson(raw) {
+-    try {
+-      var json = JSON.parse(raw || "{}")
+-      var n = Number(json.int)
+-      if (isFinite(n) && n >= 0) cornerRadius = n
+-    } catch (e) {
+-      // hyprctl missing / Hyprland not running — leave the previous value.
+-    }
+-  }
+-
+-  function applyGapsOutJson(raw) {
+-    try {
+-      var json = JSON.parse(raw || "{}")
+-      var css = String(json.css || "")
+-      var parts = css.match(/-?\d+(?:\.\d+)?/g) || []
+-      var n = parts.length > 0 ? Number(parts[0]) : Number(json.int)
+-      if (isFinite(n) && n >= 0) gapsOut = Math.max(0, Math.round(n / 2))
+-    } catch (e) {
+-      // hyprctl missing / Hyprland not running — leave the previous value.
+-    }
+-  }
+-
+   // Pull typography, bar dimensions, state tokens, and spacing out of the
+   // shell.toml dict that Color already parsed. Called by Color.loadShell so
+   // a single parse pass feeds both singletons.
+@@ -439,24 +416,6 @@
+     styleOverrides = styleOut
+   }
+ 
+-  property Process hyprctlProc: Process {
+-    id: hyprctlProc
+-    command: ["hyprctl", "-j", "getoption", "decoration:rounding"]
+-    stdout: StdioCollector {
+-      waitForEnd: true
+-      onStreamFinished: root.applyRoundingJson(text)
+-    }
+-  }
+-
+-  property Process gapsOutProc: Process {
+-    id: gapsOutProc
+-    command: ["hyprctl", "-j", "getoption", "general:gaps_out"]
+-    stdout: StdioCollector {
+-      waitForEnd: true
+-      onStreamFinished: root.applyGapsOutJson(text)
+-    }
+-  }
+-
+   // Resolve the fontconfig alias to a concrete family name. `omarchy font
+   // set <name>` rewrites ~/.config/fontconfig/fonts.conf and restarts the
+   // shell, but rerun on file change anyway so manual edits propagate too.
+@@ -485,10 +444,9 @@
+     onLoadFailed: root.resolveFontFamily()
+   }
+ 
+-  // Re-poll Hyprland a beat after either input file changes. Hyprland's
+-  // auto-reload runs asynchronously when its sourced .lua files change,
+-  // so racing it with an immediate hyprctl gives the old value. 200ms is
+-  // generous enough for Hyprland to settle without being user-visible.
++  // Debounce a beat after a theme IPC apply so the font resolves against the
++  // freshly-written fontconfig file. 200ms is generous without being
++  // user-visible.
+   property Timer refreshTimer: Timer {
+     id: refreshTimer
+     interval: 200
+@@ -496,18 +454,6 @@
+     onTriggered: root.refresh()
+   }
+ 
+-  // `omarchy toggle window-gaps` creates/removes this flag file. Hyprland
+-  // reloads its config when sourced files change, then hyprctl reflects
+-  // the new effective value.
+-  property FileView windowNoGapsToggle: FileView {
+-    path: Quickshell.env("HOME") + "/.local/state/omarchy/toggles/hypr/window-no-gaps.lua"
+-    watchChanges: true
+-    printErrors: false
+-    onFileChanged: refreshTimer.restart()
+-    onLoaded: refreshTimer.restart()
+-    onLoadFailed: refreshTimer.restart()
+-  }
+-
+   Component.onCompleted: {
+     refresh()
+     resolveFontFamily()
