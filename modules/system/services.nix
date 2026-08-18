@@ -48,8 +48,8 @@
   # PACKAGES - Desktop & Wayland Tools
   # ============================================================================
   environment.systemPackages = with pkgs; [
-    # Browsers
-    qutebrowser # Keyboard-driven browser
+    # Browsers: Zen (Firefox fork) is the primary browser (set in home-manager-config).
+    # qutebrowser pulled qtwebengine (24k-object webrtc build) and is unused here.
 
     # Document viewers
     zathura # PDF viewer
