@@ -189,6 +189,8 @@ in {
     # ============================================================
     # Prowlarr (indexers)
     # ============================================================
+    # PROWLARR_API_KEY — fixed key so init container can call the API.
+    # Init container seeds the Nyaa Torznab indexer declaratively.
     media.Deployment.prowlarr = {
       metadata.labels = managed // {app = "prowlarr";};
       spec = {
@@ -197,6 +199,68 @@ in {
         template.metadata.labels = managed // {app = "prowlarr";};
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
+          initContainers = [
+            {
+              name = "seed-indexers";
+              image = "curlimages/curl:8.12.1";
+              imagePullPolicy = "IfNotPresent";
+              env = [
+                {name = "PROWLARR_API_KEY"; value = "nixos-media-arr-cluster-key-2026";}
+              ];
+              command = ["/bin/sh" "-c"];
+              args = [''
+                set -eu
+                API_KEY="''${PROWLARR_API_KEY}"
+                BASE="http://localhost:9696"
+                echo "[seed-indexers] waiting for Prowlarr API..."
+                until curl -sf "$BASE/ping" >/dev/null 2>&1; do sleep 2; done
+                echo "[seed-indexers] Prowlarr is up; checking for existing Nyaa indexer..."
+                EXISTING=$(curl -sf -H "X-Api-Key: $API_KEY" "$BASE/api/v1/indexer" \
+                  | grep -c '"definitionName": *"nyaasi"' || true)
+                if [ "$EXISTING" -gt 0 ]; then
+                  echo "[seed-indexers] Nyaa indexer already present; skipping."
+                else
+                  echo "[seed-indexers] Adding Nyaa.si Torznab indexer..."
+                  curl -sf -X POST -H "X-Api-Key: $API_KEY" \
+                    -H "Content-Type: application/json" \
+                    -d '{
+                      "enable": true,
+                      "definitionName": "nyaasi",
+                      "priority": 1,
+                      "protocol": "torrent",
+                      "scheme": "https",
+                      "hostname": "nyaa.si",
+                      "port": 443,
+                      "basePath": "/",
+                      "apiVersion": "v1.0",
+                      "useSsl": true,
+                      "sslOpts": {"port": 443},
+                      "supportsRss": true,
+                      "supportsSearch": true,
+                      "redirect": false,
+                      "fields": [
+                        {"name": "apiPath", "value": "/api"},
+                        {"name": "apiKey", "value": ""},
+                        {"name": "cat-id", "value": "0_0"},
+                        {"name": "filter-id", "value": "0"},
+                        {"name": "sort", "value": "size"},
+                        {"name": "type", "value": "desc"},
+                        {"name": "prefer_magnet_links", "value": true},
+                        {"name": "minseed", "value": 1},
+                        {"name": "minseedratio", "value": 1},
+                        {"name": "minleech", "value": 0}
+                      ]
+                    }' \
+                    "$BASE/api/v1/indexer"
+                  echo "[seed-indexers] Nyaa indexer added."
+                fi
+              ''];
+              resources = {
+                requests = {cpu = "50m"; memory = "64Mi";};
+                limits = {cpu = "100m"; memory = "128Mi";};
+              };
+            }
+          ];
           containers.prowlarr = {
             image = "ghcr.io/linuxserver/prowlarr:2.5.2.5491-ls156";
             imagePullPolicy = "IfNotPresent";
@@ -204,6 +268,7 @@ in {
               {name = "PUID"; value = "1000";}
               {name = "PGID"; value = "1000";}
               {name = "TZ"; value = "America/Winnipeg";}
+              {name = "PROWLARR_API_KEY"; value = "nixos-media-arr-cluster-key-2026";}
             ];
             ports = [{containerPort = 9696;}];
             volumeMounts = [
