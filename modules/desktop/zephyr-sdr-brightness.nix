@@ -26,7 +26,7 @@
     version = "5.0.0-beta.6";
     src = pkgs.fetchurl {
       url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.6.tar.gz";
-      sha256 = "1xjkn0zrvg6hk9lp1sa2vf8d2g0d83j5lqkd1chy59zx22w4bdb";
+      sha256 = "191vz4gswrnpp6p38ybms4fw128gd3rphfzrnw727as2miwym5al";
     };
   });
 
