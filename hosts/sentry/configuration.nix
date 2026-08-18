@@ -551,7 +551,21 @@
   };
   services.storage-assertions.enable = true;
   services.thermal-monitor.enable = true;
-  # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
+
+  # Auto-update: daily flake.lock bump (nixpkgs input) + nixos-rebuild boot.
+  # Sentry is a headless k3s control-plane node — staging updates at boot
+  # (not switching live) avoids disrupting in-flight A2A inference sessions
+  # until a controlled reboot. The nixos-sync timer keeps /etc/nixos current
+  # between runs; nixos-auto-update handles the rebuild+activate cycle.
+  services.nixos-auto-update = {
+    enable = true;
+    interval = "daily";
+    updateFlakeInputs = ["nixpkgs"];
+    rebuildMode = "boot";  # stage for next reboot — safe for unattended nodes
+    allowReboot = false;   # zephyr's keepalived VIP holds; don't auto-reboot
+    cooldownDays = 3;      # skip if nixpkgs was bumped <3 days ago
+    persistent = true;
+  };
 
   # ── 2026-07-28 sentry boot-error fixes ──────────────────────────────────
   # Enable kdump so the next kernel panic leaves a /var/crash/* dmesg trace.
