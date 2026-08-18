@@ -14,13 +14,15 @@
     set -euo pipefail
     want="$1"
     /run/current-system/sw/bin/nvidia-smi --query-gpu=index,uuid,name \
-      --format=csv,noheader,nounits 2>/dev/null | while IFS=', ' read -r idx uuid name; do
-      if [[ "$name" == *"$want"* ]]; then
-        echo "$idx $uuid"
-        exit 0
-      fi
-    done
-    exit 1
+      --format=csv,noheader,nounits 2>/dev/null \
+      | ${pkgs.gawk}/bin/awk -F',[[:space:]]*' -v want="$want" '
+          index($3, want) {
+            print $1 " " $2
+            found = 1
+            exit
+          }
+          END { exit found ? 0 : 1 }
+        '
   '';
 in {
   options.services.peakminer = {
@@ -147,10 +149,14 @@ in {
           else
             resolved=$(${resolveGpu} "${instance.gpuName}" || true)
             if [ -z "$resolved" ]; then
-              echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
-              exit 1
+              # The GPU may be intentionally owned by a stopped/starting VFIO VM.
+              # This is a clean inactive state, not a miner crash; ExecCondition
+              # normally prevents reaching this branch, but keep the script safe
+              # if the device disappears after the condition check.
+              echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; skipping" >&2
+              exit 0
             fi
-            cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
+            cuda_idx=$(echo "$resolved" | ${pkgs.gawk}/bin/awk '{print $1}')
             echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
           fi
 
@@ -180,14 +186,18 @@ in {
           serviceConfig = {
             Type = "simple";
             User = "root";
+            # A VFIO-owned GPU is intentionally absent from nvidia-smi. Skip the
+            # unit cleanly until an operator explicitly starts it after releasing
+            # the device back to the NVIDIA driver.
+            ExecCondition = "+${resolveGpu} ${lib.escapeShellArg instance.gpuName}";
             ExecStartPre = mkIf (instance.powerLimit != null && cfg.setPowerLimit) (
               mkBefore "+${powerLimitScript}"
             );
             ExecStart = peakminerScript;
-            Restart = "always";
+            Restart = "on-failure";
             RestartSec = 10;
-          };
         };
+      };
       })
       cfg.instances);
   };
