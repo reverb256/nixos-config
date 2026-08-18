@@ -360,17 +360,15 @@ in {
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
     #
-    # BOOT DECOUPLING (issue #665 + #690): we deliberately declare NEITHER
-    # `after = [ "systemd-udev-settle.service" ]` NOR `wantedBy =
-    # ["multi-user.target"]`. The generator writes a STATIC CDI spec from a
-    # heredoc (see ExecStart below) — it does not probe live GPU state and so
-    # does not need udev to settle NOR a place in the boot-critical chain.
-    # Keeping either dependency made the generator run synchronously and gate
-    # multi-user.target -> graphical.target every boot (~6.4s in the chain after
-    # #666 dropped the udev-settle wait). Consumers pull the generator in on
-    # demand (podman-dcgm-exporter `wants` + `after` it, k3s via the CDI dir),
-    # so GPU containers keep working — just without the boot-plateau. See
-    # systemd-analyze critical-chain before/after in #665/#690.
+    # Override the broken nvidia-container-toolkit-cdi-generator with a working one
+    # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
+    #
+    # BOOT DECOUPLING (issue #665 + #690): the boot-chain decouple lives in
+    # hardware/nvidia-common.nix (mkForce wantedBy=[] / ExecStartPre=[]). The
+    # upstream module declares wantedBy=["multi-user.target"] on the generator,
+    # and only a mkForce in a module active on the host can override it — a
+    # dropped wantedBy line here would be a no-op. This block only replaces the
+    # ExecStart with the static heredoc.
     systemd.services.nvidia-container-toolkit-cdi-generator = mkIf cfg.nvidia.enable {
       path = with pkgs; [nvidia-container-toolkit jq];
       serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "cdi-generate-static" ''
