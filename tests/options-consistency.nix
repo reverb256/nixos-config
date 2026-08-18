@@ -17,10 +17,16 @@
   # that file also applies config. Pure option aggregators (profiles/*,
   # network-options, gaming.nix) declare options and delegate the mkIf-gated
   # config to imported implementation files — that is a legitimate pattern.
+  # An empty `config = {};` placeholder (option surface only, e.g. superseded
+  # modules) applies nothing and is likewise legitimate.
   hasEnableWithoutMkIf = path: let
     src = readFileSafe path;
     declaresOption = lib.strings.hasInfix "mkEnableOption" src;
-    appliesConfig = lib.strings.hasInfix "config = " src;
+    appliesConfig = let
+      hasConfigAssign = lib.strings.hasInfix "config = " src;
+      isEmptyConfig = lib.strings.hasInfix "config = {};" src;
+    in
+      hasConfigAssign && !isEmptyConfig;
   in
     declaresOption && appliesConfig && !(lib.strings.hasInfix "mkIf" src);
 
