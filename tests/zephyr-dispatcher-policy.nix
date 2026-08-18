@@ -19,7 +19,7 @@
 
   sharedForcesZephyrZero =
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
-    && lib.strings.hasInfix "then 0" distributedBuilds;
+    && lib.strings.hasInfix "then 2 # 50% of 32 logical cores" distributedBuilds;
 
   # Nexus is the primary builder; the shared module forces its capacity
   # (9 cores = 25% reserved of the 3900X's 24 logical threads, 2 max-jobs
