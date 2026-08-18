@@ -22,15 +22,28 @@
   # config-schema migrations, wallpaper startup-fade, and theme palette-change
   # fixes. This is a targeted src override, NOT a full nixpkgs bump (beta.8
   # already built in the store). Pin the version string so it's greppable.
-  # Canonical src override (per cluster convention): bump only `src` to the
-  # latest upstream tag. `overrideAttrs` on pkgs.noctalia trips the
-  # makeOverridable drvPath assert on the builder host, so use `.override`.
-  noctalia-patched = pkgs.noctalia.override {
-    src = pkgs.fetchurl {
-      url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.8.tar.gz";
-      sha256 = "17jk52vmrhr5233anc47cjaa99ma25wckfm2p48qwhizfaw4l3m6";
+  # Canonical src override: bump version + src to v5.0.0-beta.8.
+  # The nixpkgs `pkgs.noctalia` package is a plain mkDerivation (NOT
+  # makeOverridable), so `pkgs.noctalia.override { src = ... }` is INVALID —
+  # the package function does not accept a `src` argument, and it fetches its
+  # source with `fetchFromGitHub` (recursive/unpacked hash). That mistake (raw
+  # tarball hash + .override) broke the beta.8 build — see #667 / revert
+  # commits. Use `overrideAttrs` on the derivation and `fetchFromGitHub` with
+  # the PROVEN recursive hash (the one the existing store build
+  # ...-noctalia-5.0.0-beta.8, source narHash sha256-qy3Cheg, was built from):
+  #   1xjkn0zrvg6hk9lp1sa2vf82d2g0d83j5lqkd1chy59zx22w4bdb
+  # (= sha256-qy3Cheg/FQ9ZaBPTIgdq4IkmkNtC6XBpmtC8nT+wU/Y=). The nixpkgs
+  # tag for this package is `v${version}`, so bump `version` and supply the
+  # matching `src.hash`.
+  noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
+    version = "5.0.0-beta.8";
+    src = pkgs.fetchFromGitHub {
+      owner = "noctalia-dev";
+      repo = "noctalia";
+      tag = "v5.0.0-beta.8";
+      hash = "sha256-qy3Cheg/FQ9ZaBPTIgdq4IkmkNtC6XBpmtC8nT+wU/Y=";
     };
-  };
+  });
 
   # ── TOML config for noctalia brightness ──────────────────────────────
   # Written to /etc/noctalia/config.toml. The NOCTALIA_CONFIG_HOME env var
