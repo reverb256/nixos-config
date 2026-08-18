@@ -83,9 +83,7 @@
     ./desktop/alacritty-system.nix
 
     # Shell configuration
-    # Fish system-level (PATH, packages): ./shell/fish.nix
     ./shell/bash.nix
-    ./shell/fish.nix
     ./shell/zsh.nix
 
     # Development

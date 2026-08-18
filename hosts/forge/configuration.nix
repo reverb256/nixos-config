@@ -766,6 +766,9 @@
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
+    # Forge's age key lives at the operator home path (not /etc/nixos/.age/key.txt,
+    # which is zephyr-only). Point SOPS_AGE_KEY_FILE at the real key so sops -d works.
+    ageKeyFile = "/home/j_kro/.config/sops/age/keys.txt";
     enable = true;
     ageKeyFile = "/etc/sops/age/key.txt";
     secrets = import ./secretspec-creds-wiring.nix;

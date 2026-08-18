@@ -1,8 +1,8 @@
 # Zsh Shell Configuration Module
-# Login shell for j_kro (POSIX) so AI agents, `sh -c`, and SSH sessions get
-# predictable bash-compatible behavior. Fish remains enabled (shell/fish.nix)
-# for interactive use.
-{pkgs, ...}: {
+# Sole interactive + login shell for j_kro (POSIX) so AI agents, `sh -c`, and
+# SSH sessions get predictable bash-compatible behavior. Fish was removed
+# 2026-08-18 (see issue #645 — login shell was already zsh; fish disabled).
+{ pkgs, ... }: {
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -101,10 +101,16 @@
       ".." = "cd ..";
       "..." = "cd ../..";
       "...." = "cd ../../..";
+
+      # ScopeBuddy (gaming helpers, formerly fish-only)
+      scb = "scopebuddy";
+      scopebuddy = "scopebuddy";
+      scb-detect = "scopebuddy-detect";
+      scb-launch = "scopebuddy-launch";
     };
   };
 
-  # Install required packages (shared with Fish + Bash)
+  # Install required packages (shared across shells)
   environment.systemPackages = with pkgs; [
     zsh
 
@@ -112,7 +118,7 @@
     zoxide
     fzf
 
-    # Enhanced tools (shared with Fish + Bash)
+    # Enhanced tools
     eza
     bat
     btop
@@ -120,5 +126,9 @@
     dufs
     fastfetch
     starship
+
+    # Container / Docker-compose helpers (migrated from fish.nix)
+    lazydocker
+    podman-compose
   ];
 }

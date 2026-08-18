@@ -257,20 +257,6 @@ in {
         )
       ];
 
-    # Shell aliases
-    programs.fish.shellAliases = {
-      scb =
-        if cfg.package != null
-        then "${cfg.package}/bin/scopebuddy"
-        else "scopebuddy";
-      scopebuddy =
-        if cfg.package != null
-        then "${cfg.package}/bin/scopebuddy"
-        else "scopebuddy";
-      scb-detect = "scopebuddy-detect";
-      scb-launch = "scopebuddy-launch";
-    };
-
     # Environment variables for auto-detection
     environment.sessionVariables =
       {

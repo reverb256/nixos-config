@@ -8,7 +8,8 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     # POSIX login shell so AI agents and SSH sessions get bash-compatible
-    # behavior (issue #645). Fish stays enabled for interactive use.
+    # behavior (issue #645). Fish removed 2026-08-18; zsh is now the sole
+    # interactive + login shell.
     shell = pkgs.zsh;
     # NOTE (2026-07-21, issue #300): `initialHashedPassword` was the
     # upstream name for "set this hash only on first boot" (now called

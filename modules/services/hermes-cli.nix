@@ -246,11 +246,11 @@ in {
       chmod 750 "$HERMES_HOME" 2>/dev/null || true
     '';
 
-    programs.fish.interactiveShellInit = lib.mkAfter ''
+    programs.zsh.interactiveShellInit = lib.mkAfter ''
       # Hermes completions (resolved via profile `hermes` on PATH)
-      if command -v hermes &>/dev/null
-        hermes completion fish 2>/dev/null | grep -v '^SITECUSTOMIZE:' | source
-      end
+      if command -v hermes &>/dev/null; then
+        source <(hermes completion zsh 2>/dev/null)
+      fi
     '';
   };
 }

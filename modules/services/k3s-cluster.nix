@@ -521,7 +521,7 @@ in {
       kgns = "kubectl get namespaces";
       kgn = "kubectl get nodes";
     };
-    programs.fish.shellAliases = {
+    programs.zsh.shellAliases = {
       k = "kubectl";
       kgp = "kubectl get pods";
       kgs = "kubectl get svc";
