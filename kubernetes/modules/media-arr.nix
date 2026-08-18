@@ -60,7 +60,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.qbittorrent = {
-            image = "ghcr.io/linuxserver/qbittorrent:latest";
+            image = "ghcr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls472";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -110,7 +110,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.sonarr = {
-            image = "ghcr.io/linuxserver/sonarr:latest";
+            image = "ghcr.io/linuxserver/sonarr:4.0.19.2979-ls321";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -154,7 +154,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.radarr = {
-            image = "ghcr.io/linuxserver/radarr:latest";
+            image = "ghcr.io/linuxserver/radarr:6.3.0.10514-ls313";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -198,7 +198,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.prowlarr = {
-            image = "ghcr.io/linuxserver/prowlarr:latest";
+            image = "ghcr.io/linuxserver/prowlarr:2.5.2.5491-ls156";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -237,7 +237,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.bazarr = {
-            image = "ghcr.io/linuxserver/bazarr:latest";
+            image = "ghcr.io/linuxserver/bazarr:v1.6.0-ls359";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -281,7 +281,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.jellyfin = {
-            image = "ghcr.io/linuxserver/jellyfin:latest";
+            image = "ghcr.io/linuxserver/jellyfin:10.11.11ubu2604-ls44";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
@@ -324,7 +324,7 @@ in {
         template.spec = {
           nodeSelector."kubernetes.io/hostname" = "nexus";
           containers.plex = {
-            image = "ghcr.io/linuxserver/plex:latest";
+            image = "ghcr.io/linuxserver/plex:1.43.3.10861-07dfddaeb-ls320";
             imagePullPolicy = "IfNotPresent";
             env = [
               {name = "PUID"; value = "1000";}
