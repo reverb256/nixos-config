@@ -358,7 +358,6 @@ Shell configuration.
 
 | Module | Namespace | Description |
 |--------|-----------|-------------|
-| `fish.nix` | - | Fish shell |
 | `starship.nix` | - | Starship prompt |
 
 ### System (`system/`)

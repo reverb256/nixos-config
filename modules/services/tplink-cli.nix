@@ -1,6 +1,6 @@
 # TP-Link Switch Management CLI
 # Wrapper for managing TP-Link Easy Smart Switches
-{pkgs, ...}: {
+{ lib, pkgs, ... }: {
   environment.systemPackages = with pkgs; [
     (pkgs.writeShellScriptBin "tplink" ''
       #!/usr/bin/env bash
@@ -8,11 +8,11 @@
     '')
   ];
 
-  # Fish shell abbreviation for quick access
-  programs.fish.interactiveShellInit = ''
-    # TP-Link Switch Management abbreviations
-    abbr --add tplink '/etc/nixos/scripts/tplink'
-    abbr --add sw '/etc/nixos/scripts/tplink status'
-    abbr --add swweb '/etc/nixos/scripts/tplink web'
+  # Zsh shell aliases for quick access
+  programs.zsh.interactiveShellInit = lib.mkAfter ''
+    # TP-Link Switch Management aliases
+    alias tplink='/etc/nixos/scripts/tplink'
+    alias sw='/etc/nixos/scripts/tplink status'
+    alias swweb='/etc/nixos/scripts/tplink web'
   '';
 }

@@ -97,8 +97,11 @@
   # Nexus owns SSO for the cluster ingress. SecretSpec materializes these
   # credentials at the paths consumed by oauth2-proxy; do not rely on the
   # retired sops.secrets option defaults here.
+  # Casdoor was dropped from the cluster (2026-08-18); the oauth2-proxy
+  # OIDC discovery against auth.lan now returns 502. Disable the orphaned
+  # central-auth service until a replacement IdP is wired.
   services.central-auth = {
-    enable = true;
+    enable = false;
     clientSecretFile = "/run/secrets/central-auth-client-secret";
     cookieSecretFile = "/run/secrets/central-auth-cookie-secret";
   };

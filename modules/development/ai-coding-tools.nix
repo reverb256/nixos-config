@@ -248,12 +248,12 @@ in {
         '';
       };
     };
-    # Fish shell integration (read secrets into env for interactive use)
-    programs.fish.interactiveShellInit = mkIf cfg.enableShellEnv ''
+    # Zsh shell integration (read secrets into env for interactive use)
+    programs.zsh.interactiveShellInit = mkIf cfg.enableShellEnv ''
       # AI Coding Tools - Load API keys from sops secrets
-      if test -f ${cfg.context7ApiKeyFile}
-        set -gx CONTEXT7_API_KEY (cat ${cfg.context7ApiKeyFile})
-      end
+      if [ -f ${cfg.context7ApiKeyFile} ]; then
+        export CONTEXT7_API_KEY="$(cat ${cfg.context7ApiKeyFile})"
+      fi
     '';
     # Bash integration
     programs.bash.interactiveShellInit = mkIf cfg.enableShellEnv ''
