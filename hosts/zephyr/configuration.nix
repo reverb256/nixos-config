@@ -40,6 +40,8 @@
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
+    # Omarchy UX layer — Tier-1 verbatim port (epic #655, Phase 1 #656)
+    ../../modules/omarchy/default.nix
     # Incus-only Game Pass Windows VM backend — RTX 3060 Ti only.
     # The former libvirt backend is retired; the RTX 3090 remains host-owned.
     ../../modules/hardware/incus-gamepass.nix
@@ -466,6 +468,7 @@
   # DESKTOP - Wayland compositors (select via SDDM session picker)
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
+  programs.omarchy.enable = true;
 
   # Autologin into Niri (niri-uwsm) on boot.
   services.displayManager.autoLogin.enable = true;
