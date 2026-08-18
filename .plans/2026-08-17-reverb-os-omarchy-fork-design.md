@@ -70,6 +70,29 @@ modules/omarchy/default.nix  ──►  programs.omarchy.enable
     `hyprctl` → `niri msg` re-targeting.
   - `pkg-shim/` — Phase 4: nix-backed `omarchy-pkg-add/drop`, `omarchy-update`.
 
+## Runtime vs declarative boundary (decision 2026-08-18)
+
+The AGENTS.md "declarative only" rule governs **NixOS system state** — services,
+networking, hardware, secrets, the cluster's source of truth. It does **not**
+bind Omarchy's user-session UX layer, which is definitionally runtime state.
+The port keeps the two separate:
+
+- **Declarative (unchanged):** Omarchy's *installation* — the `omarchy` flake
+  input, `pkgs/omarchy.nix` source tree + shell patch, the `bin/omarchy*`
+  symlink farm, `OMARCHY_PATH`, the shell wired into niri, and any system
+  services Omarchy depends on. This ships via `just deploy`.
+- **Imperative (allowed, Omarchy-native):** the *runtime UX* — `omarchy theme
+  set` (writes `~/.config/omarchy/` + `~/.local/state/omarchy/`), shell.json
+  editing, `omarchy toggle` flag files, keyboard/workspace switching, hardware
+  toggles (`nmcli` / `rfkill` / `bluetoothctl`), `omarchy pkg add/drop`
+  (→ `nix profile`), `omarchy update` (→ `nix profile upgrade` + garbage
+  collect, with the system step reported as `just deploy`, not run implicitly).
+
+Consequence for Phases 3-4: runtime commands are **re-targeted to work**, not
+clear-errored. Only commands with no safe NixOS equivalent (AUR, pacman
+keyring) clear-error with a pointer to the Nix equivalent. The "no silent
+no-op" rule stays: every command either acts or errors with a pointer.
+
 ## ⚠️ Correction to #657's assumption (verified 2026-08-18)
 
 Issue #657 states "Quickshell ships the Niri plugin natively." **That is wrong.**

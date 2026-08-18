@@ -66,16 +66,22 @@ Two candidate backings for `omarchy-pkg-add`:
    in `nix profile`). Fast, no rebuild.
 2. **flake input + rebuild** — declarative, but slow and requires a `just deploy`.
 
-Recommendation: **`nix profile` for `pkg-add/drop/install/remove`** (Layer 3),
-**flake update + rebuild for `omarchy-update`** (system-level). This mirrors the
-existing 3-layer model exactly and needs no new machinery.
+Recommendation (softened 2026-08-18): **`nix profile` for
+`pkg-add/drop/install/remove`** (Layer 3) and **`nix profile upgrade` +
+`nix-collect-garbage` for `omarchy-update`** (runtime layer). The system-wide
+flake update + rebuild is *reported* as `just deploy`, not run implicitly —
+that keeps Omarchy's update friction-free without making the shell mutate NixOS
+system state. This mirrors the existing 3-layer model and needs no new
+machinery.
 
-## 4. What must be clear-errors (no Nix equivalent)
+## 4. What must be clear-errors (no safe Nix equivalent)
 
+Only AUR + pacman-keyring surfaces, which have no safe NixOS equivalent:
 `omarchy-pkg-aur-add`, `-aur-install`, `-aur-accessible`, `omarchy-update-keyring`,
 `omarchy-update-pacman-guard`, `omarchy-refresh-pacman`. Each: non-zero exit +
 pointer ("AUR is not available on NixOS; use `omarchy pkg add` for nixpkgs
-packages"). No silent no-op (per #658's rule, applies here too).
+packages"). Everything else is re-targeted to work (see the boundary in the
+design doc), not clear-errored. No silent no-op (per #658's rule).
 
 ## 5. Smoke-test checklist (implementation time)
 
