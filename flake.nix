@@ -21,11 +21,10 @@
     # re-running CI (it builds .#nix with the test suite), then pinning the
     # new tip here. flake=false: we only consume the source tree; nixpkgs'
     # common-lix.nix build glue stays in charge.
-    # dadddaf1e (2026-08-16): coerceToSingleDerivedPath accepts sub-paths
-    # inside derived outputs — fixes `nix build .#apps.*.program` for the
-    # universal program = "${pkg}/bin/foo" idiom.
+    # 66e4ffc5f (2026-08-18): gitlawb:// scheme support in libfetchers/git.cc —
+    # add 'gitlawb' to scheme whitelist + guard toURL() serialization.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=dadddaf1e71ce71cb375eb469895a76cc6b62680";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=66e4ffc5fdfddfd609bd66b6fab5fbf7e3a560a2";
       flake = false;
     };
     # astral-key — passkey-first auth + OIDC provider (replaces the retired
