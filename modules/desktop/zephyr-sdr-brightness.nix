@@ -12,7 +12,20 @@
   # HDMI-A-1 (Samsung TV) now runs HDR natively under niri-unstable, so its
   # brightness backend is set to `normal` (niri owns the output via max_bpc /
   # HDR). The custom niri SDR-brightness patch was dropped 2026-07-25.
+  #
+  # Version override (#667): the nixpkgs `pkgs.noctalia` at the locked flake
+  # rev sources v5.0.0-beta.6 (tag v5.0.0-beta.6). Bump to the latest upstream
+  # release v5.0.0-beta.8 — it carries config-schema migrations, wallpaper
+  # startup-fade, and theme palette-change fixes relevant to zephyr. This is a
+  # targeted src override, NOT a full nixpkgs bump (beta.8 already built in the
+  # store). Keep the SDR-brightness patch applied on the bumped source. Pin the
+  # version string so it's greppable in the build output.
   noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
+    version = "5.0.0-beta.8";
+    src = pkgs.fetchurl {
+      url = "https://github.com/noctalia-dev/noctalia/archive/refs/tags/v5.0.0-beta.8.tar.gz";
+      sha256 = "1xjkn0zrvg6hk9lp1sa2vf82d2g0d83j5lqkd1chy59zx22w4bdb";
+    };
     patches = (old.patches or []) ++ [./../../patches/noctalia-sdr-brightness.patch];
   });
 
