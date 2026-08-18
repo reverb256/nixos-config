@@ -19,11 +19,10 @@ in {
       # Keep signature verification enabled for upstream and custom caches.
       # The canonical policy supplies the corresponding trusted keys.
       require-sigs = lib.mkForce true;
-      trusted-users = lib.mkForce [
-        "root"
-        "*"
-        "@wheel"
-      ];
+      # The canonical trust policy in nix-config.nix grants this host's
+      # operator and root access to privileged daemon settings. Do not restore
+      # the wildcard: it grants every local user trusted-user access to the
+      # Nix daemon and its cache/configuration controls.
 
       # Canonical upstream/specialized cache policy. Public caches are
       # preferred; cluster caches are fallback-only for intentional custom

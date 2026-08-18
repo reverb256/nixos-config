@@ -181,14 +181,19 @@ in {
       # faster than that.
       narinfo-cache-negative-ttl = 300;
 
-      trusted-users = lib.mkOptionDefault ["root" "@wheel"];
+      # Canonical trust policy: the cluster operator + root only. The wildcard
+      # ("*") grants every local user trusted-user access to the Nix daemon and
+      # its cache/configuration controls — do not restore it (issue #395).
+      trusted-users = lib.mkForce ["root" "j_kro"];
 
       # Cache provenance is meaningful only when Nix verifies signatures.
       # Every configured cache has a corresponding trusted public key in the
       # canonical policy; do not silently accept unsigned substitutes.
       require-sigs = lib.mkForce true;
 
-      accept-flake-config = true;
+      # Flake-provided nixConfig must never silently change daemon trust or
+      # substituter policy. Operators can approve settings explicitly.
+      accept-flake-config = lib.mkForce false;
 
       # Disable the global flake-registry network fetch. Every input is a
       # fully-qualified git+https URL, so the registry is pure latency plus a
