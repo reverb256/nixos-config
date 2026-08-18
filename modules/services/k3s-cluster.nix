@@ -360,18 +360,18 @@ in {
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
     #
-    # BOOT DECOUPLING (issue #665): we intentionally do NOT declare
-    # `after = [ "systemd-udev-settle.service" ]` here. The generator writes a
-    # STATIC CDI spec from a heredoc (see ExecStart below) — it does not probe
-    # live GPU state and so does not need udev to settle. Keeping the
-    # udev-settle dependency made every sys-devices-* unit wait ~8s and gated
-    # multi-user.target -> graphical.target (OMARCHY anti-pattern: a heavy init
-    # service blocking the graphical target). Consumers still pull the generator
-    # in on demand (podman-dcgm-exporter `wants` it), so GPU containers keep
-    # working — just without the boot-plateau. See systemd-analyze critical-chain
-    # before/after in the issue.
+    # BOOT DECOUPLING (issue #665 + #690): we deliberately declare NEITHER
+    # `after = [ "systemd-udev-settle.service" ]` NOR `wantedBy =
+    # ["multi-user.target"]`. The generator writes a STATIC CDI spec from a
+    # heredoc (see ExecStart below) — it does not probe live GPU state and so
+    # does not need udev to settle NOR a place in the boot-critical chain.
+    # Keeping either dependency made the generator run synchronously and gate
+    # multi-user.target -> graphical.target every boot (~6.4s in the chain after
+    # #666 dropped the udev-settle wait). Consumers pull the generator in on
+    # demand (podman-dcgm-exporter `wants` + `after` it, k3s via the CDI dir),
+    # so GPU containers keep working — just without the boot-plateau. See
+    # systemd-analyze critical-chain before/after in #665/#690.
     systemd.services.nvidia-container-toolkit-cdi-generator = mkIf cfg.nvidia.enable {
-      wantedBy = ["multi-user.target"];
       path = with pkgs; [nvidia-container-toolkit jq];
       serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "cdi-generate-static" ''
         mkdir -p /var/run/cdi
