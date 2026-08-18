@@ -99,3 +99,7 @@ void-mklive/
 .worktrees/
 .yarn/*
 .yarn-integrity
+
+# ── Session / agent artifacts ───────────────────────────────────
+.freebuff/
+.plans/
