@@ -21,13 +21,19 @@
 # and every command resolves data via the OMARCHY_PATH env var (default
 # /usr/share/omarchy). So the NixOS module that consumes this package must set
 #   environment.sessionVariables.OMARCHY_PATH = "${omarchy}/share/omarchy";
-# for themes/plugins/config/dots to resolve. Nothing here is compiled or
-# patched — Tier 1 is byte-identical upstream, and upstream sync is a rev bump.
+# for themes/plugins/config/dots to resolve. Nothing here is compiled. Tier 1
+# is byte-identical upstream except for the Phase 2 shell patch (see `patches`
+# below); upstream sync is a rev bump + patch re-check.
 stdenvNoCC.mkDerivation {
   pname = "omarchy";
   version = lib.removeSuffix "\n" (builtins.readFile "${omarchy}/version");
 
   src = omarchy;
+
+  # Phase 2 (#657): rewrite the shell's Quickshell.Hyprland bindings to the
+  # third-party qml-niri `import Niri` plugin. This is a minimal delta over the
+  # verbatim tree — every other file stays byte-identical upstream.
+  patches = [ ../modules/omarchy/niri-shim/quickshell-niri.patch ];
 
   # The only mutation: strip the .git dir (it's a flake=false fetch, so this is
   # normally absent) and skip the repo-only trees that are not part of the
