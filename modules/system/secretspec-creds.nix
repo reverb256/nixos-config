@@ -7,7 +7,7 @@
 # Handles both binary-format sops files ({"data":"..."}) and
 # YAML-format sops files (key: value) automatically.
 # -----------------------------------------------------------------
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 with lib;
 let
   cfg = config.services.secretspec-creds;
@@ -19,8 +19,13 @@ let
 
     SOPS="${pkgs.sops}/bin/sops"
     fail=0
-    CONFIG="/etc/nixos/.sops.yaml"
-    SECRETS_DIR="/etc/nixos/secrets"
+    # Secrets now live in the private nixos-secrets flake (git+ssh). The flake
+    # is copied into the Nix store at build time, so the encrypted YAMLs are
+    # available at a stable store path without any runtime git fetch.
+    # The .sops.yaml (public age recipients) travels with the flake.
+    # The age PRIVATE key stays at /etc/nixos/.age/key.txt (host-local, persisted).
+    CONFIG="${inputs.nixos-secrets}/.sops.yaml"
+    SECRETS_DIR="${inputs.nixos-secrets}/secrets"
 
     write_secret() {
       log "Decrypting $3 -> $2 ..."
@@ -119,7 +124,7 @@ in {
       type = types.attrsOf (types.submodule {
         options = {
           path = mkOption { type = types.str; };
-          file = mkOption { type = types.str; description = "Relative path under /etc/nixos/secrets/"; };
+          file = mkOption { type = types.str; description = "Relative path under the nixos-secrets flake's secrets/ directory"; };
           mode = mkOption { type = types.str; default = "0444"; };
           owner = mkOption { type = types.str; default = "root"; };
           group = mkOption { type = types.str; default = "root"; };
@@ -146,8 +151,7 @@ in {
         # Mirror the validator's HOME fix: the age crate needs $HOME set
         # or it rejects SOPS_AGE_KEY_FILE at activation (root cause 2026-08-10).
         Environment = [ "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}" "HOME=/root" ];
-        # A transient failure (e.g. mid-pull network blip when re-evaluating
-        # /etc/nixos/secrets/, or a YubiKey unplug-replug mid-boot) should
+        # A transient failure (e.g. YubiKey unplug-replug mid-boot) should
         # retry — the validator service (newly Wants+d this unit) would
         # otherwise run against an empty /run/secrets/* and produce noise.
         # StartLimitBurst keeps sustained failures visible in the journal

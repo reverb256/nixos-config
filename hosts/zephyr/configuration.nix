@@ -951,7 +951,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   sops.secrets."cloud/cloudflared-token" = lib.mkForce {
-    sopsFile = "${inputs.self}/secrets/cloud/cloudflared-token.yaml";
+    sopsFile = "${inputs.nixos-secrets}/secrets/cloud/cloudflared-token.yaml";
     format = "yaml";
     key = "data";
     mode = "400";

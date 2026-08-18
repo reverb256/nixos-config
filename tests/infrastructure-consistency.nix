@@ -114,9 +114,13 @@
     (hasInfix "options.services.mining =" miningModule)
     && !(hasInfix "options.services.mining =" implementationsModule);
 
-  # ── HW-7: sops files referenced in registry exist ──
+  # ── HW-7: sops files have been extracted to the private flake ──
   # NOTE: This is a simplified check — the full check is in secrets-integrity.nix
-  k3sTokenExists = fileExists ./../secrets/k8s/k3s-cluster-token.yaml;
+  # Secrets now live in the private nixos-secrets flake (git+ssh, private repo).
+  # Check that the secrets/ directory was REMOVED from the public repo.
+  # The actual file existence is validated by nix flake check (eval resolves
+  # ${inputs.nixos-secrets}/secrets/... to the store path).
+  secretsExtracted = !(fileExists ./../secrets/k8s/k3s-cluster-token.yaml);
 
   # ── HW-8: NFS mounts have nofail when NFS server is known dead ──
   # Check that nixos-share is disabled on non-zephyr hosts
@@ -327,7 +331,7 @@
     no_duplicate_mining_option = noDuplicateMiningOption;
 
     # HW-7: sops files exist
-    k3s_cluster_token_exists = k3sTokenExists;
+    k3s_cluster_token_extracted = secretsExtracted;
 
     # HW-10: No stale miners
     mining_module_clean = miningModuleClean;

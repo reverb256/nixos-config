@@ -54,7 +54,7 @@ in {
   };
   config = mkIf config.services.sops-secrets-registry.enable {
     sops = {
-      defaultSopsFile = "${inputs.self}/secrets/ai/nvidia-api-key.yaml";
+      defaultSopsFile = "${inputs.nixos-secrets}/secrets/ai/nvidia-api-key.yaml";
       defaultSopsFormat = "yaml";
       defaultSopsKey = "data";
       age.keyFile = "/etc/nixos/.age/key.txt";
@@ -65,8 +65,11 @@ in {
       # store files as YAML), format must be "yaml" with key = "data".
       # "binary" requires a JSON envelope and fails check-mode with
       # 'cannot parse json' (deploy blocker 2026-08-16).
+      #
+      # Secrets now live in the private nixos-secrets flake (git+ssh://git@github.com/reverb256/nixos-secrets).
+      # This repo references them via ${inputs.nixos-secrets}/secrets/<path>.
       "storage/garage-s3-access-key-id" = {
-        sopsFile = "${inputs.self}/secrets/storage/garage-s3-access-key-id.yaml";
+        sopsFile = "${inputs.nixos-secrets}/secrets/storage/garage-s3-access-key-id.yaml";
         format = "yaml";
         key = "data";
         owner = "root";
@@ -74,7 +77,7 @@ in {
         mode = "0440";
       };
       "storage/garage-s3-secret-key" = {
-        sopsFile = "${inputs.self}/secrets/storage/garage-s3-secret-key.yaml";
+        sopsFile = "${inputs.nixos-secrets}/secrets/storage/garage-s3-secret-key.yaml";
         format = "yaml";
         key = "data";
         owner = "root";
@@ -84,7 +87,7 @@ in {
       # Tailscale preauth key (declarative join; ignored once a node is joined).
       # Declared in secretspec.toml:177-178 as TAILSCALE_AUTH_KEY.
       "tailscale/authkey" = {
-        sopsFile = "${inputs.self}/secrets/cloud/tailscale-oauth.yaml";
+        sopsFile = "${inputs.nixos-secrets}/secrets/cloud/tailscale-oauth.yaml";
         format = "yaml";
         key = "data";
         owner = "root";

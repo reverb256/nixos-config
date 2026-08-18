@@ -247,6 +247,15 @@
       url = "git+https://github.com/Gitlawb/memlawb?rev=0c9f82d022dace631bd8582ca3508adfab6809a8";
       flake = false;
     };
+    # nixos-secrets — private flake (git+ssh) holding all sops-encrypted
+    # secret YAMLs. Kept separate from this public repo so secrets never
+    # land in a public git history. Hosts decrypt via age keys at
+    # /etc/nixos/.age/key.txt (provisioned by preservation.nix, NOT stored here).
+    # References: ${inputs.nixos-secrets}/secrets/ai/nvidia-api-key.yaml
+    nixos-secrets = {
+      url = "git+ssh://git@github.com/reverb256/nixos-secrets";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {
@@ -421,6 +430,15 @@
               if passed
               then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
               else throw "test ${name} FAILED: ${builtins.toJSON failures}";
+            # mkCheckWithInputs — for tests that need flake inputs (e.g. secrets-integrity)
+            mkCheckWithInputs = name: file: let
+              result = import file {inherit pkgs inputs;};
+              passed = result.passed or result.all_pass or false;
+              failures = result.failures or [];
+            in
+              if passed
+              then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
+              else throw "test ${name} FAILED: ${builtins.toJSON failures}";
           in {
             firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
             flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
@@ -440,7 +458,7 @@
             portable-model-purity = mkCheck "portable-model-purity" ./tests/portable-model-purity.nix;
 
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
-            secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+            secrets-integrity = mkCheckWithInputs "secrets-integrity" ./tests/secrets-integrity.nix;
             zephyr-dispatcher-policy = mkCheck "zephyr-dispatcher-policy" ./tests/zephyr-dispatcher-policy.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
             inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;

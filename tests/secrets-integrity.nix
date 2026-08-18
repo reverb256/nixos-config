@@ -1,4 +1,4 @@
-{pkgs ? import <nixpkgs> {}}: let
+{pkgs ? import <nixpkgs> {}, inputs ? null, ...}: let
   lib = pkgs.lib;
 
   # Post-secretspec-migration (2026-07-25) the live source of truth for
@@ -6,10 +6,19 @@
   # section (sops_* = "sops:///etc/nixos/secrets/<path>.yaml"). The old
   # sops-nix registry (modules/system/sops-secrets-registry.nix) now only
   # declares options, so scanning it would pass vacuously.
+  #
+  # Secrets were extracted to the private nixos-secrets flake (git+ssh,
+  # inputs.nixos-secrets). The secretspec.toml still carries sops:///etc/nixos/secrets/
+  # URIs (used by the secretspec-validator.nix module which generates a
+  # store-path-interpolated manifest at build time). This test validates
+  # the registry + manifest wiring and checks that secrets/ was removed
+  # from the public repo.
+
   secretspecSource = builtins.readFile ./../secretspec.toml;
   registrySource = builtins.readFile ./../modules/system/sops-secrets-registry.nix;
 
-  # Extract secrets/ paths from secretspec.toml sops:// provider aliases
+  # --- Extract sops:// URI paths from secretspec.toml [providers] ---
+  # These are checked against the private flake's secrets/ directory.
   extractSopsFileNames = src: let
     lines = lib.splitString "\n" src;
     isSopsUri = line:
@@ -34,27 +43,31 @@
   in
     lib.unique filenames;
 
-  # Collect all .yaml files actually present in secrets/ subdirectories
-  sopsFileNamesFromFragments = let
-    subdirs = ["ai" "k8s" "cloud" "infra" "monitoring" "mining" "storage" "automation" "selfhosting" "ci" "default"];
-  in
-    builtins.concatLists (builtins.map (
-        d: let
-          dirPath = builtins.toString ./../secrets + "/" + d;
-        in
-          if builtins.pathExists dirPath
-          then
-            builtins.map (f: d + "/" + f) (
-              builtins.filter (f: lib.strings.hasSuffix ".yaml" f) (builtins.attrNames (builtins.readDir dirPath))
-            )
-          else []
-      )
-      subdirs);
+  # --- Collect all .yaml files in the private flake's secrets/ directory ---
+  sopsFileNamesFromFragments =
+    if inputs != null && inputs ? nixos-secrets
+    then
+      let
+        secretsDir = "${inputs.nixos-secrets}/secrets";
+        subdirs = ["ai" "k8s" "cloud" "infra" "monitoring" "mining" "storage" "automation" "selfhosting" "ci" "default"];
+      in
+        builtins.concatLists (builtins.map (
+          d: let
+            dirPath = secretsDir + "/" + d;
+          in
+            if builtins.pathExists dirPath
+            then
+              builtins.map (f: d + "/" + f) (
+                builtins.filter (f: lib.strings.hasSuffix ".yaml" f) (builtins.attrNames (builtins.readDir dirPath))
+              )
+            else []
+        ) subdirs)
+    else [];
 
-  # Referenced secret files from secretspec.toml
+  # --- Referenced secret files from secretspec.toml ---
   referencedYamlFiles = extractSopsFileNames secretspecSource;
 
-  # Check: every referenced yaml file exists on disk
+  # --- Check: every referenced yaml file exists in the private flake ---
   missingYamlFiles =
     builtins.filter (
       f:
@@ -62,7 +75,7 @@
     )
     referencedYamlFiles;
 
-  # Check no secret has mode "777" or "666"
+  # --- Check no secret has mode "777" or "666" ---
   unsafeModes = let
     lines = lib.splitString "\n" registrySource;
     isUnsafeMode = line:
@@ -71,10 +84,13 @@
   in
     builtins.filter isUnsafeMode lines;
 
+  # --- Check the public repo's secrets/ directory has been removed ---
+  publicSecretsRemoved = !(builtins.pathExists ./../secrets/k8s/k3s-cluster-token.yaml);
+
   allChecks = {
     allReferencedSecretsExist = missingYamlFiles == [];
     noUnsafeModes = unsafeModes == [];
-    secretsDirectoryExists = builtins.pathExists ./../secrets;
+    secretsDirectoryRemoved = publicSecretsRemoved;
     registryFileExists = builtins.pathExists ./../secretspec.toml;
   };
 
@@ -87,7 +103,7 @@ in {
       _diagnostics = {
         inherit unsafeModes missingYamlFiles;
         totalReferencedSecrets = builtins.length referencedYamlFiles;
-        totalYamlFilesOnDisk = builtins.length sopsFileNamesFromFragments;
+        totalYamlFilesInPrivateFlake = builtins.length sopsFileNamesFromFragments;
       };
     };
   failures = failureNames;
