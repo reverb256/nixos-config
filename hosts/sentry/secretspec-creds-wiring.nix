@@ -25,6 +25,17 @@
     owner = "root";
     group = "root";
   };
+  # GitHub HTTPS credentials — one line `https://...@github.com`, written to
+  # j_kro's home so `credential.helper store` (common-host-defaults.nix)
+  # serves HTTPS remotes. SSH remotes authenticate via the CA-signed user
+  # key (ssh-ca.nix autoSign); this is the HTTPS fallback only.
+  GIT_CREDENTIALS = {
+    path = "/home/j_kro/.git-credentials";
+    file = "infra/git-credentials.yaml";
+    mode = "0600";
+    owner = "j_kro";
+    group = "users";
+  };
   # ── storage (garage S3) ────────────────────────────────────────
   # backup-to-garage reads these to authenticate to nexus garage
   # (added 2026-08-16 so sentry gets backup coverage — the gitlawb

@@ -130,6 +130,9 @@
         init.defaultBranch = "main";
         user.name = "j_kro";
         user.email = lib.mkDefault "j_kro@${config.networking.hostName or "cluster"}";
+        # HTTPS git remotes read credentials from ~/.git-credentials
+        # (provisioned by secretspec-creds from secrets/infra/git-credentials.yaml).
+        credential.helper = lib.mkDefault "store";
       };
     };
     nix-ld.enable = lib.mkDefault true;

@@ -41,6 +41,8 @@
     };
   };
 
+  # #309: derive from the declared user instead of hardcoding /home/j_kro.
+  userHome = config.users.users.j_kro.home or "/home/j_kro";
   hostName = config.networking.hostName;
   myHost =
     hosts.${
@@ -88,8 +90,16 @@ in {
 
     autoSign = mkOption {
       type = types.bool;
-      default = false;
-      description = "Automatically sign SSH keys on login (requires CA private key)";
+      default = true;
+      description = ''
+        Sign the j_kro user SSH key with the cluster CA on boot and weekly.
+        GitHub authenticates via the CA (principal j_kro), so this is what
+        makes git@github.com work on every cluster host without copying
+        private keys around. Self-healing: generates ~/.ssh/id_ed25519 when
+        a fresh install has none, and re-signs when the cert is missing,
+        signed by a stale CA, or expired. Requires the CA key at
+        /run/secrets/ssh-ca-key (secretspec-creds) or /etc/ssh/ca_key.
+      '';
     };
 
     caKeyPath = mkOption {
@@ -205,7 +215,7 @@ in {
       # 2026-08-15: without this, the default service PATH lacks openssh and
       # the script's bare `ssh-keygen` fails to resolve -> "no CA key
       # available, skipping" despite a valid key on disk.
-      path = [ pkgs.openssh ];
+      path = [pkgs.openssh];
       # 2026-08-15: secretspec-creds is oneshot RemainAfterExit — after an
       # activation re-provisions secrets (removes ssh-ca-key), the service
       # does NOT re-write it. Force a fresh provisioning right before
@@ -283,15 +293,84 @@ in {
     };
 
     systemd.services.ssh-cert-refresh = lib.mkIf config.services.ssh-ca.autoSign {
-      description = "SSH Certificate Refresh Service";
+      description = "Sign j_kro user SSH key with cluster CA (GitHub auth)";
+      wantedBy = ["multi-user.target"];
+      after = ["secretspec-creds.service"];
+      wants = ["secretspec-creds.service"];
+      # Same lesson as ssh-host-cert-sign: systemd's default service PATH
+      # lacks openssh + coreutils, and secretspec-creds is RemainAfterExit
+      # so it won't re-provision the CA key after an activation removed it.
+      path = [pkgs.openssh pkgs.coreutils pkgs.gnugrep pkgs.gawk];
+      preStart = ''
+        ${pkgs.systemd}/bin/systemctl restart secretspec-creds.service || true
+      '';
       serviceConfig = {
         Type = "oneshot";
-        User = "j_kro";
         RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "ssh-cert-refresh" ''
-          ssh-sign-cert $HOME/.ssh/id_ed25519 j_kro ${config.services.ssh-ca.certificateValidity}
-        '';
       };
+      script = ''
+        set -euo pipefail
+
+        USER_HOME=${userHome}
+        KEY=$USER_HOME/.ssh/id_ed25519
+        KEY_PUB=$KEY.pub
+        CERT=$KEY-cert.pub
+        PRINCIPAL="j_kro"
+
+        # 1. Ensure the identity exists — a fresh install has no user key.
+        if [ ! -f "$KEY" ]; then
+          install -d -m 700 -o j_kro -g users "$USER_HOME/.ssh"
+          ssh-keygen -t ed25519 -N "" -C "j_kro@${hostName}" -f "$KEY" >/dev/null 2>&1
+          chown j_kro:users "$KEY" "$KEY_PUB"
+          echo "ssh-cert-refresh: generated $KEY"
+        fi
+
+        # 2. CA key: prefer the secretspec-provisioned copy, fall back to the
+        #    file CA (zephyr's /etc/ssh/ca_key). Validate each candidate is a
+        #    real readable private key — same guard as ssh-host-cert-sign.
+        CA_KEY=""
+        for c in /run/secrets/ssh-ca-key ${config.services.ssh-ca.caKeyPath}; do
+          if [ -s "$c" ] && ssh-keygen -y -f "$c" >/dev/null 2>&1; then
+            CA_KEY="$c"; break
+          fi
+        done
+        if [ -z "$CA_KEY" ]; then
+          echo "ssh-cert-refresh: no CA key available, skipping"
+          exit 0
+        fi
+
+        # 3. Re-sign when the cert is missing, signed by a stale CA, or expired.
+        NEED_SIGN=false
+        if [ ! -f "$CERT" ]; then
+          NEED_SIGN=true
+        else
+          if ! ssh-keygen -L -f "$CERT" 2>/dev/null | grep -q "Signing CA: ED25519 ${caFingerprint}"; then
+            NEED_SIGN=true
+          else
+            EXPIRY=$(ssh-keygen -L -f "$CERT" 2>/dev/null | awk '/Valid:/ {print $5}')
+            if [ -n "$EXPIRY" ] && [ "$(date -d "$EXPIRY" +%s 2>/dev/null || echo 0)" -le "$(date +%s)" ]; then
+              NEED_SIGN=true
+            fi
+          fi
+        fi
+
+        if [ "$NEED_SIGN" = false ]; then
+          echo "ssh-cert-refresh: cert valid, nothing to do"
+          exit 0
+        fi
+
+        rm -f "$CERT"
+        ssh-keygen -s "$CA_KEY" \
+          -I "$PRINCIPAL@cluster" \
+          -n "$PRINCIPAL" \
+          -V "+${config.services.ssh-ca.certificateValidity}" \
+          -z "$(date +%s)" \
+          "$KEY_PUB" >/dev/null 2>&1
+
+        chmod 600 "$CERT"
+        chown j_kro:users "$CERT"
+        echo "ssh-cert-refresh: signed $KEY for $PRINCIPAL (${config.services.ssh-ca.certificateValidity})"
+      '';
     };
 
     systemd.timers.ssh-cert-refresh = lib.mkIf config.services.ssh-ca.autoSign {
