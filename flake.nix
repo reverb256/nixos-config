@@ -184,6 +184,20 @@
     flake-parts = {
       url = "git+https://github.com/hercules-ci/flake-parts";
     };
+    # nixos-wsl — declarative Linux dev boxes inside WSL2 (wsl-j_kro /
+    # wsl-krash2 / wsl-krash3 standalone hosts, NOT part of the cluster hive).
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL/24c8dc8e0f2170e1a377be24dfadc7d9d21dc1ad";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # comfyui-nix — CUDA ComfyUI service for wsl-krash3 (reverb256 fork). Does
+    # NOT follow our nixpkgs: it pins its own commit whose Python set matches
+    # its vendored wheel versions (e.g. websockets<16 for gradio-client).
+    comfyui-nix = {
+      # Pinned to the rev verified on wsl-krash3 (websockets/gradio version
+      # conflicts fixed 2026-08-03).
+      url = "github:reverb256/comfyui-nix/37092e89936f737fbdfb8796172db3cafde9569f";
+    };
     # noctalia REMOVED — upstreamed into nixpkgs-unstable as programs.noctalia
     # + pkgs.noctalia. The flake input is no longer needed.
     # stylix - theming module
@@ -314,6 +328,38 @@
             # systemd-repart disk image (see modules/profiles/portable-usb.nix).
             # Wayfinder map #421; contract #425.
             portable = portableConfig;
+
+            # NixOS-WSL dev boxes — standalone, bootstrapped on their own
+            # Windows PCs (NOT colmena targets). wsl-j_kro is also registered
+            # as a node in modules/services/nixos-cluster-mcp.nix; nexus
+            # reaches it via the Windows-host netsh portproxy (see
+            # scripts/wsl-autostart.ps1).
+            wsl-j_kro = nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = {inherit inputs;};
+              modules = [
+                inputs.nixos-wsl.nixosModules.default
+                ./hosts/wsl-j_kro/configuration.nix
+              ];
+            };
+            wsl-krash2 = nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = {inherit inputs;};
+              modules = [
+                inputs.nixos-wsl.nixosModules.default
+                ./hosts/wsl-krash2/configuration.nix
+              ];
+            };
+            # RTX 4060 GPU passthrough (/dev/dxg) + CUDA ComfyUI art pipeline.
+            wsl-krash3 = nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = {inherit inputs;};
+              modules = [
+                inputs.nixos-wsl.nixosModules.default
+                inputs.comfyui-nix.nixosModules.default
+                ./hosts/wsl-krash3/configuration.nix
+              ];
+            };
           };
 
           # OUTPUT 2: colmena (raw hive configuration)
