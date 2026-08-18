@@ -110,6 +110,27 @@ See `agents/skills/add-k8s-workload.md`.
 - No `:latest` container tags (admission policy enforces).
 - GitHub Actions pinned to full commit SHAs.
 
+### flake.lock rule
+
+- **flake.lock is code.** Never edit it by hand, and never bundle a lock
+  bump with feature work. Every lock change ships as its own PR, produced
+  by `nix flake update [input]` (exception: adding a new input locks it in
+  the same PR).
+- **Automated (Sun 03:00 UTC, `flake-update.yml`):** the project inputs and
+  `home-manager-config` get per-input `update/deps-*` PRs gated by
+  `nix flake check`. Merge them promptly — the deploy guard aborts if the
+  `home-manager-config` lock falls behind its master.
+- **nixpkgs is pinned by `rev=` in flake.nix**, so the automated nixpkgs
+  job only re-locks: real bumps edit the pin AND the lock together (#687
+  pattern) and keep them aligned — a mismatch breaks eval (incident
+  `fcf2a5202`). `just channel-pin-check` gates deploys when the pin drifts
+  >100 commits behind the nixos-unstable channel tip (Hydra binary
+  coverage); the 7-day cooldown applies to packages introduced by a bump.
+- **Every other input (lix, home-manager, stylix, sops-nix, niri, colmena,
+  aagl, nur, …) is manual:** `nix flake update <input>` on its own branch.
+  A full `nix flake update` runs only via `just hermes-update`
+  (toplevel-build guarded) or an explicit decision.
+
 ## Task guides (`agents/skills/`)
 
 | Guide | When |
