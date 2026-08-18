@@ -31,41 +31,40 @@ in {
       trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
 
       cores = lib.mkForce (
-        # CPU-headroom reservation. Per-host build-thread budget is
-        # (max-jobs * cores) as a share of logical cores:
-        #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
-        #   sentry 16 logical -> 2*4 =  8 threads = 50%, 8 reserved
-        # nexus keeps 75% (dedicated builder, 46 GiB). sentry drops to 50%
-        # (2026-08-18, j_kro): it is NOT a dedicated builder — it runs the k3s
-        # control plane (etcd), Vulkan AI inference, and the A2A gateway on a
-        # Zen 1 R7 1700 with 31 GiB. Under full build concurrency the etcd
-        # peer/apiserver timeouts and the calico reconcile loop degrade, and
-        # this host has a documented Zen 1 hard-lockup history under load.
-        # RAM pressure is bounded separately by the nix-daemon MemoryMax
-        # guard below; this is the CPU half. (2026-08-17, revised 2026-08-18)
-        if currentHost == "zephyr"
-        then 2 # minimal for coordination (zephyr never builds: max-jobs=0)
-        else if currentHost == "nexus"
-        then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
-        else if currentHost == "sentry"
-        then 4 # R7 1700 = 16 logical; 2*4=8 threads, 50% reserved
-        else 2
-      );
+              # CPU-headroom reservation. Per-host build-thread budget is
+              # (max-jobs * cores) as a share of logical cores:
+              #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
+              #   sentry 16 logical -> 2*4 =  8 threads = 50%, 8 reserved
+              #   zephyr 32 logical -> 2*8 = 16 threads = 50%, 16 reserved
+              # zephyr is a workstation — 16 threads for concurrent builds,
+              # remaining 16 threads for desktop, gaming, gaming VMs, etc.
+              # OOM was previously a llama misconfiguration; verified resolved 2026-08-13,
+              # so zephyr can safely build local derivations again. (2026-08-18, j_kro)
+              if currentHost == "zephyr"
+              then 8 # 50% of 32 logical; 2*8=16 threads, 16 reserved
+              else if currentHost == "nexus"
+              then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
+              else if currentHost == "sentry"
+              then 4 # R7 1700 = 16 logical; 2*4=8 threads, 50% reserved
+              else 2
+            );
 
       max-jobs = lib.mkForce (
-        # zephyr: ZERO local build capacity. It is a pure dispatcher — every
-        # derivation offloads to nexus via /etc/nix/machines.
-        # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
-        # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
-        # on zephyr.          # forge removed 2026-07-29 (GPU miner — do not interrupt).
-        if currentHost == "zephyr"
-        then 0
-        else if currentHost == "nexus"
-        then 2 # x cores=9 -> 18 of 24 logical threads (75%); low job count bounds RAM
-        else if currentHost == "sentry"
-        then 2 # x cores=4 ->  8 of 16 logical threads (50%); control-plane headroom
-        else 0
-      );
+              # zephyr: local build capacity re-enabled 2026-08-18. OOM root cause was a
+              # llama misconfiguration that has been resolved. max-jobs=2 with cores=8
+              # (50% of 32 logical) gives zephyr 16 build threads while leaving 16 for
+              # desktop, gaming, and gaming VMs. derivations offload to nexus via
+              # /etc/nix/machines when local capacity is saturated.
+              # The former max-jobs=0 was a protective wedge while the llama issue was
+              # unresolved; now that it is resolved, zephyr builds locally again.
+              if currentHost == "zephyr"
+              then 2 # 50% of 32 logical cores; 16 threads for builds, 16 for desktop
+              else if currentHost == "nexus"
+              then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
+              else if currentHost == "sentry"
+              then 2 # x cores=4 ->  8 of 16 logical threads (50%); control-plane headroom
+              else 0
+            );
 
       # Large NAR downloads were failing with curl error 92
       # (HTTP/2 PROTOCOL_ERROR / stream reset) on Cachix/CDN edges.
