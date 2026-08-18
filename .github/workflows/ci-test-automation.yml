@@ -53,10 +53,10 @@ jobs:
               continue
             fi
 
-            if nix-instantiate --eval --strict \
+            if nix-instantiate --eval --strict --impure \
               --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
               "$test" 2>&1; then
-              result=$(nix-instantiate --eval --strict \
+              result=$(nix-instantiate --eval --strict --impure \
                 --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
                 "$test" 2>/dev/null | grep -oE 'passed = true|all_pass = true' || true)
 
