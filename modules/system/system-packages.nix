@@ -249,7 +249,10 @@
       # KIO extra protocols (SFTP/SMB/archive browsing for dolphin). Headless
       # sentry must not pull it: kio-extras -> kguiaddons -> pyside6 ->
       # qtwebengine forces another multi-hour Chromium source build.
+      # NOTE: kdePackages.kscreen intentionally OMITTED — its pyside6 dep pulls
+      # qtwebengine (80k-object Chromium build). niri is the compositor; kscreen
+      # backend launcher is disabled (desktop-monitor.nix) and kscreen-doctor is
+      # unused (monitor setup is niri-native via niri-monitor-setup).
       kdePackages.kio-extras
-      kdePackages.kscreen
     ];
 }
