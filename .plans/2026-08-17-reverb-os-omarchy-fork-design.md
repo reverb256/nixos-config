@@ -66,16 +66,36 @@ modules/omarchy/default.nix  ──►  programs.omarchy.enable
 - **No fork, no vendored copy, no divergence to rebase.** Upstream sync = bump
   the `omarchy` rev + `nix flake update omarchy`.
 - **Adaptation layers** under `modules/omarchy/`:
-  - `niri-shim/` — Phases 2-3: `Quickshell.Hyprland` → `Quickshell.Niri` QML
-    swap + `hyprctl` → `niri msg` re-targeting.
+  - `niri-shim/` — Phases 2-3: `Quickshell.Hyprland` → Niri QML swap +
+    `hyprctl` → `niri msg` re-targeting.
   - `pkg-shim/` — Phase 4: nix-backed `omarchy-pkg-add/drop`, `omarchy-update`.
+
+## ⚠️ Correction to #657's assumption (verified 2026-08-18)
+
+Issue #657 states "Quickshell ships the Niri plugin natively." **That is wrong.**
+Verified against the pinned nixpkgs quickshell 0.3.0 in the store: its
+`Quickshell/` QML tree ships `Hyprland`, `I3`, `X11`, `WindowManager`, `Wayland`,
+`Io`, `Widgets` — **no `Niri` module**. The Niri integration is a third-party
+plugin (`imiric/qml-niri`, QML import `Niri`, tested against niri v26.04).
+
+Consequences for Phase 2 (#657):
+
+- The QML import target is `import Niri`, **not** `import Quickshell.Niri`.
+- The plugin must be packaged separately and added to `QML_IMPORT_PATH` (or a
+  quickshell-with-plugin build used). It is a new flake input, not a
+  `Quickshell.Niri` binding swap.
+- Its API is a single `Niri` type with `windows` / `workspaces` models and
+  `focusWindow(id)` / `focusWorkspaceById(id)` methods — semantically close to
+  `Hyprland.workspaces.values` / `focusedWorkspace`, but a rewrite, not a
+  find-replace. `Hyprland.onRawEvent`, `HyprlandFocusGrab` (outside-click), and
+  `Hyprland.focusedMonitor` have no direct `Niri`-plugin equivalent.
 
 ## Compatibility tiers
 
 | Tier | Surface | Treatment |
 |------|---------|-----------|
 | 1 | 22 themes, plugin registry/manifest, Hyprland-free plugins, `omarchy` router, `dots` plan, `applications/*.desktop`, manual | verbatim port (#656) |
-| 2 | 5 QML files (`Quickshell.Hyprland` → `Quickshell.Niri`) + `Style.qml` hyprctl rounding/gaps, ~53 `hyprctl` scripts + 24 `omarchy-hyprland-*`, hyprlock/hyprpicker/hyprsunset | Niri re-implementation (#657, #658) |
+| 2 | 5 QML files (`Quickshell.Hyprland` → `Niri` third-party plugin) + `Style.qml` hyprctl rounding/gaps, ~53 `hyprctl` scripts + 24 `omarchy-hyprland-*`, hyprlock/hyprpicker/hyprsunset | Niri re-implementation (#657, #658) |
 | 3 | `omarchy-pkg-add/drop`, `omarchy-update`, AUR helpers | Nix-backed name parity (#659) |
 
 ## Phases (one PR each)
@@ -104,3 +124,10 @@ modules/omarchy/default.nix  ──►  programs.omarchy.enable
 `switch-*`, `fullscreen-window`, `close-window`, `power-off-monitors`,
 `spawn`/`spawn-sh`, `screenshot-*`, `toggle-*`). The hyprctl→niri mapping table
 lives in `docs/reference/omarchy-phase3-hyprctl-niri-map.md`.
+
+## Phase prep docs
+
+- `docs/reference/omarchy-phase2-quickshell-niri.md` — the Quickshell.Niri
+  shell port (corrects #657's "native Niri plugin" assumption).
+- `docs/reference/omarchy-phase3-hyprctl-niri-map.md` — the hyprctl→niri map.
+- `docs/reference/omarchy-phase4-pkg-parity.md` — nix-backed package commands.
