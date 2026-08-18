@@ -118,7 +118,7 @@ in {
 
     manifestPath = lib.mkOption {
       type = lib.types.str;
-      default = defaultManifest;
+      default = toString defaultManifest;
       description = "Absolute path to the secretspec.toml manifest to validate.";
     };
 
