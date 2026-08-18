@@ -20,7 +20,6 @@
     "nix-cachyos-kernel"
     "nixpkgs-xr"
     "lsfg-vk-nix"
-    "niri-hdr"
     "systems"
     "mcp-registry"
     "caddy-ingress"
