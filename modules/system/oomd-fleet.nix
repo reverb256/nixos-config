@@ -67,11 +67,10 @@
     # 2026-08-18: nix-gc.timer was `enabled` + `active` on nexus yet
     # ExecMainExitTimestamp was EMPTY — it had NEVER executed. Its last window
     # (Aug 17) was missed and simply dropped, next was Aug 24. Meanwhile 89,402
-    # dead store paths accumulated uncollected, which is what actually drove
-    # btrfs Metadata to 38.56/40.50GiB and `Device unallocated` to 1.00MiB on the
-    # builder. (Retained generations were NOT the cause: nix-env correctly held
-    # only 20, though 439 stale system-*-link symlinks were left behind on disk
-    # by earlier prunes — dangling, not GC roots.)
+    # dead store paths accumulated uncollected, which is what drove btrfs
+    # Metadata to 38.57/40.50GiB and `Device unallocated` to 1.00MiB on the
+    # builder. Retained generations were NOT involved: nexus held exactly 20,
+    # the policy below, already satisfied.
     #
     # Persistent=true makes a missed weekly window run at the next opportunity
     # instead of being skipped. On a builder that is busy or rebooting at the
@@ -102,14 +101,11 @@
     #      never fired. wantedBy=timers.target fixes that.
     #   2. Persistent was false, so a missed weekly window was dropped rather
     #      than caught up. On a builder that is exactly when it gets missed.
-    # NOTE on scope: the audit initially suspected retained generations of
-    # causing nexus's btrfs metadata exhaustion. That was WRONG — nix-env held
-    # exactly 20 (the policy below, already satisfied). The real cause was
-    # nix-gc never running (89,402 uncollected dead paths); see the nix-gc timer
-    # note above. What generations DID leave behind was 439 stale
-    # `system-*-link` symlinks on disk that nix-env no longer tracks; they are
-    # dangling, are NOT GC roots, and pin nothing.
-    # Also: this prune ABORTS on a malformed generation link. nexus carried a
+    # SCOPE NOTE: the +20 policy here was already being honoured — nexus held
+    # exactly 20 generations. Generation retention did NOT cause the ENOSPC
+    # incident; nix-gc never running did (see the nix-gc timer note above).
+    # This unit is still worth fixing so the cap keeps holding unattended.
+    # PITFALL: the prune ABORTS on a malformed generation link. nexus carried a
     # `system-365-link.bad` (a FORGE closure left by a misfired deploy) and
     # nix-env stopped with "cannot unlink ... No such file or directory" without
     # pruning anything. If this unit reports that, move the offending `*.bad`
