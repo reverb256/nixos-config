@@ -65,6 +65,8 @@
         ".local/share/direnv"
         ".nv"
         ".cache/huggingface"
+        "registry-data"
+        "registry-config"
         {
           directory = ".local/share/keyrings";
           mode = "0700";

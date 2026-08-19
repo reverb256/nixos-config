@@ -14,6 +14,8 @@
   # The registry runs as a podman container managed by systemd with
   # Restart=always so it survives reboots. Data persists at
   # /home/j_kro/registry-data (-> /var/lib/registry in-container).
+  # A custom config.yml enables deletion + garbage collection so stale
+  # image tags can be pruned without manual filesystem surgery.
   systemd.services.quill-registry-container = {
     description = "Quill OCI Registry (nexus:5000)";
     wantedBy = [ "multi-user.target" ];
@@ -30,11 +32,10 @@
             --name quill-registry \
             -p 5000:5000 \
             -v /home/j_kro/registry-data:/var/lib/registry \
+            -v /home/j_kro/registry-config/config.yml:/etc/docker/registry/config.yml:ro \
             --restart always \
             docker.io/library/registry:2
         fi
-        # Detach-existing: podman start will reuse the running container
-        # and attach to its output.
         exec podman start --attach --notify-ready=false quill-registry
       '';
       ExecStop = "${pkgs.podman}/bin/podman stop quill-registry";
