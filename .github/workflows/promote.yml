@@ -9,10 +9,10 @@ name: Promote to prod
 # reproducible and self-contained.
 #
 # Enforcement note: branch protection / rulesets are unavailable on this
-# private free-tier plan (API 403). The real human gate is the deploy
-# `environment: prod` (required reviewer, configured in the GitHub UI) plus the
-# prod-guard.yml backstop that force-resets `prod` if anything other than this
-# bot writes to it.
+# private free-tier plan (API 403). The promotion authority is the CI runner:
+# a green `CI` run on `main` is the ONLY gate. prod-guard.yml is the backstop
+# that force-resets `prod` if anything other than this bot writes to it. No
+# human review, no required reviewer, no environment gate.
 
 on:
   # Runs after main CI completes green.

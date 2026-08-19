@@ -8,9 +8,10 @@ name: prod guard
 # commit and reports an incident. This does not PREVENT a bad push, but it
 # reverts one within seconds of the push event.
 #
-# The authoritative human gate is the deploy `environment: prod` (required
-# reviewer, configured in the GitHub UI) — that blocks UNDEPLOYED commits from
-# reaching the cluster. This guard blocks OUT-OF-BAND commits to the branch.
+# The promotion authority is the CI runner: green `CI` on `main` is the only
+# gate. There is no human review and no environment gate. This guard is the
+# sole enforcement for the "prod is never touched directly" rule — it reverts
+# OUT-OF-BAND writes to the branch within seconds of the push event.
 
 on:
   push:
