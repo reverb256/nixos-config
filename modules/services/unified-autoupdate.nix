@@ -1,34 +1,19 @@
 # Unified Autoupdate Module
 #
 # Governs all automated version bumps across the cluster via a single
-# declarative interface. Replaces the scattered bump-peakminer.yml workflow,
-# the manual hermes-agent nix profile upgrades, and ad-hoc AppImage/Flatpak
-# auto-update timers with a unified, SPOC-style config.
+# declarative interface. Replaces scattered bump workflows with one
+# SPOC-style config.
 #
-# Design principles:
-# 1. Everything is declarative — every updatable program is an option here
-# 2. Event-driven via state comparison — only acts when version changes
-# 3. Ring-3 safe — auto-commits are gated by the constitution (200-line diff max)
-# 4. Cross-empowered — peakminer bumps trigger hermes-agent checks and vice versa
-#
-# Usage (in hosts/<host>/configuration.nix):
-#
+# Usage:
 #   services.unified-autoupdate = {
 #     enable = true;
-#     schedule = "*-*-* 06:00:00";  # daily at 6am
+#     schedule = "*-*-* 06:00:00";
 #     programs = {
 #       peakminer = {
 #         github = "peakminer/peakminer";
 #         nixPkg = "pkgs/peakminer.nix";
-#         versionField = "version";
-#         hashField = "hash";
 #         bumpScript = "scripts/peakminer-bump.py";
 #         commit = true;
-#       };
-#       hermes-agent = {
-#         github = "NousResearch/hermes-agent";
-#         nixProfile = true;
-#         hosts = ["zephyr" "nexus" "forge" "sentry"];
 #       };
 #     };
 #   };
@@ -44,10 +29,8 @@ let
     mkIf
     mkOption
     types
-    concatLists
     ;
 
-  # The unified bump script — this is the engine that drives all updates
   bumpScript = pkgs.writeShellScriptBin "unified-bump" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -70,34 +53,28 @@ let
 
     log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$LOG_FILE"; }
 
-    # Load state (last-seen versions)
     load_state() {
       if [ -f "$LOCK_FILE" ]; then
         cat "$LOCK_FILE"
       else
-        echo '{}'
+        echo "{}"
       fi
     }
 
-    # Save state
     save_state() {
       echo "$1" > "$LOCK_FILE"
     }
 
-    # Get latest release tag from GitHub API
     git_latest_release() {
       local repo="$1"
       curl -s -m 20 "https://api.github.com/repos/${repo}/releases/latest" \
-        | jq -r '.tag_name'
+        | jq -r ".tag_name"
     }
 
     STATE=$(load_state)
-
     log "=== Unified autoupdate tick ==="
 
-    # --- Process each configured program ---
-    # Programs are passed as a JSON config file
-    NUM_PROGS=$(jq '.programs | length' "$CONFIG_FILE")
+    NUM_PROGS=$(jq ".programs | length" "$CONFIG_FILE")
     for i in $(seq 0 $((NUM_PROGS - 1))); do
       NAME=$(jq -r ".programs[$i].name" "$CONFIG_FILE")
       REPO=$(jq -r ".programs[$i].github" "$CONFIG_FILE")
@@ -111,10 +88,7 @@ let
         continue
       fi
 
-      # Normalize tag to version (strip 'v' prefix)
-      LATEST_VER=$(echo "$LATEST_TAG" | sed 's/^v//')
-
-      # Get previously processed version from state
+      LATEST_VER=$(echo "$LATEST_TAG" | sed "s/^v//")
       LAST_VER=$(echo "$STATE" | jq -r ".[\"$NAME\"] // empty")
 
       if [ "$LATEST_VER" = "$LAST_VER" ]; then
@@ -131,31 +105,29 @@ let
           COMMIT=$(jq -r ".programs[$i].commit" "$CONFIG_FILE")
           PKG_FILE="/home/j_kro/Projects/nixos-config/$NIX_PKG"
 
-          # Compute SRI hash
           URL="https://github.com/$REPO/releases/download/$LATEST_TAG/${LATEST_VER}.tar.gz"
-          curl -fsSL -o "/tmp/${NAME}-${LATEST_VER}.tar.gz" "$URL" || {
-            # Try alternate naming (some repos don't have .tar.gz)
-            log "  WARN: could not download tarball, trying alternate names"
-            # Try without version in filename
-            curl -fsSL -o "/tmp/${NAME}-${LATEST_VER}.tar.gz" \
-              "https://github.com/$REPO/releases/download/$LATEST_TAG/${NAME}-${LATEST_VER}.tar.gz" \
-              || { log "  FAIL: could not download tarball for $NAME"; continue; }
+          DL_FILE="/tmp/${NAME}-${LATEST_VER}.tar.gz"
+
+          curl -fsSL -o "$DL_FILE" "$URL" || {
+            log "  WARN: could not download tarball, trying alternate name"
+            ALT_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/${NAME}-${LATEST_VER}.tar.gz"
+            curl -fsSL -o "$DL_FILE" "$ALT_URL" || {
+              log "  FAIL: could not download tarball for $NAME"
+              continue
+            }
           }
 
-          SRI_HASH=$(nix hash convert --to sri --type sha256 "$(nix hash file --type sha256 "/tmp/${NAME}-${LATEST_VER}.tar.gz")")
+          SRI_HASH=$(nix hash convert --to sri --type sha256 "$(nix hash file --type sha256 "$DL_FILE")")
 
-          # Bump the package file
           if [ -n "$BUMP_SCRIPT" ] && [ "$BUMP_SCRIPT" != "null" ]; then
             python3 "/home/j_kro/Projects/nixos-config/$BUMP_SCRIPT" "$PKG_FILE" "$LATEST_VER" "$SRI_HASH"
           else
-            # Generic sed-based bump
             sed -i "s|version = \"[0-9.]*\"|version = \"$LATEST_VER\"|" "$PKG_FILE"
             sed -i "s|hash = \"sha256-[^\"]*\"|hash = \"$SRI_HASH\"|" "$PKG_FILE"
           fi
 
           log "  $NAME: bumped to $LATEST_VER"
 
-          # Commit if requested (ring-3 safe)
           if [ "$COMMIT" = "true" ]; then
             cd /home/j_kro/Projects/nixos-config
             git add "$NIX_PKG"
@@ -164,36 +136,35 @@ let
             log "  $NAME: committed and pushed"
           fi
 
-          rm -f "/tmp/${NAME}-${LATEST_VER}.tar.gz"
+          rm -f "$DL_FILE"
           ;;
 
         nix-profile)
-          # For hermes-agent and other nix-profile-managed binaries
-          HOSTS=$(jq -r ".programs[$i].hosts[] // empty" "$CONFIG_FILE" 2>/dev/null)
+          HOSTS=$(jq -r ".programs[$i].hosts[]?" "$CONFIG_FILE" 2>/dev/null)
           if [ -z "$HOSTS" ] || [ "$HOSTS" = "null" ]; then
-            HOSTS="localhost"
+            HOSTS=$(hostname)
           fi
 
           for host in $HOSTS; do
             log "  $NAME: checking $host"
-            if [ "$host" = "localhost" ] || [ "$host" = "$(hostname)" ]; then
+            if [ "$host" = "$(hostname)" ] || [ "$host" = "localhost" ]; then
               CURRENT=$(nix profile list 2>/dev/null | grep "$NAME" | head -1 || true)
             else
               CURRENT=$(ssh "$host" "nix profile list 2>/dev/null | grep '$NAME' | head -1" 2>/dev/null || true)
             fi
 
             if [ -z "$CURRENT" ]; then
-              log "  $NAME: not installed on $host, installing $LATEST_VER"
-              if [ "$host" = "localhost" ] || [ "$host" = "$(hostname)" ]; then
+              log "  $NAME: not installed on $host, installing $LATEST_TAG"
+              if [ "$host" = "$(hostname)" ] || [ "$host" = "localhost" ]; then
                 nix profile install "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
               else
                 ssh "$host" "nix profile install github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
               fi
             else
-              CURRENT_VER=$(echo "$CURRENT" | grep -oP "$NAME-[0-9.]+" | head -1 | sed 's/.*-//' || true)
-              if [ "$CURRENT_VER" != "$LATEST_VER" ]; then
-                log "  $NAME: upgrading $host from $CURRENT_VER to $LATEST_VER"
-                if [ "$host" = "localhost" ] || [ "$host" = "$(hostname)" ]; then
+              CURRENT_TAG=$(echo "$CURRENT" | grep -oP "$NAME-[0-9.]+" | head -1 | sed "s/.*-//" || true)
+              if [ "$CURRENT_TAG" != "$LATEST_VER" ]; then
+                log "  $NAME: upgrading $host from $CURRENT_TAG to $LATEST_VER"
+                if [ "$host" = "$(hostname)" ] || [ "$host" = "localhost" ]; then
                   nix profile remove "$NAME" 2>/dev/null || true
                   nix profile install "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
                 else
@@ -207,8 +178,7 @@ let
           ;;
 
         systemd-service)
-          # For services that have their own auto-upgrade (e.g., podman containers)
-          log "  $NAME: type=systemd-service, no action (manual upgrade path)"
+          log "  $NAME: type=systemd-service, no auto action"
           ;;
 
         *)
@@ -222,13 +192,12 @@ let
       NAME=$(jq -r ".programs[$i].name" "$CONFIG_FILE")
       REPO=$(jq -r ".programs[$i].github" "$CONFIG_FILE")
       LATEST_TAG=$(git_latest_release "$REPO")
-      LATEST_VER=$(echo "$LATEST_TAG" | sed 's/^v//')
+      LATEST_VER=$(echo "$LATEST_TAG" | sed "s/^v//")
       STATE=$(echo "$STATE" | jq ".[\"$NAME\"] = \"$LATEST_VER\"")
     done
 
     save_state "$STATE"
     log "=== Unified autoupdate tick complete ==="
-  '';
   '';
 
   # Generate the programs config JSON from Nix options
@@ -244,6 +213,11 @@ let
     }) cfg.programs;
   });
 
+  # Resolve config file: use user-provided one, or generate from Nix options
+  resolvedConfigFile = if cfg.configFile != null
+    then cfg.configFile
+    else programsConfig;
+
 in {
   options.services.unified-autoupdate = {
     enable = mkEnableOption "Unified auto-update for all cluster programs";
@@ -251,14 +225,11 @@ in {
     schedule = mkOption {
       type = types.str;
       default = "*-*-* 06:00:00";
-      description = ''
-        systemd calendar expression for the update check schedule.
-        Default: daily at 6 AM UTC.
-      '';
+      description = "systemd calendar expression for update check schedule.";
     };
 
     configFile = mkOption {
-      type = types.path;
+      type = types.nullOr types.path;
       default = null;
       description = ''
         Path to a JSON file describing programs to track.
@@ -269,17 +240,13 @@ in {
     stateFile = mkOption {
       type = types.path;
       default = "/var/lib/unified-autoupdate/state.json";
-      description = ''
-        Path where the last-checked versions are stored.
-      '';
+      description = "Path where last-checked versions are stored.";
     };
 
     logFile = mkOption {
       type = types.path;
       default = "/var/log/unified-autoupdate.log";
-      description = ''
-        Path where update logs are written.
-      '';
+      description = "Path where update logs are written.";
     };
 
     programs = mkOption {
@@ -287,63 +254,42 @@ in {
         options = {
           github = mkOption {
             type = types.str;
-            description = ''
-              GitHub repository in owner/repo format (e.g., "peakminer/peakminer").
-            '';
+            description = "GitHub repository in owner/repo format.";
           };
 
           nixPkg = mkOption {
             type = types.nullOr types.str;
             default = null;
-            description = ''
-              Path to the Nix package file (e.g., "pkgs/peakminer.nix").
-              When set, the module will edit this file to bump version + hash.
-            '';
+            description = "Path to the Nix package file to bump.";
           };
 
           bumpScript = mkOption {
             type = types.nullOr types.str;
             default = null;
-            description = ''
-              Path to a dedicated bump script (e.g., "scripts/peakminer-bump.py").
-              If null, uses generic sed-based version/hash replacement.
-            '';
+            description = "Path to a dedicated bump script (relative to repo root).";
           };
 
           commit = mkOption {
             type = types.bool;
             default = false;
-            description = ''
-              If true, auto-commit and push the bumped file to origin/main.
-              Only applies to nix-pkg type programs. Ring-3 safe — changes
-              must pass the 200-line diff constitution.
-            '';
+            description = "Auto-commit and push the bumped file.";
           };
 
           nixProfile = mkOption {
             type = types.bool;
             default = false;
-            description = ''
-              If true, upgrade via `nix profile install` instead of editing
-              a Nix package file. Used for hermes-agent (issue #334).
-            '';
+            description = "Upgrade via nix profile instead of editing a file.";
           };
 
           hosts = mkOption {
             type = types.listOf types.str;
             default = [];
-            description = ''
-              List of SSH targets (or "localhost") to upgrade.
-              For nixProfile-type programs only.
-            '';
+            description = "SSH targets to upgrade (nix-profile type only).";
           };
         };
       });
       default = {};
-      description = ''
-        Map of programs to auto-update. Each entry tracks a GitHub
-        release and bumps the version via the configured mechanism.
-      '';
+      description = "Map of programs to auto-update.";
     };
   };
 
@@ -353,10 +299,8 @@ in {
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       script = ''
-        ${lib.optionalString (cfg.configFile == null)
-          "cp ${programsConfig} ${cfg.stateFile}.programs.json"}
-        CONFIG_FILE=${cfg.configFile or cfg.stateFile + ".programs.json"} \
-        ${bumpScript}/bin/unified-bump
+        ${pkgs.coreutils}/bin/cp ${resolvedConfigFile} ${cfg.stateFile}.programs.json
+        CONFIG_FILE=${toString cfg.stateFile}.programs.json ${bumpScript}/bin/unified-bump
       '';
       serviceConfig = {
         Type = "oneshot";
@@ -366,11 +310,15 @@ in {
           "/var/log"
           "/home/j_kro/Projects/nixos-config"
         ];
+        # Allow SSH to other cluster hosts for nix-profile upgrades
+        environment = {
+          HOME = "/root";
+        };
       };
     };
 
     systemd.timers.unified-autoupdate = {
-      description = "Run unified autoupdate on schedule";
+      description = "Unified autoupdate timer";
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = cfg.schedule;
@@ -379,10 +327,8 @@ in {
       };
     };
 
-    # Ensure state directory exists
     system.activationScripts.unified-autoupdate = ''
       mkdir -p /var/lib/unified-autoupdate
-      mkdir -p "$(dirname ${cfg.logFile})"
       touch ${cfg.logFile}
       chmod 644 ${cfg.logFile}
     '';
