@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-tunnel
+  namespace: haven
+  labels:
+    app: cloudflared-tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflared-tunnel
+    spec:
+      containers:
+        - name: cloudflared
+          image: ghcr.io/cloudflare/cloudflared:latest
+          args:
+            - "tunnel"
+            - "--no-autoupdate"
+            - "--metrics"
+            - "0.0.0.0:54162"
+            - "--credentials-file"
+            - "/etc/cloudflared/creds/credentials.json"
+            - "--config"
+            - "/etc/cloudflared/config/config.yml"
+            - "run"
+          ports:
+            - containerPort: 54162
+              name: metrics
+              protocol: TCP
+          env:
+            - name: TUNNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-secrets
+                  key: tunnel-id
+          volumeMounts:
+            - name: credentials
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: "200m"
+            requests:
+              memory: 64Mi
+              cpu: "100m"
+      volumes:
+        - name: credentials
+          secret:
+            secretName: cloudflared-secrets
+        - name: config
+          configMap:
+            name: cloudflared-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudflared-tunnel
+  namespace: haven
+  labels:
+    app: cloudflared-tunnel
+spec:
+  type: ClusterIP
+  selector:
+    app: cloudflared-tunnel
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 54162
+      targetPort: 54162

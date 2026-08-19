@@ -296,6 +296,12 @@
 
   # Trust Caddy Ingress local CA certificate
   security.caddyCa.enable = true;
+  # TPM-sealed GNOME keyring auto-unlock
+  security.gnomeKeyringTpm = {
+    enable = true;
+    keyringName = "login";
+    pcrList = [ "0" "7" ];
+  };
 
   # The Zephyr desktop workload menu may control only these four declared
   # system services. Keep this scoped to the exact unit names rather than

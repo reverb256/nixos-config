@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: haven
+  namespace: haven
+  labels:
+    app: haven
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: haven
+  template:
+    metadata:
+      labels:
+        app: haven
+    spec:
+      containers:
+        - name: haven
+          image: ghcr.io/ancsemi/haven:latest
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: haven-secrets
+                  key: jwt-secret
+            - name: VAPID_EMAIL
+              value: "mail@reverb256.ca"
+            # Haven auto-generates VAPID keys on first boot if not provided
+            # Haven auto-generates JWT_SECRET on first boot if not provided
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: "500m"
+            requests:
+              memory: 256Mi
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: haven
+  namespace: haven
+  labels:
+    app: haven
+spec:
+  selector:
+    app: haven
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

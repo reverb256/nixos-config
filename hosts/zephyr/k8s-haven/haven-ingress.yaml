@@ -1,0 +1,37 @@
+# Haven ingress using Caddy Ingress Controller
+# This is an alternative to the cloudflared approach - using Caddy as ingress
+# Haven.reverb256.ca points to nexus NodePort 32100 via Caddy
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: caddy
+  annotations:
+    ingress.cattle.io/sync: "true"
+spec:
+  controller: caddy
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: haven-ingress
+  namespace: haven
+  annotations:
+    # Caddy ingress annotations
+    caddy.routing.01: "[[routes]]"
+    caddy.routing.02: "handle_path @proxy_haven"
+  labels:
+    app: haven
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: haven.reverb256.ca
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              http:
+                service:
+                  name: haven
+                  port:
+                    number: 3000

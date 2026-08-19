@@ -44,6 +44,7 @@
   # default-priority overrides compose correctly.
   ./modules/system/oomd-fleet.nix
   ./modules/system/chronyd.nix
+  ./modules/system/gnome-keyring-tpm.nix
 
   ./modules/default.nix
 
