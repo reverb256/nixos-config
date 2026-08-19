@@ -249,7 +249,7 @@ in {
       };
     };
     # Zsh shell integration (read secrets into env for interactive use)
-    programs.zsh.interactiveShellInit = mkIf cfg.enableShellEnv ''
+    programs.zsh.initExtra = mkIf cfg.enableShellEnv ''
       # AI Coding Tools - Load API keys from sops secrets
       if [ -f ${cfg.context7ApiKeyFile} ]; then
         export CONTEXT7_API_KEY="$(cat ${cfg.context7ApiKeyFile})"
