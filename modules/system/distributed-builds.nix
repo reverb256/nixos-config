@@ -177,9 +177,10 @@ in {
   # ── cachix watch-store: continuous auto-push to reverb-os cachix ──
   # Safety net on top of the post-build-hook: pushes every new store path
   # as it lands (incl. substituted/cloned closures), not just locally-built
-  # outputs. Runs on the cache publisher hosts (nexus/sentry); only Nexus
-  # is a build executor. Zephyr never builds (max-jobs=0, RAM-constrained)
-  # and Forge is the GPU miner (do not disturb). Idle-priority so it never
+  # outputs. Runs on the cache publisher hosts (nexus/sentry). Zephyr builds
+  # locally and as a remote builder since 2026-08-18/19, but is not a cache
+  # publisher (its uploads would compete with interactive desktop use), and
+  # Forge is the GPU miner (do not disturb). Idle-priority so it never
   # contends with builds/mining.
   systemd.services.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     description = "Push new store paths to reverb-os cachix";
@@ -299,9 +300,27 @@ in {
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 0;
-              speedFactor = 1; # non-builder / dispatch target
-              supportedFeatures = [];
+              # 2026-08-19: was maxJobs = 0 ("zephyr never builds"), which was
+              # left behind when zephyr's OWN nix.settings.max-jobs was restored
+              # to 2 on 2026-08-18 (the OOM root cause was a llama
+              # misconfiguration, since resolved). The stale 0 here meant nexus
+              # would never dispatch a derivation to zephyr, so the cluster had
+              # exactly one usable remote builder (sentry) while a 32-thread
+              # workstation sat idle during multi-hour deploys.
+              #
+              # maxJobs=2 mirrors zephyr's own max-jobs; combined with its
+              # cores=8 that is 16 of 32 logical threads (50%), leaving 16 for
+              # desktop, gaming, and gaming VMs.
+              maxJobs = 2;
+              # speedFactor below nexus (10) and sentry (6): zephyr is the
+              # interactive workstation, so it should be chosen last when other
+              # builders have capacity.
+              speedFactor = 3;
+              connectTimeout = 1;
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
               mandatoryFeatures = [];
             }
             {
@@ -441,8 +460,8 @@ in {
   # every llama.cpp patch recompiled all 967 units from scratch (30-40 min).
   # programs.ccache re-overrides the named packages with ccacheStdenv
   # (compilers wrapped by ccache); measured rebuild speedup ~89% (nixpkgs
-  # PR #7082). Gated to the builder hosts (nexus/sentry): zephyr never
-  # builds (max-jobs=0) and forge is the GPU miner.
+  # PR #7082). Gated to the cache-publishing builders (nexus/sentry); zephyr
+  # builds too but keeps its disk for desktop/games, and forge is the GPU miner.
   programs.ccache = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     enable = true;
     cacheDir = "/var/cache/ccache";
