@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Cachix
         # pin:cachix/cachix-action@v17
@@ -102,7 +102,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Cachix
         # pin:cachix/cachix-action@v17

@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -49,7 +49,8 @@ jobs:
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI=
 
       - name: Configure Cachix
-        uses: cachix/cachix-action@v12
+        # pin:cachix/cachix-action@v17
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
         with:
           name: reverb-os
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
