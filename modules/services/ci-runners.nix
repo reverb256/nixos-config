@@ -9,10 +9,16 @@
 # Usage in hosts/<host>/services.nix:
 #   let ciRunners = import ../../modules/services/ci-runners.nix { inherit lib pkgs; };
 #   in (ciRunners { instances = { quill = { ... }; }; }) // { ...rest of config... }
-{
-  lib,
-  pkgs,
-}: {instances ? {}}: let
+#
+# SELF-HEALING (2026-08-19): GitHub auto-deletes runner registrations that
+# have not connected recently. The main service then exits cleanly (no crash),
+# so Restart= never fires and CI silently dies. Each runner now gets:
+#   - a daily re-registration timer (quiet hour 04:00 local), and
+#   - a path unit that re-registers the instant the PAT file rotates.
+# Both call `config.sh --replace` idempotently. Root-cause fix for the
+# "runner registration deleted from server, please re-configure" outage.
+{ lib, pkgs, }: { instances ? { } }:
+let
   mkRunner = name: inst: let
     user = inst.user or "runner";
     inherit (inst) repo;
@@ -22,43 +28,75 @@
     # Use the node20-compatible runner package from the overlay so legacy
     # node20-based actions (e.g. codeql-action v3) can start on this host.
     runnerPkg = pkgs.github-runner-with-node20 or pkgs.github-runner;
-    labels = inst.labels or ["nixos"];
-    extraLabels = inst.extraLabels or [];
+    labels = inst.labels or [ "nixos" ];
+    extraLabels = inst.extraLabels or [ ];
     memoryHigh = inst.memoryHigh or "16G";
     memoryMax = inst.memoryMax or "24G";
     runnerHome = "/var/lib/${user}";
     svcName = "github-actions-runner-${name}";
     setupSvcName = "github-actions-runner-setup-${name}";
-    getTokenCmd =
-      if tokenFile != null
-      then ''
-        TOKEN=$(cat "${tokenFile}")
-        echo "Using pre-generated runner token from ${tokenFile}"
-      ''
-      else if patFile != null
-      then ''
-        echo "Generating runner registration token from PAT..."
-        PAT=$(cat "${patFile}")
-        API_RESPONSE=$(curl -s -X POST \
-          -H "Authorization: Bearer $PAT" \
-          -H "Accept: application/vnd.github+json" \
-          "https://api.github.com/repos/${repo}/actions/runners/registration-token")
-        TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
-        if [ -z "$TOKEN" ]; then
-          echo "ERROR: Failed to generate runner token from PAT"
-          echo "API response: $API_RESPONSE"
-          exit 1
-        fi
-        echo "Successfully generated runner token"
-      ''
-      else ''
-        echo "ERROR: Neither tokenFile nor patFile is provided/available"
+    reregSvcName = "github-actions-runner-reregister-${name}";
+    getTokenCmd = if tokenFile != null then ''
+      TOKEN=$(cat "${tokenFile}")
+      echo "Using pre-generated runner token from ${tokenFile}"
+    '' else if patFile != null then ''
+      echo "Generating runner registration token from PAT..."
+      PAT=$(cat "${patFile}")
+      API_RESPONSE=$(curl -s -X POST \
+        -H "Authorization: Bearer ***" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/${repo}/actions/runners/registration-token")
+      TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
+      if [ -z "$TOKEN" ]; then
+        echo "ERROR: Failed to generate runner token from PAT"
+        echo "API response: $API_RESPONSE"
         exit 1
-      '';
+      fi
+      echo "Successfully generated runner token"
+    '' else ''
+      echo "ERROR: Neither tokenFile nor patFile is provided/available"
+      exit 1
+    '';
+    # Wait for the PAT file to mount (secretspec may lag boot) before
+    # registering. Poll up to 5 min, then fail loudly if genuinely absent.
+    waitForPat = if patFile != null then ''
+      if [ ! -f "${patFile}" ]; then
+        echo "Waiting for PAT file ${patFile} to mount (secretspec may lag boot)..."
+        for i in $(seq 1 60); do
+          [ -f "${patFile}" ] && break
+          sleep 5
+        done
+      fi
+      if [ ! -f "${patFile}" ]; then
+        echo "ERROR: PAT file ${patFile} still missing after 5 min wait"
+        exit 1
+      fi
+    '' else "";
+    # The registration command, shared by the setup unit and the self-heal
+    # re-registration unit. Idempotent via --replace.
+    registerCmd = ''
+      ${waitForPat}
+      rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
+            "${runnerHome}/.credentials_rsaparams" \
+            "${runnerHome}/.runner_migrated" \
+            "${runnerHome}/.github-runner/.runner" \
+            "${runnerHome}/.github-runner/.credentials" \
+            "${runnerHome}/.github-runner/.credentials_rsaparams" \
+            "${runnerHome}/.github-runner/.runner_migrated"
+      ${getTokenCmd}
+      ${runnerPkg}/bin/config.sh \
+        --url "https://github.com/${repo}" \
+        --token "$TOKEN" \
+        --name "${displayName}" \
+        --labels "${allLabels}" \
+        --replace \
+        --unattended
+      echo "Runner (re)registered successfully"
+    '';
     allLabels = lib.concatStringsSep "," (labels ++ extraLabels);
     displayName = inst.runnerName or null;
   in {
-    users.groups.${user} = {};
+    users.groups.${user} = { };
     users.users.${user} = {
       isSystemUser = true;
       group = user;
@@ -91,9 +129,9 @@
 
     systemd.services.${svcName} = lib.mkIf autoStart {
       description = "GitHub Actions Self-Hosted Runner (${name})";
-      after = ["network-online.target" "${setupSvcName}.service"];
-      wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      after = [ "network-online.target" "${setupSvcName}.service" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
         User = user;
@@ -130,7 +168,7 @@
         ];
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadWritePaths = [runnerHome];
+        ReadWritePaths = [ runnerHome ];
         MemoryHigh = memoryHigh;
         MemoryMax = memoryMax;
       };
@@ -138,51 +176,11 @@
 
     systemd.services.${setupSvcName} = {
       description = "GitHub Actions Runner Setup (${name})";
-      before = ["${svcName}.service"];
-      requiredBy = ["${svcName}.service"];
+      before = [ "${svcName}.service" ];
+      requiredBy = [ "${svcName}.service" ];
       # coreutils for the PAT-ready poll loop (seq/sleep) below.
-      path = [pkgs.coreutils pkgs.curl pkgs.jq runnerPkg];
-      script = ''
-        # Wait for the registration secret (PAT token file) to mount before
-        # registering. A failed oneshot does NOT auto-retry when the secret
-        # appears late (e.g. secretspec-creds mounts after this unit boots),
-        # so the runner stays offline indefinitely with no listener. Poll up
-        # to 5 min, then proceed — setup still fails loudly if the secret is
-        # genuinely absent (drift / wrong wiring).
-        ${
-          if patFile != null
-          then ''
-            if [ ! -f "${patFile}" ]; then
-              echo "Waiting for PAT file ${patFile} to mount (secretspec may lag boot)..."
-              for i in $(seq 1 60); do
-                [ -f "${patFile}" ] && break
-                sleep 5
-              done
-            fi
-            if [ ! -f "${patFile}" ]; then
-              echo "ERROR: PAT file ${patFile} still missing after 5 min wait"
-              exit 1
-            fi
-          ''
-          else ""
-        }
-        rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
-              "${runnerHome}/.credentials_rsaparams" \
-              "${runnerHome}/.runner_migrated" \
-              "${runnerHome}/.github-runner/.runner" \
-              "${runnerHome}/.github-runner/.credentials" \
-              "${runnerHome}/.github-runner/.credentials_rsaparams" \
-              "${runnerHome}/.github-runner/.runner_migrated"
-        ${getTokenCmd}
-        ${runnerPkg}/bin/config.sh \
-          --url "https://github.com/${repo}" \
-          --token "$TOKEN" \
-          --name "${displayName}" \
-          --labels "${allLabels}" \
-          --replace \
-          --unattended
-        echo "Runner configured successfully"
-      '';
+      path = [ pkgs.coreutils pkgs.curl pkgs.jq runnerPkg ];
+      script = registerCmd;
       environment = {
         RUNNER_ROOT = runnerHome;
       };
@@ -191,6 +189,44 @@
         RemainAfterExit = true;
         User = user;
         WorkingDirectory = runnerHome;
+      };
+    };
+
+    # ── SELF-HEAL: daily + PAT-rotation re-registration ──────────────────
+    # GitHub auto-deletes runner registrations that haven't connected
+    # recently. A clean exit (not a crash) means Restart= never fires, so CI
+    # dies silently. These units re-run `config.sh --replace` idempotently.
+    systemd.services.${reregSvcName} = {
+      description = "GitHub Actions Runner re-registration (self-heal) (${name})";
+      path = [ pkgs.coreutils pkgs.curl pkgs.jq runnerPkg ];
+      script = registerCmd;
+      environment = {
+        RUNNER_ROOT = runnerHome;
+      };
+      serviceConfig = {
+        Type = "oneshot";
+        User = user;
+        WorkingDirectory = runnerHome;
+      };
+    };
+
+    systemd.timers.${reregSvcName} = {
+      description = "Daily GitHub Actions Runner re-registration (self-heal) (${name})";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        # Quiet hour; RandomizedDelaySec spreads the fleet.
+        OnCalendar = "*-*-* 04:00:00";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
+  } // lib.optionalAttrs (patFile != null) {
+    # Re-register the instant the PAT file changes (rotation / re-key).
+    systemd.paths.${reregSvcName} = {
+      description = "Trigger runner re-registration on PAT rotation (${name})";
+      wantedBy = [ "paths.target" ];
+      pathConfig = {
+        PathChanged = patFile;
       };
     };
   };
