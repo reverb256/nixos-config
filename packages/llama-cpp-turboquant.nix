@@ -30,20 +30,17 @@
   ...
 }:
 let
-  # Patch the fork with the reranker classifier head (LLM_TENSOR_CLS/CLS_OUT in
-  # llama_model_llama::load_arch_tensors). The generic llama_model::build_graph
-  # -> build_pooling(LLAMA_POOLING_TYPE_RANK) applies the head; without these
-  # tensors RANK pooling returns empty. Needed for llama-nemotron-rerank-1b-v2.
-  # The package.nix we delegate to reads `lib.cleanSource ../../.` relative to
-  # its own path, so applyPatches on the input gives it the patched tree.
-  # NB: paths in Nix derivation args resolve from the flake ROOT, so the patch
-  # is referenced as ../patches/... (this file lives in packages/).
-  forkSource = pkgs.applyPatches {
-    name = "llama-cpp-turboquant-fca3093-rerank";
-    src = llama-cpp-turboquant;
-    patches = [ ../patches/rerank-llama-embed.patch ];
-  };
-  packageNix = "${forkSource}/.devops/nix/package.nix";
+  # NO IFD: import the fork's package.nix directly from the flake input path
+  # (a plain source path, not a derivation). The previous version did
+  #   forkSource = pkgs.applyPatches { ... };
+  #   packageNix = "${forkSource}/.devops/nix/package.nix";
+  # which string-interpolates a DERIVATION into a path -> import-from-
+  # derivation. That made `nix flake check --no-build` fail on a cold store
+  # ("...-llama-cpp-turboquant-fca3093-rerank.drv did not exist in the store
+  # during evaluation") and blocked every nixpkgs bump (PR #701, issue #713).
+  # The rerank patch is now applied at BUILD time via overrideAttrs.patches
+  # below (equivalent result: same patch on the same tree).
+  packageNix = "${llama-cpp-turboquant}/.devops/nix/package.nix";
 in
 let
   # The fork's package.nix at the pinned rev (main-qwen35 @ 329c616c) does NOT
@@ -76,6 +73,13 @@ let
   };
 in
 base.overrideAttrs (old: {
+  # Reranker classifier head (LLM_TENSOR_CLS/CLS_OUT in
+  # llama_model_llama::load_arch_tensors). The generic llama_model::build_graph
+  # -> build_pooling(LLAMA_POOLING_TYPE_RANK) applies the head; without these
+  # tensors RANK pooling returns empty. Needed for llama-nemotron-rerank-1b-v2.
+  # Applied at build time instead of eval-time applyPatches to avoid the IFD
+  # (see the forkSource comment above).
+  patches = (old.patches or []) ++ [ ../patches/rerank-llama-embed.patch ];
   cmakeFlags = (old.cmakeFlags or []) ++ [
     (lib.cmakeFeature "CMAKE_C_FLAGS" "-march=x86-64-v3")
     (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-march=x86-64-v3")
