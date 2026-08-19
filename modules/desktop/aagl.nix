@@ -43,7 +43,7 @@
   # The session variable only fixes NEW sessions. These wrappers export the
   # correct path before exec so the launcher process (and every wine it
   # spawns) gets the right env regardless of when the session started.
-
+  #
   # 2026-08-15: NO VK_DRIVER_FILES here anymore. The steam-run FHS rootfs
   # in the current nixpkgs ships the NVIDIA ICD at the standard
   # /usr/share/vulkan/icd.d/nvidia_icd.json (verified present in the current
@@ -52,6 +52,7 @@
   # actively broke when the sandbox mounted its own /etc/xdg (no vulkan dir)
   # -> loader found no driver -> DXVK 'vkCreateInstance res=-9'. The loader
   # finds the driver normally inside the fixed FHS, with no env vars.
+  #
   # 2026-08-15 FUNDAMENTAL FIX: the aagl launcher builds its own custom FHS
   # (pkgs/wrapAAGL/fhsenv.nix) with vulkan-loader but NOT the NVIDIA driver,
   # so the sandbox lacks /usr/share/vulkan/icd.d/nvidia_icd.json and every
@@ -89,6 +90,7 @@
         sys.exit(0)  # corrupt/unreadable: leave for the launcher to repair
     wine = cfg.setdefault("game", {}).setdefault("wine", {})
     wine["sync"] = "Off"
+    wine["winewayland"] = True
     env = cfg.setdefault("game", {}).setdefault("environment", {})
     if isinstance(env, dict):
         env.pop("WINEFSYNC", None)
@@ -97,6 +99,24 @@
     PYEOF
     fi
   '';
+
+  # 2026-08-19: Enable winewayland + HDR for aagl wine games.
+  # PROTON_ENABLE_WAYLAND=1 makes Wine use the native Wayland driver.
+  # PROTON_ENABLE_HDR=1 enables HDR via DXVK/VKD3D-Proton Wayland path.
+  # Unset DISPLAY so Wine Wayland driver activates (per ArchWiki HDR).
+  # FSR upscaling for sub-4K games on 4K TV. Only on hdr-enabled hosts.
+  winewaylandEnv = ''
+    export PROTON_ENABLE_WAYLAND=1
+    export PROTON_ENABLE_HDR=1
+    export DXVK_HDR=1
+    export WINE_FULLSCREEN_FSR=1
+    export WINE_FULLSCREEN_FSR_MODE=ultra
+    export __GL_SHADER_DISK_CACHE=1
+    export __GL_SHADER_DISK_CACHE_PATH=/var/cache/nvidia-shader-cache
+    unset DISPLAY
+  '';
+  # Only apply winewayland+SDR env when hdr host; otherwise keep base fix.
+  hdrEnvBlock = lib.optionalString (config.services.gaming.hdr.enable or false) winewaylandEnv;
 
   # Wrap an aagl launcher package so it always exports the correct
   # NVIDIA Vulkan ICD, drops the gamescope WSI layer before exec, and
@@ -127,11 +147,12 @@
   # for the game.
   wrapLauncherEnv = launcherPkg: let
     wrapper = pkgs.writeShellScriptBin launcherPkg.pname ''
-      unset ENABLE_GAMESCOPE_WSI PROTON_ENABLE_HDR
+      unset ENABLE_GAMESCOPE_WSI
+      ${hdrEnvBlock}
       export DXVK_HDR=1
       # Enforce safe wine sync (2026-08-16). __LAUNCHER__ substituted below
       # because writeShellScriptBin does not interpolate $HOME at build time.
-      ${builtins.replaceStrings ["__LAUNCHER__"] [launcherPkg.pname] syncFix}
+      ${builtins.replaceStrings [''__LAUNCHER__''] [''launcherPkg.pname''] syncFix}
       exec ${launcherPkg}/bin/${launcherPkg.pname} "$@"
     '';
     # Reuse the original package's desktop entry and icon data, but rewrite
@@ -155,7 +176,7 @@
       # shell redirect onto it fails with Permission denied.
       if [ -f ${desktopSrc} ]; then
         rm -f $out/share/applications/${launcherPkg.pname}.desktop
-        ${pkgs.gawk}/bin/awk -v exe="${wrapper}/bin/${launcherPkg.pname}" '
+        ${pkgs.gawk}/bin/awk -v exe="${wrapper}/bin/${launcherPkg.pname}"' \
           /^Exec=/ { print "Exec=" exe; next }
           { print }
         ' ${desktopSrc} > $out/share/applications/${launcherPkg.pname}.desktop
