@@ -567,6 +567,33 @@
     persistent = true;
   };
 
+  # Unified autoupdate: cross-empowers peakminer + hermes-agent version
+  # bumps into a single declarative config + systemd timer.
+  # Runs daily on sentry (not zephyr — workstation rule).
+  services.unified-autoupdate = {
+    enable = true;
+    schedule = "*-*-* 06:00:00";  # daily at 6 AM UTC
+    programs = {
+      peakminer = {
+        github = "peakminer/peakminer";
+        nixPkg = "pkgs/peakminer.nix";
+        bumpScript = "scripts/peakminer-bump.py";
+        commit = true;  # ring-3 auto-commit to main
+      };
+      hermes-agent = {
+        github = "NousResearch/hermes-agent";
+        nixProfile = true;
+        hosts = [
+          "j_kro@10.1.1.110"   # zephyr
+          "j_kro@10.1.1.120"   # nexus
+          "j_kro@10.1.1.130"   # forge
+          "j_kro@10.1.1.140"   # sentry
+        ];
+      };
+    };
+  };
+
+
   # ── 2026-07-28 sentry boot-error fixes ──────────────────────────────────
   # Enable kdump so the next kernel panic leaves a /var/crash/* dmesg trace.
   # Previous Zen 1 lockups vanished into the cold-reboot ring-buffer flush,
