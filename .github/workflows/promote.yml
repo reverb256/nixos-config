@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: promote-prod
@@ -45,10 +45,15 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Configure git
+      - name: Configure git + PAT remote (token-scope push triggers prod-guard + deploy)
+        env:
+          REPO_PAT: ${{ secrets.REPO_PAT }}
         run: |
           git config user.name "prod-promotion-bot"
           git config user.email "bot@reverb256.local"
+          # GITHUB_TOKEN cannot trigger push-triggered workflows; a PAT with
+          # workflow scope can. This is the only writer to prod.
+          git remote set-url origin "https://x-access-token:${REPO_PAT}@github.com/reverb256/nixos-config.git"
 
       - name: Fast-forward prod to main
         run: |
@@ -88,7 +93,7 @@ jobs:
             git commit -m "promote: sync prod to main + pin home-manager-config master"
           fi
 
-      - name: Force-push prod (ONLY writer to prod)
+      - name: Force-push prod (ONLY writer to prod; fires prod-guard + deploy)
         run: |
           git push --force origin prod
           echo "✓ prod force-synced to main"
