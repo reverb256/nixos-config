@@ -132,6 +132,7 @@
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/auto-update.nix
+    ./services/unified-autoupdate.nix
     ./services/hermes/default.nix
     ./services/hermes-cli.nix
     ./services/hermes-a2a-mesh.nix # Shared A2A mesh peers (4-host gateways, dendritic SPOC)
