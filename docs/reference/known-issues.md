@@ -133,19 +133,25 @@ replace) should not brick the host. The plaintext key at
 **fallback**: disable the TPM module, and secretspec reverts to the static
 key.
 
-### Re-sealing after TPM/hardware changes
+### Re-sealing after TPM/hardware changes (automatic)
 
-After a motherboard replacement, TPM firmware update, or firmware setting
-change (which alters PCR 0):
+`tpm2-unseal-age.service` auto-detects PCR drift (unseal failure) and,
+if the source age key is present at `primaryKeyPath`, **automatically**:
+1. Evicts the stale persistent handle + removes old sealed blob metadata
+2. Re-seals the age key to the new PCR state
+3. Unseals the freshly-sealed key → `/run/secrets/cluster-age-key`
 
-1. Boot to the new PCR state
-2. Remove the stale sealed blob:
-   ```bash
-   sudo rm -rf /var/lib/tpm2-age-sealed
-   sudo tpm2_getcap handles-persistent | grep 0x81  # find stale handle
-   sudo tpm2_evictcontrol -C o -c 0x81000000        # evict stale persistent object
-   ```
-3. Reboot — `tpm2-unseal-age.service` detects no sealed blob exists and
-   auto-seals the age key to the new PCR state on first boot
-4. Verify: `sudo systemctl status tpm2-unseal-age.service` (should show
-   `active (exited)` and log "auto-sealed age key")
+This covers firmware updates, BIOS changes, and Secure Boot toggles —
+**no manual operator step**. The service logs `re-sealed and unsealed` on
+success.
+
+**Verify after a firmware/Secure Boot change:**
+
+```bash
+journalctl -u tpm2-unseal-age.service -b  # look for "re-sealed and unsealed"
+```
+
+If the source key is unavailable (e.g. `/etc/nixos/.age/key.txt` was removed),
+the service fails open — SecretSpec falls back to whatever key file is
+configured, and you see `SecretSpec will use the static key fallback` in the
+journal.
