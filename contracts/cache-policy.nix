@@ -15,7 +15,7 @@
     "https://ezkea.cachix.org?priority=35"
     "https://maplespike.cachix.org?priority=35"
     "https://reverb-os.cachix.org?priority=80"
-    "http://10.1.1.110:50000?priority=90&want-mass-query=true"
+    "http://10.1.1.120:50000?priority=90&want-mass-query=true"
   ];
 
   trustedPublicKeys = [
@@ -30,7 +30,7 @@
     "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
     "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
     "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-    "nexus-cache-1:8WNO4GB+UQRYme8rH75qlg1owuyRI52AklG7Ll9hOSw="
+    "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
   ];
 
   # Names are intentionally explicit: these derivations are not expected to
