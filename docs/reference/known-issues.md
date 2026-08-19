@@ -94,3 +94,53 @@ requirement, so YAML envelopes are the new normal.
 - The AppImage runtime was broken anyway (`libz.so.1: wrong ELF class`); the
   icon (`usr/share/icons/hicolor/512x512/apps/@codebufffreebuff-desktop.png`)
   ships from the NixOS module instead (`modules/services/assets/freebuff-icon.png`).
+
+## TPM 2.0 age-key binding (2026-08-19)
+
+### Secure Boot state
+
+`bootctl status` on all 4 hosts reports **Secure Boot disabled**:
+
+| Host | Status |
+|---|---|
+| zephyr | disabled |
+| nexus | disabled (setup mode) |
+| forge | disabled |
+| sentry | disabled (setup mode) |
+
+This matters because the TPM seal in `modules/system/tpm2-age-binding.nix`
+binds to PCR 7 (the Secure Boot policy PCR). With Secure Boot off, PCR 7
+reflects the "no Secure Boot" value. The seal is valid — it means "unseal
+only when firmware (PCR 0) is unchanged AND Secure Boot stays off (PCR 7)."
+
+If you later **enable** Secure Boot, PCR 7 changes and the sealed key will
+not unseal. Re-seal afterward:
+
+```bash
+sudo systemctl start tpm2-seal-age-keygen.service
+```
+
+### TPM unseal failure mode (fail-open)
+
+`tpm2-unseal-age.service` exits 0 on failure (no sealed blob, PCR mismatch,
+or TPM error). It does **not** block boot. The consequence:
+`secretspec-creds.service` starts, can't find `/run/secrets/cluster-age-key`,
+and fails with a clear "age key file not found" error.
+
+This is intentional — a TPM failure (firmware update, CMOS clear, hardware
+replace) should not brick the host. The plaintext key at
+`/etc/nixos/.age/key.txt` (or the host-specific path) remains as a
+**fallback**: disable the TPM module, and secretspec reverts to the static
+key.
+
+### Re-sealing after TPM/hardware changes
+
+After a motherboard replacement, TPM firmware update, or firmware setting
+change (which alters PCR 0):
+
+1. Boot to the new PCR state
+2. `sudo systemctl start tpm2-seal-age-keygen.service` on each affected host
+3. Verify unseal works: `sudo systemctl status tpm2-unseal-age.service`
+
+There is no automated re-seal on PCR mismatch — that would defeat the
+purpose of hardware-bound sealing.
