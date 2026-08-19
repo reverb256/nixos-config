@@ -30,7 +30,6 @@ jobs:
         with:
           ref: prod
           fetch-depth: 0
-          ssh-key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
 
       - name: Check author of pushed HEAD
         id: check

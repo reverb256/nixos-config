@@ -4,7 +4,7 @@ name: Deploy
 on:
   # prod is the deploy branch. It is only ever updated by promote.yml (the
   # promotion bot), which force-syncs main + pins Layer-2. Deploys run from
-  # prod, gated by the `prod` environment (required reviewer, set in GitHub UI).
+  # prod, gated by prod-guard.yml (bot-only writes) — no human in the loop.
   push:
     branches: [prod]
   workflow_dispatch:
@@ -33,7 +33,6 @@ jobs:
     if: github.ref == 'refs/heads/prod'
     name: Deploy to Cluster
     runs-on: ${{ fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
-    environment: prod
     timeout-minutes: 360
     steps:
       - name: Checkout
