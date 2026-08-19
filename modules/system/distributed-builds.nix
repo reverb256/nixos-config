@@ -34,7 +34,7 @@ in {
               # CPU-headroom reservation. Per-host build-thread budget is
               # (max-jobs * cores) as a share of logical cores:
               #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
-              #   sentry 16 logical -> 2*4 =  8 threads = 50%, 8 reserved
+              #   sentry 16 logical -> 2*6 = 12 threads = 75%, 4 reserved
               #   zephyr 32 logical -> 2*8 = 16 threads = 50%, 16 reserved
               #   forge   6 logical -> 1*2 =  2 threads = 33%, 4 reserved
               # zephyr is a workstation — 16 threads for concurrent builds,
@@ -51,7 +51,12 @@ in {
               else if currentHost == "nexus"
               then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
               else if currentHost == "sentry"
-              then 4 # R7 1700 = 16 logical; 2*4=8 threads, 50% reserved
+              then 6 # R7 1700 = 16 logical; 2*6=12 threads (75%), 4 reserved.
+                     # Raised from 4 (50%) on 2026-08-19: sentry's crashes were
+                     # proven to be ENOSPC (journald watchdog timeout on a full
+                     # disk), NOT CPU saturation, so the extra headroom was
+                     # buying nothing. k3s control plane + Vulkan inference keep
+                     # 4 threads.
               else if currentHost == "forge"
               then 2 # i5-9500 = 6 logical; 1*2=2 threads, 4 reserved for miners
               else 2
@@ -70,7 +75,8 @@ in {
               else if currentHost == "nexus"
               then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
               else if currentHost == "sentry"
-              then 2 # x cores=4 ->  8 of 16 logical threads (50%); control-plane headroom
+              then 2 # x cores=6 -> 12 of 16 logical threads (75%); 4 reserved
+                     # for the k3s control plane and Vulkan inference
               else if currentHost == "forge"
               then 1 # ONE job only: mining is revenue-critical, so keep build
                      # concurrency minimal. 1*cores=2 -> 2 of 6 threads (33%).
@@ -388,9 +394,9 @@ in {
               # ssh-ng fine under this config since. If it wedges again,
               # flip protocol to "ssh" (nix-store --serve, no pipe-drain path).
               # maxJobs=2 syncs with sentry's own nix.settings.max-jobs. The
-              # per-job thread count is set by sentry's nix.settings.cores=4,
-              # capping it at 8 of 16 logical threads (50%) — sentry also runs
-              # the k3s control plane and Vulkan inference. (2026-08-18)
+              # per-job thread count is set by sentry's nix.settings.cores=6,
+              # capping it at 12 of 16 logical threads (75%) — sentry also runs
+              # the k3s control plane and Vulkan inference. (2026-08-19)
               protocol = "ssh-ng";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";

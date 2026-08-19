@@ -11,25 +11,68 @@ in {
     enable = mkEnableOption "NVIDIA tuning + Samsung TV HDR config for niri";
   };
 
-  # The live niri configuration (Samsung TV HDR output + NVIDIA presentation
-  # debug flags) is rendered by the standalone home-manager-config flake:
-  # modules/niri-config.nix + modules/niri-outputs.nix write
-  # ~/.config/niri/config.kdl. In this 3-layer setup the NixOS-level
-  # programs.niri module does NOT emit that per-user file, so any NixOS-side
-  # programs.niri.settings assignment is orphaned (evaluated, never rendered).
-  # The single source of truth lives in home-manager-config.
-  #
-  # Fork schema (DOCUMENTATION ONLY — do not re-add as NixOS settings):
-  #   output "Samsung Electric Company SAMSUNG 0x01000E00" {
-  #       max-bpc 10
-  #       hdr mode="on" {
-  #           reference-luminance 300   # value applied by niri-outputs.nix
-  #       }
-  #   }
-  # Reference: home-manager-config/modules/niri-outputs.nix (zephyr raw KDL append).
+  # Declare programs.niri.settings as a free-form attrset option.
+  # The pinned nixpkgs version (9ae611a4) doesn't include programs.niri.settings
+  # as a declared sub-option; home-manager's niri config provides it via
+  # the sodiboo/niri-flake homeModules, but the NixOS-level module doesn't.
+  # Declaring it here avoids evaluation failure while keeping the options
+  # available for runtime niri config generation.
+  options.programs.niri.settings = lib.mkOption {
+    type = lib.types.attrsOf lib.types.anything;
+    default = {};
+    description = "Niri compositor settings (declared locally for niri-hdr-samsung)";
+  };
+
   config = mkIf cfg.enable {
-    # NVIDIA application profile to fix VRAM leak in niri. This is the only
-    # live, non-duplicated setting this module owns.
+    # NOTE 2026-08-08 (settings layer): NixOS-level programs.niri.settings is
+    # ORPHANED — the live config the session reads is ~/.config/niri/config.kdl,
+    # rendered by home-manager from home-manager-config/modules/niri-config.nix
+    # (+ niri-outputs.nix). This block is kept as authoritative DOCUMENTATION of
+    # the fork schema only; it does NOT reach the running compositor. The
+    # effective HDR settings live in the home-manager-config repo's
+    # niri-outputs.nix (zephyr raw KDL append keyed on the TV's EDID identity
+    # "Samsung Electric Company SAMSUNG 0x01000E00": max-bpc 10 + hdr
+    # mode="on" { reference-luminance 203 } + debug flags as typed settings).
+    #
+    # DURABILITY (2026-08-08): outputs are keyed on EDID identity, NOT connector
+    # names — DP-2/DP-1/DP-3/HDMI-A-1 renumber whenever the secondary GPU is
+    # VFIO-blacklisted. Verify identities with `niri msg outputs`.
+    #
+    # Fork schema (verified against fork source 2026-08-07):
+    #   output "Samsung Electric Company SAMSUNG 0x01000E00" {
+    #       max-bpc 10
+    #       hdr mode="on" {   # HdrMode: "auto" (default) | "on"
+    #           reference-luminance 203
+    #       }
+    #   }
+    # Mainline niri has max-bpc but NOT the hdr { } block (HDR via EDID only).
+    programs.niri.settings = {
+      # NVIDIA-specific debug flags (mainline schema, free-form KDL args)
+      debug = {
+        # NVIDIA DRM presentation timestamps unreliable; use fixed schedule.
+        emulate-zero-presentation-time = true;
+        # Mitigate swapchain present overhead on NVIDIA.
+        wait-for-frame-completion-before-queueing = true;
+      };
+
+      # Samsung TV HDR output config (EDID identity, durable across connector
+      # renumbering). Uses the HDR fork's hdr { } block for full HDR metadata
+      # signalling. reference-luminance: SDR white level in nits
+      #   203 = Samsung QD-OLED/QN90A typical
+      #   150 = darker SDR content (less aggressive tone mapping)
+      #   250 = brighter (might clip highlights)
+      outputs = {
+        "Samsung Electric Company SAMSUNG 0x01000E00" = {
+          bpc = 10;
+          hdr = {
+            mode = "on";
+            reference-luminance = 203;
+          };
+        };
+      };
+    };
+
+    # NVIDIA application profile to fix VRAM leak in niri
     hardware.nvidia-niri-profile.enable = true;
   };
 }
