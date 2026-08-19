@@ -93,7 +93,7 @@ in
     ];
 
     systemd.tmpfiles.rules = [
-      "d ${runtimeKeyPath%/*} 0750 root root -"
+      "d /run/secrets 0750 root root -"
     ];
 
     # One-time key generation service: reads the source age key, creates
