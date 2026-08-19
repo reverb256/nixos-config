@@ -9,6 +9,40 @@
 
   # Push gateway image to local container registry after k3s loads it.
   # Needed for HA: sentry gateway pod pulls from nexus:5000 instead of needing pre-loaded image.
+  #
+  # Declarative registry container (replaces the bare `podman run` drift).
+  # The registry runs as a podman container managed by systemd with
+  # Restart=always so it survives reboots. Data persists at
+  # /home/j_kro/registry-data (-> /var/lib/registry in-container).
+  systemd.services.quill-registry-container = {
+    description = "Quill OCI Registry (nexus:5000)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" "podman.service" ];
+    wants = [ "network-online.target" ];
+    path = with pkgs; [ podman ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = pkgs.writeShellScript "quill-registry-start" ''
+        set -euo pipefail
+        # Create the container if it does not exist yet.
+        if ! podman inspect quill-registry >/dev/null 2>&1; then
+          podman create \
+            --name quill-registry \
+            -p 5000:5000 \
+            -v /home/j_kro/registry-data:/var/lib/registry \
+            --restart always \
+            docker.io/library/registry:2
+        fi
+        # Detach-existing: podman start will reuse the running container
+        # and attach to its output.
+        exec podman start --attach --notify-ready=false quill-registry
+      '';
+      ExecStop = "${pkgs.podman}/bin/podman stop quill-registry";
+      Restart = "always";
+      RestartSec = "5s";
+    };
+  };
+
   systemd.services.push-gateway-to-registry = {
     description = "Push gateway image to local container registry";
     after = ["k3s.service"];
