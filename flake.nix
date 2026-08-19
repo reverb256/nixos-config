@@ -9,7 +9,7 @@
     # between builder and dispatcher). Pinning the rev makes every builder
     # resolve the SAME nixpkgs regardless of which host evaluates.
     # To bump nixpkgs: edit this rev AND run `nix flake update`.
-    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?rev=0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5";
+    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?rev=0ae2bc1419c3f345984c2629e72e7a631820fa4d";
     # Homelab Lix fork: build nix.package from the patched source instead of
     # nixpkgs' lix_2_95. The source of truth is the `homelab/2.96` branch of
     # reverb256/lix — a fork of lix-project/lix carrying the 4 homelab
