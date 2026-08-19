@@ -21,6 +21,10 @@ on:
         required: false
         default: "nixpkgs"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 concurrency:
   group: flake-lock-update
   cancel-in-progress: false
@@ -91,17 +95,25 @@ jobs:
             rm -f result
           done
 
-      - name: Commit and push changes
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci-bot@noreply.github.com"
-          git add flake.lock
-          git commit -m "chore: bump flake.lock inputs"
-          git push origin main
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773d
+        with:
+          title: "chore: bump flake.lock inputs"
+          body: |
+            Automated weekly flake.lock bump.
+
+            - Bumped inputs: ${{ github.event.inputs.inputs_to_update || 'nixpkgs' }}
+            - All 4 hosts built successfully
+            - All 4 host closures pushed to reverb-os.cachix.org
+
+            **Review required**: nixpkgs bumps rebuild the homelab Lix fork (`nix.package`). Test for performance regressions before merging — once merged, promote → deploy ships the new nix cluster-wide.
+          branch: chore/flake-lock-update
+          commit-message: "chore: bump flake.lock inputs"
+          delete-branch: true
 
       - name: Notify (advisory)
         if: always()
         run: |
           echo "Flake lock update complete."
           echo "Hosts built and pushed to reverb-os.cachix.org."
-          echo "Monitor target hosts' nixos-auto-update timers for pull-based deployment."
+          echo "PR created for review — test for performance regressions before merging."

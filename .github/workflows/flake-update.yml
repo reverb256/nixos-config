@@ -131,6 +131,9 @@ jobs:
             across the cluster. hermes-agent is no longer built by nixos-config
             (installed via the user nix profile) — only system/nixpkgs rebuilds apply.
 
+            **Lix fork**: nixpkgs bumps rebuild the homelab Lix fork (`nix.package`).
+            Test for performance regressions before merging — once merged, promote → deploy ships the new nix cluster-wide.
+
             Please review carefully before merging.
           branch: update/deps-nixpkgs
           commit-message: "chore(deps): update nixpkgs"
