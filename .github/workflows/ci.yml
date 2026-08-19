@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -100,7 +100,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -145,7 +145,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Fail on hardcoded /home/j_kro paths (issue #309)
         run: |
@@ -197,7 +197,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -265,7 +265,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -316,7 +316,7 @@ jobs:
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
