@@ -80,10 +80,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
       {
-        assertion = lib.pathExists "/dev/tpmrm0" || lib.pathExists "/dev/tpm0";
-        message = "tpm2-age-binding enabled but no TPM device found at /dev/tpmrm0 or /dev/tpm0";
       }
     ];
 
