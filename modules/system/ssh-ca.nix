@@ -123,6 +123,15 @@ in {
         j_kro
       ''}
 
+      # Serve the cluster-CA-signed host certificate so clients can verify this
+      # host via the @cert-authority trust path (modules/system/ssh.nix) instead
+      # of per-host plain-key pins. ssh-host-cert-sign (below) signs
+      # ssh_host_ed25519_key-cert.pub on boot; without this HostCertificate line
+      # sshd only serves the raw host key, so the CA path is dead and every
+      # strict-checking client falls back to (or breaks without) a stale pin.
+      # This is the missing half of the CA design: sign cert AND serve it.
+      HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub
+
     '';
 
     environment.systemPackages = with pkgs; [
