@@ -186,6 +186,65 @@ age-plugin-yubikey --identity > ~/.age/yubikey_identity
   may need to touch the device during decryption. Batch/automated
   decryption should therefore use the static key, not a YubiKey.
 
+## TPM 2.0 hardware-binding (added 2026-08-19)
+
+The `cluster_age` static key is now **additionally** sealed to TPM 2.0 on
+all 4 hosts (zephyr, nexus, forge, sentry — all have `/dev/tpmrm0`).
+
+**Layering:** this sits *below* SecretSpec/sops — SecretSpec itself is
+unchanged. The `tpm2-age-binding.nix` module (`modules/system/tpm2-age-binding.nix`)
+provides two systemd services:
+
+| Service | When | What it does |
+|---|---|---|
+| `tpm2-seal-age-keygen.service` | `systemctl start` (one-time) | Seals the host's age key to PCR 0+7 (firmware + Secure Boot state) at TPM persistent handle 0x81000000 |
+| `tpm2-unseal-age.service` | Boot (`multi-user.target`) | Unseals the age key to `/run/secrets/cluster-age-key` (0400, root) *before* `secretspec-creds.service` starts |
+
+**Per-host `ageKeyFile` override:** the module uses `lib.mkForce` to point
+`services.secretspec-creds.ageKeyFile` and
+`services.secretspec-validator.ageKeyFile` at `/run/secrets/cluster-age-key`,
+overriding any host-level value. SecretSpec still reads the key via the
+existing `SOPS_AGE_KEY_FILE` environment variable — it doesn't know or care
+the file was TPM-unsealed.
+
+**Per-host source key (for the one-time seal):**
+
+| Host | `security.tpm2AgeBinding.primaryKeyPath` |
+|---|---|
+| zephyr | `/home/j_kro/.config/sops/age/keys-combined.txt` |
+| forge | `/home/j_kro/.config/sops/age/keys.txt` |
+| nexus | `/etc/nixos/.age/key.txt` (module default) |
+| sentry | `/etc/nixos/.age/key.txt` (module default) |
+
+**Secure Boot status:** all 4 hosts currently report **Secure Boot disabled**
+via `bootctl status`. PCR 7 (the Secure Boot PCR) therefore reflects the
+"Secure Boot off" state. The seal is still valid — it binds to "firmware
+unchanged + Secure Boot stays off." If you later **enable** Secure Boot,
+PCR 7 changes and you must re-seal (`systemctl start tpm2-seal-age-keygen`).
+
+**Operator flow after deploy:**
+
+```bash
+# On each host, one time:
+sudo systemctl start tpm2-seal-age-keygen.service
+
+# Verify:
+sudo systemctl status tpm2-unseal-age.service  # should show "active (exited)"
+cat /run/secrets/cluster-age-key  # age key file (0400 root)
+nix eval .#nixosConfigurations.<host>.config.security.tpm2AgeBinding.enable  # true
+```
+
+**Failure mode:** if the TPM unseal fails (PCR mismatch, no sealed blob,
+TPM not found), `tpm2-unseal-age.service` exits 0 (does not block boot).
+`secretspec-creds.service` then fails with a clear error about the missing
+key file. This is the **fail-open** design: boot always continues, but
+secrets resolution goes loudly offline.
+
+**Relation to YubiKeys:** YubiKeys remain enrolled as additional age
+recipients in `.sops.yaml` for **manual** decryption (CLI, keyservice).
+TPM sealing is a separate, unattended mechanism for the activation-time
+identity. The two are complementary, not replacements for each other.
+
 ## Registry module quick reference
 
 File: `/etc/nixos/modules/system/sops-secrets-registry.nix` (569 lines).
