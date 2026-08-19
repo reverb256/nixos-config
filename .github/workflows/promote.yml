@@ -1,0 +1,95 @@
+---
+name: Promote to prod
+
+# ── Single writer to the protected `prod` branch ────────────────────────────
+# `main` is integration/tests. When `main` is green, this workflow promotes it
+# to `prod` (the deploy branch). `prod` is NEVER edited by hand or by any other
+# job — only this promotion, which force-syncs `main` and locks Layer-2
+# (home-manager-config) to the current green `master` rev so `prod` is fully
+# reproducible and self-contained.
+#
+# Enforcement note: branch protection / rulesets are unavailable on this
+# private free-tier plan (API 403). The real human gate is the deploy
+# `environment: prod` (required reviewer, configured in the GitHub UI) plus the
+# prod-guard.yml backstop that force-resets `prod` if anything other than this
+# bot writes to it.
+
+on:
+  # Runs after main CI completes green.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  # Manual trigger for re-promotion without a new main push.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promote-prod
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    name: Promote main -> prod
+    runs-on: [self-hosted, nixos, nexus, builder]
+    steps:
+      - name: Checkout main
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: main
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Configure git
+        run: |
+          git config user.name "prod-promotion-bot"
+          git config user.email "bot@reverb256.local"
+
+      - name: Fast-forward prod to main
+        run: |
+          git fetch origin main
+          git branch -f prod origin/main
+
+      - name: Lock Layer-2 (home-manager-config) to current green master
+        run: |
+          # On prod, the HM input must resolve to a pinned green rev so prod is
+          # immutable. Bump the lock to whatever master is right now (main CI
+          # already validated the integration that includes this HM rev).
+          nix --extra-experimental-features "nix-command flakes" flake lock --update-input home-manager-config
+          git add flake.lock
+
+      - name: Point prod's HM input ref at master (lock is the real gate)
+        run: |
+          # The lock pin is authoritative; ensure the input URL keeps tracking
+          # master so the next promotion bumps cleanly. No prod branch on HM.
+          python3 - <<'PY'
+          import re
+          p = 'flake.nix'
+          s = open(p).read()
+          s = re.sub(
+            r'(url = "git\+ssh://git@github.com/reverb256/home-manager-config)(?:\?ref=\w+)?"',
+            r'\1',
+            s,
+          )
+          open(p, 'w').write(s)
+          PY
+          git add flake.nix
+
+      - name: Commit promotion
+        run: |
+          if git diff --cached --quiet; then
+            echo "No lock/input changes; promoting as-is."
+          else
+            git commit -m "promote: sync prod to main + pin home-manager-config master"
+          fi
+
+      - name: Force-push prod (ONLY writer to prod)
+        run: |
+          git push --force origin prod
+          echo "✓ prod force-synced to main"

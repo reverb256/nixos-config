@@ -2,6 +2,11 @@
 name: Deploy
 
 on:
+  # prod is the deploy branch. It is only ever updated by promote.yml (the
+  # promotion bot), which force-syncs main + pins Layer-2. Deploys run from
+  # prod, gated by the `prod` environment (required reviewer, set in GitHub UI).
+  push:
+    branches: [prod]
   workflow_dispatch:
     inputs:
       target:
@@ -25,10 +30,10 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/prod'
     name: Deploy to Cluster
     runs-on: ${{ fromJSON('["self-hosted", "nixos", "nexus", "builder"]') }}
-    environment: homelab-production
+    environment: prod
     timeout-minutes: 360
     steps:
       - name: Checkout
@@ -184,7 +189,7 @@ jobs:
           echo "Syncing central bare repo on nexus..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           git remote get-url central >/dev/null 2>&1 || git remote add central j_kro@10.1.1.120:/srv/git/nixos-config.git
-          if git push central main 2>&1; then
+          if git push central prod 2>&1; then
             echo "✓ Central repo synced"
           else
             echo "⚠ Central repo sync failed (cluster nodes may have stale refs)"
@@ -199,7 +204,7 @@ jobs:
           ALL_HOSTS="nexus forge sentry"
           for host in $ALL_HOSTS; do
             echo "Pulling on $host..."
-            if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main 2>&1"; then
+            if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central prod 2>&1"; then
               echo "✓ $host synced"
             else
               echo "⚠ $host pull failed (manual sync may be needed)"
