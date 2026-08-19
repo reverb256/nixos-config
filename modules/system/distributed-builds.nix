@@ -36,16 +36,24 @@ in {
               #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
               #   sentry 16 logical -> 2*4 =  8 threads = 50%, 8 reserved
               #   zephyr 32 logical -> 2*8 = 16 threads = 50%, 16 reserved
+              #   forge   6 logical -> 1*2 =  2 threads = 33%, 4 reserved
               # zephyr is a workstation — 16 threads for concurrent builds,
               # remaining 16 threads for desktop, gaming, gaming VMs, etc.
               # OOM was previously a llama misconfiguration; verified resolved 2026-08-13,
               # so zephyr can safely build local derivations again. (2026-08-18, j_kro)
+              # forge mines on its GPUs, not its CPU: measured load 0.25 on an
+              # i5-9500 with both peakminers at 100% GPU. A single 2-thread build
+              # slot uses idle CPU without touching mining throughput, and the
+              # nix-daemon memory guard below (MemoryMax=90%, OOMScoreAdjust=500)
+              # ensures a runaway compile dies before the miners. (2026-08-19)
               if currentHost == "zephyr"
               then 8 # 50% of 32 logical; 2*8=16 threads, 16 reserved
               else if currentHost == "nexus"
               then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
               else if currentHost == "sentry"
               then 4 # R7 1700 = 16 logical; 2*4=8 threads, 50% reserved
+              else if currentHost == "forge"
+              then 2 # i5-9500 = 6 logical; 1*2=2 threads, 4 reserved for miners
               else 2
             );
 
@@ -63,6 +71,9 @@ in {
               then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
               else if currentHost == "sentry"
               then 2 # x cores=4 ->  8 of 16 logical threads (50%); control-plane headroom
+              else if currentHost == "forge"
+              then 1 # ONE job only: mining is revenue-critical, so keep build
+                     # concurrency minimal. 1*cores=2 -> 2 of 6 threads (33%).
               else 0
             );
 
@@ -324,6 +335,32 @@ in {
               mandatoryFeatures = [];
             }
             {
+              hostName = "forge";
+              systems = ["x86_64-linux"];
+              sshUser = "j_kro";
+              sshKey = userHome + "/.ssh/id_ed25519";
+              # 2026-08-19: forge joins as a SMALL build slot. It mines on its
+              # GPUs, not its CPU — measured load 0.25 on an i5-9500 with both
+              # peakminers at 100% GPU utilisation, and the top CPU consumer was
+              # a transient shell. So its 6 CPU threads are almost entirely idle.
+              #
+              # maxJobs=1 (not 2) and cores=2 keep this to 2 of 6 threads (33%),
+              # leaving 4 for the miners' host-side work, k3s, and monitoring.
+              # Mining is revenue-critical: the rule is "never disrupt miners",
+              # so this is deliberately the smallest useful slot rather than a
+              # proportional share.
+              maxJobs = 1;
+              # Lowest speedFactor in the fleet (nexus 10, sentry 6, zephyr 3):
+              # forge is picked only when every other builder is saturated.
+              speedFactor = 2;
+              connectTimeout = 1;
+              # big-parallel is NOT advertised: those are the heavy derivations
+              # (chromium/llvm/kernel) that would contend with mining. kvm is
+              # omitted for the same reason — no VM builds on the miner.
+              supportedFeatures = [];
+              mandatoryFeatures = [];
+            }
+            {
               hostName = "nexus";
               # Nexus is the exclusive builder and also serves Steam/VR
               # multilib closures (for example volk.i686-linux). An x86_64
@@ -368,8 +405,9 @@ in {
               mandatoryFeatures = [];
             }
           ];
-          # Nexus is the sole builder. Sentry is monitoring/inference and Forge
-          # is the GPU-mining host; neither may receive Nix build jobs.
+          # Nexus is the primary builder (speedFactor 10). Sentry (6) and zephyr
+          # (3) take overflow; forge (2) is last-resort only, a 2-thread slot on
+          # otherwise-idle CPU while its GPUs mine — never big-parallel work.
           #
           # REMOTE-ONLY, never a self-entry. When a host builds its own closure
           # (nexus via colmena apply-local, or any manual nixos-rebuild), a
