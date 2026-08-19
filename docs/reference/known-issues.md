@@ -1,6 +1,6 @@
 # Known issues, hardening, and deployment lessons
 
-**Last Verified:** 2026-08-16
+**Last Verified:** 2026-08-19
 **Status:** Reference
 **Owner:** j_kro
 
@@ -155,3 +155,12 @@ If the source key is unavailable (e.g. `/etc/nixos/.age/key.txt` was removed),
 the service fails open — SecretSpec falls back to whatever key file is
 configured, and you see `SecretSpec will use the static key fallback` in the
 journal.
+
+## Noctalia v5 service errors (2026-08-19)
+
+The `noctalia.service` has two syntax errors in systemd 261:
+- `ManagedOOMSwap = "off"` — invalid syntax in `[Service]` section
+- `StartLimitIntervalSec = 60` — belongs in `[Unit]` section, not `[Service]`
+
+These are warnings (service still starts) but should be fixed. Source: `modules/desktop/zephyr-sdr-brightness.nix`.
+
