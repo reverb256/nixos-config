@@ -66,7 +66,8 @@ jobs:
             fi
             echo "Pushing $host closure to nexus cache (ssh://j_kro@nexus)..."
             # Mirrors the post-build-hook in modules/system/distributed-builds.nix:
-            # nexus nix-serve serves 10.1.1.120:50000 signed by zephyr-cache-1.
+            # nexus nix-serve serves 10.1.1.120:50000 signed by nexus-cache-1.
+            # (cache-policy.nix trusts nexus-cache-1; do not rename the key.)
             if nix copy --to ssh://j_kro@nexus --substitute-on-destination \
                  ./result 2>&1 | tee /tmp/cache-push-$host.log; then
               echo "✓ $host pushed to nexus cache"
