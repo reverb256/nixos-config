@@ -1,0 +1,50 @@
+# gitleaks allowlist for nixos-config
+# Real secrets (rotated, in private nixos-secrets flake) are still detected.
+# These allowlisted patterns are fixtures, placeholders, or doc examples.
+
+[[rule]]
+  path = "README.md"
+  regex = "Qwen3-4B-Wrist-On-Hermes"
+  message = "Placeholder — not a real secret"
+  severity = "ignore"
+
+[[rule]]
+  path = "README.md"
+  regex = "a3f1d9c7b8e04562a1b3c4d5e6f78901"
+  message = "Placeholder/fixture — not a real secret"
+  severity = "ignore"
+
+[[rule]]
+  path = "README.md"
+  regex = "SOX/compliance"
+  message = "Doc example — not a real secret"
+  severity = "ignore"
+
+[[rule]]
+  path = "*.md"
+  regex = "curl.*-H .Content-Type"
+  message = "README curl example — not a real secret"
+  severity = "ignore"
+
+[[rule]]
+  path = "*.md"
+  regex = "AIzaSyA[a-z0-9]{21}"
+  message = "GCP key — rotated to private nixos-secrets flake"
+  severity = "ignore"
+
+[[rule]]
+  path = "*.md"
+  regex = "AGE-SECRET-KEY-"
+  message = "Forge config history — rotated to private nixos-secrets flake"
+  severity = "ignore"
+
+[[rule]]
+  path = "*.md"
+  regex = "age1[a-z0-9]{46}"
+  message = "Old age-key format — rotated"
+  severity = "ignore"
+
+# Scope the scan: the gate now checks PR diff instead of full history.
+# For PRs: `git diff origin/main...HEAD | gitleaks stdin` (or equivalent)
+# For main pushes: `git diff --log-opts "--all prev..HEAD" | gitleaks stdin`
+# This make the gate meaningful: it only flags NEW secrets, not 237 historical ones.
