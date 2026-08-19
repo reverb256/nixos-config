@@ -1,9 +1,9 @@
-# Sentry — GitHub Actions runners (site-agency + nixos-config)
+# Sentry — GitHub Actions runners (BUILD MUSCLE)
 #
-# Imported by hosts/sentry/configuration.nix (2026-08-14). Previously this
-# file was NOT imported (dead code — configuration.nix held all services
-# inline), which is why sentry had NO CI runner and site-agency CI jobs
-# queued forever on a non-existent [self-hosted, nixos, gpu] runner.
+# Concern-based split (2026-08-19): nexus owns deploy authority + HM; sentry
+# owns build-heavy runners (lix, quill) + site-agency. The duplicate
+# nixos-config runner that previously lived here (competing with nexus's
+# nexus-runner) is REMOVED — deploy authority stays single-source on nexus.
 #
 # Sentry runs the site-agency pipeline (its deploy target rsyncs here), so
 # the site-agency runner MUST live on this host — not nexus/zephyr.
@@ -16,17 +16,6 @@
   ciRunners = import ../../modules/services/ci-runners.nix {inherit lib pkgs;};
   runnerFragments = ciRunners {
     instances = {
-      nixos-config = {
-        user = "runner";
-        repo = "reverb256/nixos-config";
-        patFile = "/run/secrets/github-runner-pat";
-        autoStart = true;
-        labels = ["self-hosted" "nixos"];
-        extraLabels = ["sentry" "builder"];
-        runnerName = "sentry-runner";
-        memoryHigh = "8G";
-        memoryMax = "12G";
-      };
       site-agency = {
         user = "runner-siteagency";
         repo = "reverb256/site-agency";
@@ -39,6 +28,32 @@
         # pytest + rsync-to-self. No nix builds. Keep it small.
         memoryHigh = "4G";
         memoryMax = "8G";
+      lix = {
+        user = "runner-lix";
+        repo = "reverb256/lix";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["sentry" "builder"];
+        runnerName = "sentry-lix-runner";
+        # Lix CI delegates the heavy build to the nix daemon (not the runner
+        # cgroup), so the listener needs little RAM. Capped for sentry's 31GiB.
+        memoryHigh = "6G";
+        memoryMax = "10G";
+      };
+      quill = {
+        user = "runner-quill";
+        repo = "reverb256/quill";
+        patFile = "/run/secrets/github-runner-pat";
+        autoStart = true;
+        labels = ["self-hosted" "nixos"];
+        extraLabels = ["sentry" "quill"];
+        runnerName = "sentry-quill-runner";
+        # Quill CI is venv + ruff + pytest + rsync; build delegated to nix
+        # daemon. Capped for sentry's 31GiB alongside site-agency + lix.
+        memoryHigh = "6G";
+        memoryMax = "10G";
+      };
       };
     };
   };

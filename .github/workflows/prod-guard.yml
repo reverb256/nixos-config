@@ -1,0 +1,57 @@
+---
+name: prod guard
+
+# ── Backstop: prod is only ever written by the promotion bot ────────────────
+# Branch protection / rulesets are unavailable on this private free-tier plan,
+# so this job is the enforcement substitute: any push to `prod` that did NOT
+# come from the prod-promotion-bot user is force-reset to the last known-good
+# commit and reports an incident. This does not PREVENT a bad push, but it
+# reverts one within seconds of the push event.
+#
+# The promotion authority is the CI runner: green `CI` on `main` is the only
+# gate. There is no human review and no environment gate. This guard is the
+# sole enforcement for the "prod is never touched directly" rule — it reverts
+# OUT-OF-BAND writes to the branch within seconds of the push event.
+
+on:
+  push:
+    branches: [prod]
+
+permissions:
+  contents: write
+
+jobs:
+  guard:
+    name: Revert unauthorized prod writes
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout prod
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          ref: prod
+          fetch-depth: 0
+
+      - name: Check author of pushed HEAD
+        id: check
+        run: |
+          AUTHOR=$(git log -1 --format='%an' HEAD)
+          echo "pushed-by: $AUTHOR"
+          # Last known-good promotion commit is tagged prod-last-good.
+          if [ "$AUTHOR" = "prod-promotion-bot" ]; then
+            echo "authorized: promotion bot"
+            git tag -f prod-last-good HEAD
+            git push --force origin prod-last-good
+            echo "status=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=revert" >> "$GITHUB_OUTPUT"
+            echo "::error::Unauthorized push to prod by '$AUTHOR'"
+          fi
+
+      - name: Force-reset prod to last known-good
+        if: steps.check.outputs.status == 'revert'
+        run: |
+          git fetch origin prod-last-good
+          git reset --hard origin/prod-last-good
+          git push --force origin prod
+          echo "::warning::prod force-reset to prod-last-good (unauthorized write reverted)"

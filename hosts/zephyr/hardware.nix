@@ -88,7 +88,7 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      openrazer.enable = false;
+      openrazer.enable = true;  # Razer Naga Pro mouse — daemon required to avoid kernel timeouts
       temperatureReactive = {
         enable = true;
         sensor = "both";

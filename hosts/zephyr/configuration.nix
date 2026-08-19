@@ -452,7 +452,8 @@
     };
   };
 
-  # Freebuff Desktop — auto-updating AppImage launcher via freebuff-flake
+  # Freebuff Desktop — hicolor icon only (launcher + binary are owned by
+  # home-manager-config appimage-updater: ~/.local/opt/freebuff-desktop).
   services.freebuff-desktop.enable = true;
 
   # STATUS.md auto-update (hourly from kubectl)
@@ -954,7 +955,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   sops.secrets."cloud/cloudflared-token" = lib.mkForce {
-    sopsFile = "${inputs.self}/secrets/cloud/cloudflared-token.yaml";
+    sopsFile = "${inputs.nixos-secrets}/secrets/cloud/cloudflared-token.yaml";
     format = "yaml";
     key = "data";
     mode = "400";
@@ -1174,9 +1175,10 @@
     # programs.opencode.telegramDesktop, default true). A system copy
     # duplicated the org.telegram.desktop DBus service -> dbus-broker
     # "Ignoring duplicate name" warnings on every session start.
-    # Freebuff Desktop — auto-updating wrapper via freebuff-flake.
-    # (services.freebuff-desktop.enable = true) below wires in the package.
-    # No manual entry needed here — the module adds it to environment.systemPackages.
+    # Freebuff Desktop — runnable copy + launcher owned by home-manager-config
+    # appimage-updater (~/.local/opt/freebuff-desktop/current + the
+    # freebuff-desktop.desktop entry). services.freebuff-desktop.enable = true
+    # only installs the hicolor icon; no package entry is needed here.
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright

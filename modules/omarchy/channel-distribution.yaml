@@ -1,0 +1,39 @@
+# reverb256/omarchy distribution method (Downstream fork + distribution method)
+# Design plan: "Downstream fork reverb256/omarchy + channel-as-flake-input distribution"
+#
+# Tracks basecamp/omarchy (quattro) via channel: niri-stable / niri-rc / niri-edge
+# Additive niri layer, not in-place patches: upstream files stay pristine;
+# the fork adds parallel shell-niri/ + bin-niri/ trees selected by
+# OMARCHY_COMPOSITOR=niri.
+#
+# The fork is a flake — packages.<system>.omarchy, an overlay, nixosModules.default.
+#
+# Behavior:
+#   omarchy channel set <stable|rc|edge>
+#     = re-point the flake input + rebuild (data-only, fast) + generation rollback.
+#
+# Downstream CI builds quickshell-niri + lints the niri QML on every upstream merge,
+# before the cluster consumes.
+#
+# 0-day downstream fork guarantee:
+#   On day 0 of a new basecamp/omarchy release:
+#     - nix flake update omarchy fetches the new rev
+#     - Tier 1 (themes + router + 425 commands + CLI) works immediately (verbatim)
+#     - Tiers 2-5 need the phased adaptations but don't break the foundation
+#
+# Channel mapping:
+default_channel: "niri-stable"
+
+channels:
+  stable:
+    description: "battle-tested; Tier 1 only, no QML plugins yet"
+    # rev pinned in flake.nix; sync via `nix flake update omarchy`
+  rc:
+    description: "early access; includes RC-shell plugin adaptations"
+  edge:
+    description: "bleeding edge; latest QML + command adaptations"
+
+# 0-day downstream fork guarantee note:
+# On day 0: `nix flake update omarchy` fetches the new rev from basecamp/omarchy.
+# Tier 1 (verbatim port) is guaranteed to work — it's the verbatim surface proven
+# in PR #706. Later tiers are opt-in adaptations that build on the Tier 1 foundation.

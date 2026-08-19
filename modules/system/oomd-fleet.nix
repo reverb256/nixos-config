@@ -64,6 +64,27 @@
       options = lib.mkDefault "--delete-older-than 30d";
     };
 
+    # 2026-08-18: nix-gc.timer was `enabled` + `active` on nexus yet
+    # ExecMainExitTimestamp was EMPTY — it had NEVER executed. Its last window
+    # (Aug 17) was missed and simply dropped, next was Aug 24. Meanwhile 89,402
+    # dead store paths accumulated uncollected, which is what drove btrfs
+    # Metadata to 38.57/40.50GiB and `Device unallocated` to 1.00MiB on the
+    # builder. Retained generations were NOT involved: nexus held exactly 20,
+    # the policy below, already satisfied.
+    #
+    # Persistent=true makes a missed weekly window run at the next opportunity
+    # instead of being skipped. On a builder that is busy or rebooting at the
+    # trigger moment, that is the difference between GC running and never
+    # running at all.
+    systemd.timers.nix-gc = {
+      timerConfig = {
+        Persistent = true;
+        # Stagger across the fleet: four hosts GC'ing simultaneously all churn
+        # metadata at once, which is the pressure we are trying to relieve.
+        RandomizedDelaySec = lib.mkForce "45m";
+      };
+    };
+
     # 2026-08-11: nix.gc.options only bounds store paths by AGE. It does NOT
     # cap the number of system generations — nexus had accumulated 435 of them
     # (a rebuild every few hours creates a new gen; 30d of churn = hundreds).
@@ -72,6 +93,23 @@
     # Ordering only (after=, not requires=) so hosts that disable nix.gc still
     # get generation pruning; store paths unrooted here are collected by the
     # next nix-gc run. Uses config.nix.package (the host's actual Nix/Lix).
+    #
+    # 2026-08-18 — THIS NEVER RAN EITHER. `systemctl is-enabled nix-gc-prune`
+    # reported `linked` and ExecMainExitTimestamp was EMPTY. Two defects, both
+    # fixed below:
+    #   1. startAt= alone did not get the timer installed into a target, so it
+    #      never fired. wantedBy=timers.target fixes that.
+    #   2. Persistent was false, so a missed weekly window was dropped rather
+    #      than caught up. On a builder that is exactly when it gets missed.
+    # SCOPE NOTE: the +20 policy here was already being honoured — nexus held
+    # exactly 20 generations. Generation retention did NOT cause the ENOSPC
+    # incident; nix-gc never running did (see the nix-gc timer note above).
+    # This unit is still worth fixing so the cap keeps holding unattended.
+    # PITFALL: the prune ABORTS on a malformed generation link. nexus carried a
+    # `system-365-link.bad` (a FORGE closure left by a misfired deploy) and
+    # nix-env stopped with "cannot unlink ... No such file or directory" without
+    # pruning anything. If this unit reports that, move the offending `*.bad`
+    # link out of /nix/var/nix/profiles and re-run.
     systemd.services.nix-gc-prune = {
       description = "Prune old NixOS system generations (keep newest 20)";
       after = ["nix-gc.service"];
@@ -80,6 +118,17 @@
         ExecStart = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +20";
       };
       startAt = "weekly";
+    };
+
+    # Make the generated timer actually install and catch up missed windows.
+    # Without these the unit is `linked` but never fires (see defect 1 + 2 above).
+    systemd.timers.nix-gc-prune = {
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        Persistent = true;
+        # Spread the fleet so four hosts do not all churn metadata at once.
+        RandomizedDelaySec = "30m";
+      };
     };
   };
 }

@@ -21,11 +21,10 @@
     # re-running CI (it builds .#nix with the test suite), then pinning the
     # new tip here. flake=false: we only consume the source tree; nixpkgs'
     # common-lix.nix build glue stays in charge.
-    # dadddaf1e (2026-08-16): coerceToSingleDerivedPath accepts sub-paths
-    # inside derived outputs — fixes `nix build .#apps.*.program` for the
-    # universal program = "${pkg}/bin/foo" idiom.
+    # 66e4ffc5f (2026-08-18): gitlawb:// scheme support in libfetchers/git.cc —
+    # add 'gitlawb' to scheme whitelist + guard toURL() serialization.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=dadddaf1e71ce71cb375eb469895a76cc6b62680";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=66e4ffc5fdfddfd609bd66b6fab5fbf7e3a560a2";
       flake = false;
     };
     # astral-key — passkey-first auth + OIDC provider (replaces the retired
@@ -253,10 +252,19 @@
     # lix/astral-key/memlawb fork-input pattern: pin a rev, keep the build
     # glue in nixpkgs' stdenv. Tier 1 is a verbatim port (no Hyprland/Arch
     # coupling); Phases 2-4 adapt under modules/omarchy/{niri-shim,pkg-shim}/.
-    # Upstream sync = bump this rev + `nix flake update omarchy`. No fork, no
-    # vendored copy. Pinned to 7be59e1 (origin/quattro, 2026-08-13).
+    # Upstream sync = bump this rev + `nix flake update omarchy`. No fork,
+    # no vendored copy. Pinned to 7be59e1 (origin/quattro, 2026-08-13).
     omarchy = {
       url = "git+https://github.com/basecamp/omarchy?rev=7be59e1f4b7451d352d4673c560168290792590f";
+      flake = false;
+    };
+    # nixos-secrets — private flake (git+ssh) holding all sops-encrypted
+    # secret YAMLs. Kept separate from this public repo so secrets never
+    # land in a public git history. Hosts decrypt via age keys at
+    # /etc/nixos/.age/key.txt (provisioned by preservation.nix, NOT stored here).
+    # References: ${inputs.nixos-secrets}/secrets/ai/nvidia-api-key.yaml
+    nixos-secrets = {
+      url = "git+ssh://git@github.com/reverb256/nixos-secrets";
       flake = false;
     };
   };
@@ -433,6 +441,15 @@
               if passed
               then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
               else throw "test ${name} FAILED: ${builtins.toJSON failures}";
+            # mkCheckWithInputs — for tests that need flake inputs (e.g. secrets-integrity)
+            mkCheckWithInputs = name: file: let
+              result = import file {inherit pkgs inputs;};
+              passed = result.passed or result.all_pass or false;
+              failures = result.failures or [];
+            in
+              if passed
+              then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
+              else throw "test ${name} FAILED: ${builtins.toJSON failures}";
           in {
             firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
             flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
@@ -452,7 +469,7 @@
             portable-model-purity = mkCheck "portable-model-purity" ./tests/portable-model-purity.nix;
 
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
-            secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+            secrets-integrity = mkCheckWithInputs "secrets-integrity" ./tests/secrets-integrity.nix;
             zephyr-dispatcher-policy = mkCheck "zephyr-dispatcher-policy" ./tests/zephyr-dispatcher-policy.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
             inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;

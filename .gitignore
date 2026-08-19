@@ -18,9 +18,9 @@ certs.bak/
 .claude/
 *.crt
 .diff-scores.json
-# ✅ DO commit: secrets/*.age (encrypted with age, safe to track)
 # ✅ DO commit: secretspec.toml (only public keys + paths)
-# ✅ DO commit: secrets/*.yaml (sops-encrypted, safe to track)
+# ❌ Secrets are now in the private nixos-secrets flake (git+ssh, NOT tracked here).
+#    See flake.nix `inputs.nixos-secrets` — references resolve to the Nix store path.
 echo
 # ── Editor backups + patch-rejection artifacts ────────────────────
 # .env files in any shape (operator-only, NOT tracked) — covers .env,

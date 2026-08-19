@@ -129,6 +129,20 @@
   };
 
   # ============================================================================
+  # GITLAWB CLIENT — gl CLI + git-remote-gitlawb (build host)
+  # ============================================================================
+  # nexus is the cluster build host, so it is where `gitlawb://` flake inputs
+  # are actually fetched. Lix accepts the scheme (patched whitelist in
+  # libfetchers/git.cc) and then shells out to the git CLI, which finds a remote
+  # helper by NAME on PATH. Without git-remote-gitlawb here, a gitlawb:// input
+  # passes eval and fails at transport.
+  #
+  # Feature lives in modules/services/gitlawb-client.nix (classic module,
+  # auto-collected, enable=false by default). This is the opt-in. nodeUrl
+  # defaults to sentry (10.1.1.140:7545) where services.gitlawb-node runs.
+  services.gitlawb-client.enable = true;
+
+  # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
   # Centralized cluster networking (search domains, DNS, firewall basics)

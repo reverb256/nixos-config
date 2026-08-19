@@ -212,24 +212,6 @@ in {
 
     environment.variables.HERMES_HOME = "/home/${cfg.user}/.hermes";
 
-    # The profile installs hermes as SPLIT packages (hermes-agent-env, hermes-tui,
-    # hermes-web, hermes-desktop) — bin/hermes is the RAW env script, so the
-    # upstream wrapper's HERMES_TUI_DIR wiring (nix/hermes-agent.nix sets it via
-    # makeWrapper) is never applied. Without it, `hermes --tui`/`--resume` fails
-    # with "TUI workspace is missing from this Hermes checkout".
-    #
-    # Point at ~/.nix-profile/lib/hermes-tui (symlink to the CURRENT profile
-    # generation) instead of a store path — self-healing across `nix profile
-    # upgrade`, same pattern as the hermes-gateway unit's %h/.nix-profile.
-    # Resolved in _make_tui_argv before any checkout probe.
-    #
-    # NOTE: INACTIVE on zephyr — services.hermes-cli.enable = false there
-    # (the hosts/zephyr/services.nix block is dead code, see
-    # hosts/zephyr/configuration.nix). The active zephyr path is the fish
-    # conf.d export in home-manager-config/modules/hermes-gateway.nix
-    # (~/.config/fish/conf.d/hermes-tui.fish).
-    environment.variables.HERMES_TUI_DIR = "/home/${cfg.user}/.nix-profile/lib/hermes-tui";
-
     system.activationScripts.hermes-cli-setup = lib.stringAfter ["users"] ''
       HERMES_HOME="/home/${cfg.user}/.hermes"
       mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}

@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  ...
+  ...\
 }:
 
 # Omarchy UX layer — Tier-1 verbatim port (epic #655, Phase 1 #656).

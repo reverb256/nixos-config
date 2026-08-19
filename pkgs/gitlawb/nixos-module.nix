@@ -84,7 +84,19 @@ in {
       # -----------------------------------------------------------------
       # User / group
       # -----------------------------------------------------------------
-      users.users.${cfg.user} = mkIf (!config.users.users ? ${cfg.user}) {
+      # NOTE (2026-08-18): these definitions previously guarded themselves with
+      # `mkIf (!config.users.users ? ${cfg.user})`. That is infinite recursion:
+      # deciding whether the attribute exists requires evaluating
+      # `config.users.groups`, but this very definition is a member of
+      # `users.groups`, so the option depends on itself. It stayed hidden only
+      # because no host set `programs.gitlawb.enable = true` (zephyr pinned it
+      # to false), leaving `mkIf cfg.enable` to short-circuit the whole block.
+      #
+      # The guard is also unnecessary. The NixOS module system already merges
+      # multiple definitions of `users.users.<name>` / `users.groups.<name>`
+      # across modules; declaring ours plainly is the correct idiom and lets
+      # another module coexist instead of silently winning.
+      users.users.${cfg.user} = {
         description = "Gitlawb service user";
         home = cfg.dataDir;
         group = cfg.group;
@@ -92,7 +104,7 @@ in {
         createHome = false;
       };
 
-      users.groups.${cfg.group} = mkIf (!config.users.groups ? ${cfg.group}) {};
+      users.groups.${cfg.group} = {};
 
       # -----------------------------------------------------------------
       # Packages

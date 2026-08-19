@@ -53,6 +53,14 @@ in {
               "8.8.4.4"
             ];
           }
+          # Forward ts.net queries to Tailscale MagicDNS resolvers
+          {
+            name = "ts.net";
+            forward-addr = [
+              "199.247.155.53"
+              "2620:111:8007::53"
+            ];
+          }
         ];
       };
     };

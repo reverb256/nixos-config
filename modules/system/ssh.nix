@@ -105,55 +105,16 @@ in {
       hostNames = ["@cert-authority *.lan,*.cluster.local,10.1.1.110,10.1.1.120,10.1.1.130,10.1.1.140,100.81.182.5,100.86.158.18,100.95.222.45,100.82.210.39"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIINREWq2TwFSGaDxTBDv7xaFGw7fniE10i91sn6Xqhkg cluster-CA@zephyr";
     };
-
-    zephyr = {
-      hostNames = [
-        "zephyr"
-        hosts.zephyr.ip
-        hosts.zephyr.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0/pTXa/H7mvy3+YPJq9U2mFKO4+YrLSOYd8sPU44+q";
-    };
-    nexus = {
-      hostNames = [
-        "nexus"
-        hosts.nexus.ip
-        hosts.nexus.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINttvGn4etQX6AbyT2HpXrmyGaTFL3gur/2ImHTLzBOl";
-    };
-    forge = {
-      hostNames = [
-        "forge"
-        hosts.forge.ip
-        hosts.forge.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEyPhSqZMMXmavBIN/Cr/uYmK3BwZV3GK7BbJW/dQnf3";
-    };
-    sentry = {
-      hostNames = [
-        "sentry"
-        hosts.sentry.ip
-        hosts.sentry.tailscale
-      ];
-      # Updated 2026-08-09: sentry host key rotated AGAIN — the 07-31 pin was
-      # wiped by the disko reinstall, sshd-keygen regenerated on first boot into
-      # the /persistent/etc/ssh bind mount. Source-of-truth pin matches the key
-      # currently served (verified live 2026-08-10). Per-file symlink fix in
-      # hosts/sentry/preservation.nix keeps this stable across reboots.
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMpvhWfHq3KVkwhdlW8GokTLw5P0QmUEZMGauaj8maJU";
-    };
-    krash2 = {
-      hostNames = ["krash2" hosts.krash2.ip];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5ioQaftrkEOGFW3Xs/Db9r8tf5TcegVbzwPDknbFzS";
-    };
-    krash3 = {
-      hostNames = ["krash3" "10.1.1.150"];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILH4anz65+SKAJOmF94T0YXOFbRmtlMMrC0PEhcLvT2n";
-    };
-    # GitHub's published ED25519 host key. Keep Git operations strict while
-    # allowing noninteractive deployment/build jobs to fetch GitHub inputs.
-    # Fingerprint: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
+    # Cluster host keys are NOT pinned below. The @cert-authority entry above
+    # (cert-authority = { ... }) trusts ANY host key signed by cluster-CA@zephyr,
+    # and the declarative ssh-host-cert-sign service re-signs each host's cert
+    # on boot (principals cover hostname + .lan + IP + tailscale). Pinning raw
+    # host keys here is the recurring root cause of 'REMOTE HOST IDENTIFICATION
+    # HAS CHANGED' after a disko reinstall / key rotation: the stale pin conflicts
+    # with the CA-validated cert and breaks SSH from every host that cached the
+    # old pin (observed 2026-08-19: forge broke from sentry + self after a cert
+    # re-sign). Removing the pins makes rotation frictionless -- the CA is the
+    # sole trust path. github.com below is a public CA-trusted key, kept.
     github = {
       hostNames = ["github.com"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";

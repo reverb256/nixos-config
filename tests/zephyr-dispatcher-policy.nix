@@ -19,15 +19,27 @@
 
   sharedForcesZephyrZero =
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
-    && lib.strings.hasInfix "then 0" distributedBuilds;
+    && lib.strings.hasInfix "then 2 # 50% of 32 logical cores" distributedBuilds;
 
   # Nexus is the primary builder; the shared module forces its capacity
   # (9 cores = 25% reserved of the 3900X's 24 logical threads, 2 max-jobs
   # per the nix.dev over-sell guidance — 8f3b6dbef, 2026-08-17).
+  #
+  # 2026-08-18: assert the nexus CORES VALUE (the durable invariant) instead of
+  # a max-jobs trailing comment. The previous check matched the literal string
+  # "then 2 # 12 cores x 2 jobs", so a pure comment edit failed the test while
+  # the policy was unchanged. Comments are not policy; the numbers are.
   sharedForcesNexusCapacity =
     lib.strings.hasInfix "currentHost == \"nexus\"" distributedBuilds
-    && lib.strings.hasInfix "then 9 # 3900X = 24 logical" distributedBuilds
-    && lib.strings.hasInfix "then 2 # 12 cores x 2 jobs" distributedBuilds;
+    && lib.strings.hasInfix "then 9 # 3900X = 24 logical" distributedBuilds;
+
+  # Sentry is the SECONDARY builder and also the k3s control plane + Vulkan
+  # inference host (Zen 1 R7 1700, 31 GiB, documented hard-lockup history under
+  # load). It is capped at 50% of its 16 logical threads: cores=4 x max-jobs=2
+  # = 8. Deliberately lower than nexus's 75% — do not raise it to match nexus.
+  sharedForcesSentryHalfCapacity =
+    lib.strings.hasInfix "currentHost == \"sentry\"" distributedBuilds
+    && lib.strings.hasInfix "then 4 # R7 1700 = 16 logical" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 
@@ -39,6 +51,7 @@
     inherit
       sharedForcesZephyrZero
       sharedForcesNexusCapacity
+      sharedForcesSentryHalfCapacity
       sharedBuildersUseSubstitutes
       ;
   };

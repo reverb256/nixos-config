@@ -55,10 +55,10 @@ jobs:
 
             if nix-instantiate --eval --strict --impure \
               --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
-              "$test" 2>&1; then
+              --arg inputs '(builtins.getFlake (toString ./. )).inputs' "$test" 2>&1; then
               result=$(nix-instantiate --eval --strict --impure \
                 --arg pkgs '(import (builtins.getFlake (toString ./. )).inputs.nixpkgs) {}' \
-                "$test" 2>/dev/null | grep -oE 'passed = true|all_pass = true' || true)
+                --arg inputs '(builtins.getFlake (toString ./. )).inputs' "$test" 2>/dev/null | grep -oE 'passed = true|all_pass = true' || true)
 
               if [ -n "$result" ]; then
                 echo "  ✓ PASS"

@@ -17,13 +17,28 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }: let
   cfg = config.services.secretspec-validator;
 
   # Manifest path defaults to the cluster source-of-truth. Per-host overrides
   # via the `manifestPath` option for paths outside /etc/nixos.
-  defaultManifest = "/etc/nixos/secretspec.toml";
+  #
+  # The manifest's sops:// URIs point at /etc/nixos/secrets/ — but secrets
+  # now live in the private nixos-secrets flake's store path. Generate a
+  # store-level copy with the path interpolated so `secretspec check`
+  # resolves the sops:// URIs against the private flake's secrets directory.
+  secretspecSource = builtins.readFile ./../../secretspec.toml;
+  secretspecManifest = pkgs.writeText "secretspec.toml" (
+    # Replace '/etc/nixos/secrets/' with the private flake's store path
+    # so sops:/// URIs resolve against the nix store copy of the secrets.
+    lib.strings.replaceStrings
+      ["/etc/nixos/secrets/"]
+      ["${inputs.nixos-secrets}/secrets/"]
+      secretspecSource
+  );
+  defaultManifest = secretspecManifest;
 
   profile =
     if cfg.production
@@ -103,7 +118,7 @@ in {
 
     manifestPath = lib.mkOption {
       type = lib.types.str;
-      default = defaultManifest;
+      default = toString defaultManifest;
       description = "Absolute path to the secretspec.toml manifest to validate.";
     };
 

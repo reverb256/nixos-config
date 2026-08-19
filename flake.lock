@@ -2237,11 +2237,11 @@
       },
       "locked": {
         "dir": "pkgs/gitlawb",
-        "lastModified": 1786910287,
-        "narHash": "sha256-RMpDwiA5XKFRNuNuuxVkTH2oLG5sfquwNERyV5rh+BM=",
+        "lastModified": 1787064759,
+        "narHash": "sha256-W/ae7sl6eliTIT5WHNYF3fmUx6e/V2/vWZb8sH9o4Rs=",
         "ref": "refs/heads/main",
-        "rev": "fe11662c0a50f1593c71a7314991127de6dc7bbf",
-        "revCount": 6529,
+        "rev": "cd867139d2f595136e50b0fa8d9861dbed8384bd",
+        "revCount": 6620,
         "type": "git",
         "url": "https://github.com/reverb256/nixos-config"
       },
@@ -2807,17 +2807,17 @@
     "lix_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1786863183,
-        "narHash": "sha256-EyxIMZ4DhOajY3woqGReP3znq68Xq0tvFNT7pR9yYHo=",
+        "lastModified": 1787062182,
+        "narHash": "sha256-bjZKx9mLUQvxoCk+0XEMbs+Kh6PKG2SrVSSWQCq5BSU=",
         "ref": "homelab/2.96",
-        "rev": "dadddaf1e71ce71cb375eb469895a76cc6b62680",
-        "revCount": 19487,
+        "rev": "66e4ffc5fdfddfd609bd66b6fab5fbf7e3a560a2",
+        "revCount": 19488,
         "type": "git",
         "url": "https://github.com/reverb256/lix"
       },
       "original": {
         "ref": "homelab/2.96",
-        "rev": "dadddaf1e71ce71cb375eb469895a76cc6b62680",
+        "rev": "66e4ffc5fdfddfd609bd66b6fab5fbf7e3a560a2",
         "type": "git",
         "url": "https://github.com/reverb256/lix"
       }
@@ -3925,6 +3925,22 @@
         "rev": "488484d6b379668df992c6fc9b01c2852c89c62c",
         "type": "git",
         "url": "https://github.com/reverb256/nixos-config"
+      }
+    },
+    "nixos-secrets": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787059944,
+        "narHash": "sha256-c3IhqIGWByI//UHrVY23jWD6cqwH14gX9dhT5e9BOvU=",
+        "ref": "refs/heads/main",
+        "rev": "ac5030b9cfb49d170dca7edc14c006bb831f28d1",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@github.com/reverb256/nixos-secrets"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/reverb256/nixos-secrets"
       }
     },
     "nixos-wsl": {
@@ -5347,6 +5363,7 @@
         "niri": "niri_6",
         "nix-cachyos-kernel": "nix-cachyos-kernel_3",
         "nixcord": "nixcord_6",
+        "nixos-secrets": "nixos-secrets",
         "nixos-wsl": "nixos-wsl",
         "nixpkgs": "nixpkgs_22",
         "nixpkgs-xr": "nixpkgs-xr_3",

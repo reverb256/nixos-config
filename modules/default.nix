@@ -35,6 +35,8 @@
     ./system/kernel-hardening.nix
     ./system/secretspec-validator.nix
     ./system/vm-tuning.nix
+    ./system/btrfs-auto-reclaim.nix # keeps btrfs unallocated > 0 so Metadata can grow (ENOSPC prevention)
+    ./system/storage-diagnostics.nix # btrfs-check / boot-check / oom-check read-only CLIs (all hosts)
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix
     # ./system/agenix-fixes.nix              # Migrated to sops-nix; agenix module no longer loaded
@@ -130,6 +132,7 @@
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/auto-update.nix
+    ./services/unified-autoupdate.nix
     ./services/hermes/default.nix
     ./services/hermes-cli.nix
     ./services/hermes-a2a-mesh.nix # Shared A2A mesh peers (4-host gateways, dendritic SPOC)
@@ -141,6 +144,7 @@
     ./services/backup-to-garage.nix # Automated backups to Garage S3
     ./services/binary-cache.nix # Nix binary cache server for cluster
     ./system/boot-tuning.nix # OMARCHY-inspired boot speed tuning
+    ./system/uki-boot.nix      # UKI (Unified Kernel Image) boot via systemd-stub
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
@@ -148,6 +152,7 @@
     ./services/memlawb-backup.nix # daily Garage S3 backup of the fs blobstore
     ./services/memlawb-healthcheck.nix # periodic reachability + passphrase round-trip check
     ./services/gitlawb-node.nix # opt-in decentralized git node (private mirror)
+    ./services/gitlawb-client.nix # opt-in gl CLI + git-remote-gitlawb (build hosts)
     ./services/thermal-monitor.nix # Read-only CPU thermal watchdog (cross-fleet)
 
     # Monitoring
@@ -182,7 +187,8 @@
     # Auto-apply Kubernetes manifests on boot
     ./services/k8s-manifest-autoapply.nix
     ./services/fake-backlight-bridge.nix
-    # Freebuff Desktop — auto-updating AppImage launcher (via freebuff-flake)
+    # Freebuff Desktop icon (hicolor) — launcher owned by home-manager-config
+    # appimage-updater (self-wrapped copy at ~/.local/opt/freebuff-desktop).
     ./services/freebuff-desktop.nix
   ];
 }

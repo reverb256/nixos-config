@@ -31,36 +31,57 @@ in {
       trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
 
       cores = lib.mkForce (
-        # Reserve 25% of cores for the host's own workloads (k3s / inference /
-        # AI-gateway) under full build concurrency. With max-jobs=2, set
-        # cores so (max-jobs * cores) = 75% of logical cores:
-        #   nexus  24 logical -> 18 build threads, 6 (25%) reserved
-        #   sentry 16 logical -> 12 build threads, 4 (25%) reserved
-        # RAM pressure is bounded separately by the nix-daemon MemoryMax
-        # guard below; this is the CPU-headroom reservation. (2026-08-17)
-        if currentHost == "zephyr"
-        then 2 # minimal for coordination (zephyr never builds: max-jobs=0)
-        else if currentHost == "nexus"
-        then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
-        else if currentHost == "sentry"
-        then 6 # R7 1700 = 16 logical; 2*6=12 threads, 25% reserved
-        else 2
-      );
+              # CPU-headroom reservation. Per-host build-thread budget is
+              # (max-jobs * cores) as a share of logical cores:
+              #   nexus  24 logical -> 2*9 = 18 threads = 75%, 6 reserved
+              #   sentry 16 logical -> 2*6 = 12 threads = 75%, 4 reserved
+              #   zephyr 32 logical -> 2*8 = 16 threads = 50%, 16 reserved
+              #   forge   6 logical -> 1*2 =  2 threads = 33%, 4 reserved
+              # zephyr is a workstation — 16 threads for concurrent builds,
+              # remaining 16 threads for desktop, gaming, gaming VMs, etc.
+              # OOM was previously a llama misconfiguration; verified resolved 2026-08-13,
+              # so zephyr can safely build local derivations again. (2026-08-18, j_kro)
+              # forge mines on its GPUs, not its CPU: measured load 0.25 on an
+              # i5-9500 with both peakminers at 100% GPU. A single 2-thread build
+              # slot uses idle CPU without touching mining throughput, and the
+              # nix-daemon memory guard below (MemoryMax=90%, OOMScoreAdjust=500)
+              # ensures a runaway compile dies before the miners. (2026-08-19)
+              if currentHost == "zephyr"
+              then 8 # 50% of 32 logical; 2*8=16 threads, 16 reserved
+              else if currentHost == "nexus"
+              then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
+              else if currentHost == "sentry"
+              then 6 # R7 1700 = 16 logical; 2*6=12 threads (75%), 4 reserved.
+                     # Raised from 4 (50%) on 2026-08-19: sentry's crashes were
+                     # proven to be ENOSPC (journald watchdog timeout on a full
+                     # disk), NOT CPU saturation, so the extra headroom was
+                     # buying nothing. k3s control plane + Vulkan inference keep
+                     # 4 threads.
+              else if currentHost == "forge"
+              then 2 # i5-9500 = 6 logical; 1*2=2 threads, 4 reserved for miners
+              else 2
+            );
 
       max-jobs = lib.mkForce (
-        # zephyr: ZERO local build capacity. It is a pure dispatcher — every
-        # derivation offloads to nexus via /etc/nix/machines.
-        # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
-        # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
-        # on zephyr.          # forge removed 2026-07-29 (GPU miner — do not interrupt).
-        if currentHost == "zephyr"
-        then 0
-        else if currentHost == "nexus"
-        then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
-        else if currentHost == "sentry"
-        then 2 # 8 cores x 2 jobs = 8 threads — half to prevent OOM
-        else 0
-      );
+              # zephyr: local build capacity re-enabled 2026-08-18. OOM root cause was a
+              # llama misconfiguration that has been resolved. max-jobs=2 with cores=8
+              # (50% of 32 logical) gives zephyr 16 build threads while leaving 16 for
+              # desktop, gaming, and gaming VMs. derivations offload to nexus via
+              # /etc/nix/machines when local capacity is saturated.
+              # The former max-jobs=0 was a protective wedge while the llama issue was
+              # unresolved; now that it is resolved, zephyr builds locally again.
+              if currentHost == "zephyr"
+              then 2 # 50% of 32 logical cores; 16 threads for builds, 16 for desktop
+              else if currentHost == "nexus"
+              then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
+              else if currentHost == "sentry"
+              then 2 # x cores=6 -> 12 of 16 logical threads (75%); 4 reserved
+                     # for the k3s control plane and Vulkan inference
+              else if currentHost == "forge"
+              then 1 # ONE job only: mining is revenue-critical, so keep build
+                     # concurrency minimal. 1*cores=2 -> 2 of 6 threads (33%).
+              else 0
+            );
 
       # Large NAR downloads were failing with curl error 92
       # (HTTP/2 PROTOCOL_ERROR / stream reset) on Cachix/CDN edges.
@@ -173,9 +194,10 @@ in {
   # ── cachix watch-store: continuous auto-push to reverb-os cachix ──
   # Safety net on top of the post-build-hook: pushes every new store path
   # as it lands (incl. substituted/cloned closures), not just locally-built
-  # outputs. Runs on the cache publisher hosts (nexus/sentry); only Nexus
-  # is a build executor. Zephyr never builds (max-jobs=0, RAM-constrained)
-  # and Forge is the GPU miner (do not disturb). Idle-priority so it never
+  # outputs. Runs on the cache publisher hosts (nexus/sentry). Zephyr builds
+  # locally and as a remote builder since 2026-08-18/19, but is not a cache
+  # publisher (its uploads would compete with interactive desktop use), and
+  # Forge is the GPU miner (do not disturb). Idle-priority so it never
   # contends with builds/mining.
   systemd.services.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     description = "Push new store paths to reverb-os cachix";
@@ -295,8 +317,52 @@ in {
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 0;
-              speedFactor = 1; # non-builder / dispatch target
+              # 2026-08-19: was maxJobs = 0 ("zephyr never builds"), which was
+              # left behind when zephyr's OWN nix.settings.max-jobs was restored
+              # to 2 on 2026-08-18 (the OOM root cause was a llama
+              # misconfiguration, since resolved). The stale 0 here meant nexus
+              # would never dispatch a derivation to zephyr, so the cluster had
+              # exactly one usable remote builder (sentry) while a 32-thread
+              # workstation sat idle during multi-hour deploys.
+              #
+              # maxJobs=2 mirrors zephyr's own max-jobs; combined with its
+              # cores=8 that is 16 of 32 logical threads (50%), leaving 16 for
+              # desktop, gaming, and gaming VMs.
+              maxJobs = 2;
+              # speedFactor below nexus (10) and sentry (6): zephyr is the
+              # interactive workstation, so it should be chosen last when other
+              # builders have capacity.
+              speedFactor = 3;
+              connectTimeout = 1;
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "forge";
+              systems = ["x86_64-linux"];
+              sshUser = "j_kro";
+              sshKey = userHome + "/.ssh/id_ed25519";
+              # 2026-08-19: forge joins as a SMALL build slot. It mines on its
+              # GPUs, not its CPU — measured load 0.25 on an i5-9500 with both
+              # peakminers at 100% GPU utilisation, and the top CPU consumer was
+              # a transient shell. So its 6 CPU threads are almost entirely idle.
+              #
+              # maxJobs=1 (not 2) and cores=2 keep this to 2 of 6 threads (33%),
+              # leaving 4 for the miners' host-side work, k3s, and monitoring.
+              # Mining is revenue-critical: the rule is "never disrupt miners",
+              # so this is deliberately the smallest useful slot rather than a
+              # proportional share.
+              maxJobs = 1;
+              # Lowest speedFactor in the fleet (nexus 10, sentry 6, zephyr 3):
+              # forge is picked only when every other builder is saturated.
+              speedFactor = 2;
+              connectTimeout = 1;
+              # big-parallel is NOT advertised: those are the heavy derivations
+              # (chromium/llvm/kernel) that would contend with mining. kvm is
+              # omitted for the same reason — no VM builds on the miner.
               supportedFeatures = [];
               mandatoryFeatures = [];
             }
@@ -321,13 +387,16 @@ in {
             }
             {
               hostName = "sentry";
-              # Secondary builder (R7 1700, 8 physical cores, 31 GiB RAM).
+              # Secondary builder (R7 1700, 8 physical / 16 logical, 31 GiB).
               # ssh-ng was wedged here before at 16-job oversubscription
               # (pipe-drain NixOS/nix#5701); the new low-jobs config (1 job,
               # connect-timeout=1) keeps pipe pressure low, and nexus has run
               # ssh-ng fine under this config since. If it wedges again,
               # flip protocol to "ssh" (nix-store --serve, no pipe-drain path).
-              # maxJobs=1 syncs with sentry's own nix.settings.max-jobs
+              # maxJobs=2 syncs with sentry's own nix.settings.max-jobs. The
+              # per-job thread count is set by sentry's nix.settings.cores=6,
+              # capping it at 12 of 16 logical threads (75%) — sentry also runs
+              # the k3s control plane and Vulkan inference. (2026-08-19)
               protocol = "ssh-ng";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
@@ -342,8 +411,9 @@ in {
               mandatoryFeatures = [];
             }
           ];
-          # Nexus is the sole builder. Sentry is monitoring/inference and Forge
-          # is the GPU-mining host; neither may receive Nix build jobs.
+          # Nexus is the primary builder (speedFactor 10). Sentry (6) and zephyr
+          # (3) take overflow; forge (2) is last-resort only, a 2-thread slot on
+          # otherwise-idle CPU while its GPUs mine — never big-parallel work.
           #
           # REMOTE-ONLY, never a self-entry. When a host builds its own closure
           # (nexus via colmena apply-local, or any manual nixos-rebuild), a
@@ -434,8 +504,8 @@ in {
   # every llama.cpp patch recompiled all 967 units from scratch (30-40 min).
   # programs.ccache re-overrides the named packages with ccacheStdenv
   # (compilers wrapped by ccache); measured rebuild speedup ~89% (nixpkgs
-  # PR #7082). Gated to the builder hosts (nexus/sentry): zephyr never
-  # builds (max-jobs=0) and forge is the GPU miner.
+  # PR #7082). Gated to the cache-publishing builders (nexus/sentry); zephyr
+  # builds too but keeps its disk for desktop/games, and forge is the GPU miner.
   programs.ccache = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     enable = true;
     cacheDir = "/var/cache/ccache";
