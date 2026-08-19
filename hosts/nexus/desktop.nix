@@ -60,6 +60,9 @@
   # cluster-service or shared gaming modules.
   programs.steam = {
     enable = true;
+    # Native Steam Remote Play (in-home streaming). Uses NVENC on the RTX 3060
+    # Ti. Opens the Remote Play ports in the firewall.
+    remotePlay.openFirewall = true;
     gamescopeSession = {
       enable = lib.mkForce true;
       args = [
@@ -74,6 +77,23 @@
       ];
     };
   };
+
+  # Sunshine game-stream host (Moonlight client on zephyr). Installed at the
+  # NixOS layer because it needs cap_sys_admin (Wayland KMS capture), the uinput
+  # module, udev rules, and firewall — none of which Home Manager owns.
+  # Run via the systemd --user unit (autoStart) under the gamescope session.
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    capSysAdmin = true; # Wayland KMS capture on non-wlroots compositor
+    openFirewall = true;
+    package = pkgs.sunshine.override { cudaSupport = true; };
+  };
+
+  # Sunshine emulates input devices through /dev/uinput; j_kro must be in the
+  # uinput group. The module loads the uinput module + ships udev rules, but the
+  # group membership is ours to declare.
+  users.users.j_kro.extraGroups = [ "uinput" ];
 
   services.flatpak.enable = true;
   xdg.portal.enable = true;
