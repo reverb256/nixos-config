@@ -765,10 +765,17 @@
 
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   # SecretSpec creds provisioning (replaces sops-nix)
+  # TPM 2.0: hardware-bind the cluster age key (secretspec/sops identity).
+  # Forge's primaryKeyPath is set to keys.txt (forge's combined key file).
+  security.tpm2AgeBinding = {
+    enable = true;
+    primaryKeyPath = "/home/j_kro/.config/sops/age/keys.txt";
+  };
+
   services.secretspec-creds = {
-    # Forge's age key lives at the operator home path (not /etc/nixos/.age/key.txt,
-    # which is zephyr-only). Point SOPS_AGE_KEY_FILE at the real key so sops -d works.
-    ageKeyFile = "/home/j_kro/.config/sops/age/keys.txt";
+    # ageKeyFile is automatically overridden to /run/secrets/cluster-age-key
+    # by the tpm2-age-binding module (tpm2-unseal-age service writes it).
+    # The original keys.txt is used only during tpm2-seal-age-keygen.
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;
   };

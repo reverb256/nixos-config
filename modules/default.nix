@@ -47,6 +47,8 @@
     ./system/btrfs-compression.nix
     ./system/pi-models.nix
     ./system/btrfs-tuning.nix
+    # === TPM 2.0 age-key binding (cluster-wide hardening) ===
+    ./system/tpm2-age-binding.nix
     # Modular workload monitoring (replaced old compute-workload-monitor monolith)
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix

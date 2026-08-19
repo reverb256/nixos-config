@@ -291,6 +291,17 @@
     bindServicesToLocalhost = true;
   };
 
+  # TPM 2.0: hardware-bind the cluster age key (secretspec/sops identity).
+  # The age key is sealed to PCR 0+7 (firmware + Secure Boot) at boot,
+  # then unsealed into /run/secrets/cluster-age-key before secretspec-creds
+  # runs. Requires: /dev/tpmrm0 (present), operator runs
+  # 'systemctl start tpm2-seal-age-keygen' once to provision the sealed blob.
+  # Zephyr is first; nexus/forge/sentry follow after keygen succeeds here.
+  security.tpm2AgeBinding = {
+    enable = true;
+    primaryKeyPath = "/home/j_kro/.config/sops/age/keys-combined.txt";
+  };
+
   # Kubernetes security tools for runtime monitoring
   security.kubernetes.enable = true;
 

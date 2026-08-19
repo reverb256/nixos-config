@@ -489,6 +489,10 @@
   # ============================================================================
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   # SecretSpec creds provisioning (replaces sops-nix)
+  # TPM 2.0: hardware-bind the cluster age key.
+  # Sentry uses the default /etc/nixos/.age/key.txt as the source key.
+  security.tpm2AgeBinding.enable = true;
+
   services.secretspec-creds = {
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;

@@ -690,6 +690,11 @@
   # Trust Caddy Ingress local CA certificate
   security.caddyCa.enable = true;
 
+  # TPM 2.0: hardware-bind the cluster age key (secretspec/sops identity).
+  # Sealed to PCR 0+7 (firmware + Secure Boot) at boot -> /run/secrets/cluster-age-key
+  # Must run 'systemctl start tpm2-seal-age-keygen' once after first boot.
+  security.tpm2AgeBinding.enable = true;
+
   # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
