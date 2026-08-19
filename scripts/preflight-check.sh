@@ -46,15 +46,13 @@ else
 fi
 
 # 2-4. All remote hosts must match canonical.
-# NOTE: forge is intentionally excluded from this gate.
-# - forge: its SSH is broken by the world-writable systemd-ssh-proxy store
-#   include (OpenSSH secure_permission rejects mode 1777; chmod is impossible
-#   on the immutable Nix store). Fix = systemd-ssh-proxy.enable=false in
-#   forge config. Forge is a GPU miner (not a builder) and not in the zephyr
-#   deploy closure, so excluding it here is safe for zephyr deploys.
+# forge IS included in this gate. The old exclusion (03fb6022) claimed its
+# SSH was broken by a world-writable systemd-ssh-proxy store include; that
+# service is no longer configured anywhere in the repo, forge's sshd passes
+# `sshd -t`, and SSH from zephyr works (verified 2026-08-19, #715).
 # Uses sequential SSH checks so a failed self-heal is reported clearly.
 log "  checking remote hosts..."
-HOSTS="nexus sentry"
+HOSTS="nexus sentry forge"
 
 for HOST in $HOSTS; do
   REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
