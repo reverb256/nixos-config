@@ -126,19 +126,22 @@ executor() {
   # Cleanup the worktree on exit (plain return, not exec, so the trap fires).
   trap 'cd /; git -C "$FLAKE" worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
 
-  # Use the prebuilt colmena from the store directly. `nix run .#apps...colmena`
-  # re-evaluates the flake, which hits the `path:/home/j_kro` permission error
-  # on nexus (podman overlay in j_kro's home) and forces a from-source GHC
-  # rebuild of colmena's Haskell closure — that build exceeds MemoryMax=45GB
-  # and gets OOM-killed (exit 137). The store path below is already built and
-  # verified (Colmena 0.5.0-pre). Pin it to avoid the rebuild.
-  COLMENA_BIN="$(ls -d /nix/store/*colmena-0.5.0-pre/bin/colmena 2>/dev/null | head -1)"
-  if [[ -z "$COLMENA_BIN" ]]; then
-    echo "prebuilt colmena not found in store; falling back to nix run" >&2
-    NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
-  else
+  # Preferred path: the flake-locked `nix run` — declarative, and colmena's
+  # closure substitutes from the LAN cache (verified: signed zephyr-cache-1,
+  # ~170MB) so no from-source GHC rebuild is needed. Use the prebuilt store
+  # path only as a fast-path when present (it is NOT a GC root, so nix-gc can
+  # remove it at any time — the nix run fallback is the durable path).
+  #
+  # NOTE on history: an earlier comment claimed `nix run` OOMs nexus (GHC
+  # rebuild over MemoryMax=45GB, exit 137) and pinned the store path. That was
+  # a cold-cache one-off; once the closure is in the LAN cache it substitutes.
+  COLMENA_BIN="$(ls -d /nix/store/*colmena-0.5.0-pre/bin/colmena 2>/dev/null | head -1 || true)"
+  if [[ -n "$COLMENA_BIN" ]]; then
     echo "using prebuilt colmena: $COLMENA_BIN"
     NIX_CMD=("$COLMENA_BIN")
+  else
+    echo "prebuilt colmena not in store; using nix run (substitutes from LAN cache)" >&2
+    NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
   fi
 
   if [[ "$TARGET" == "nexus" ]]; then
