@@ -36,6 +36,7 @@
     ./system/secretspec-validator.nix
     ./system/vm-tuning.nix
     ./system/btrfs-auto-reclaim.nix # keeps btrfs unallocated > 0 so Metadata can grow (ENOSPC prevention)
+    ./system/storage-diagnostics.nix # btrfs-check / boot-check / oom-check read-only CLIs (all hosts)
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix
     # ./system/agenix-fixes.nix              # Migrated to sops-nix; agenix module no longer loaded
