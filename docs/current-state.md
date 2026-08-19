@@ -180,29 +180,3 @@ now would force their rebase; land it after their dev-mode namespace work commit
 See [`../DOCS-MAINTENANCE.md`](../DOCS-MAINTENANCE.md) for the classification and
 freshness policy. The documentation cleanup manifest records completed and planned
 migration batches without rewriting historical evidence.
-
-## 2026-08-19 cluster state changes
-
-- **TPM 2.0 age-key binding** — `modules/system/tpm2-age-binding.nix` adds hardware
-  binding for the SecretSpec/sops identity key. All 4 hosts (zephyr, nexus, forge,
-  sentry) have `/dev/tpmrm0` (TPM 2.0). The module seals the host's age key to PCRs
-  0+7 via `tpm2-seal-age-keygen.service` (one-time) and unseals it to
-  `/run/secrets/cluster-age-key` at boot via `tpm2-unseal-age.service`.
-  `services.secretspec-creds.ageKeyFile` is overridden with `mkForce` to the
-  runtime path. This sits *below* SecretSpec — no changes to secretspec itself.
-  See [SOPS-NIX.md](../SOPS-NIX.md) §"TPM 2.0 hardware-binding" and
-  `docs/reference/known-issues.md`.
-
-## Secrets architecture (updated)
-
-The secrets layer now has two hardware-backed mechanisms:
-
-| Mechanism | Scope | Key purpose | Status |
-|---|---|---|---|
-| **YubiKey (PIV/GPG)** | Host authentication + manual age decryption | Login (PAM U2F), sudo, SSH CA signing, GPG smartcard | Production |
-| **TPM 2.0 (PCR 0+7)** | SecretSpec/sops activation-time age key | Unattended boot-time unseal of the cluster age key | New (2026-08-19) |
-
-YubiKeys remain enrolled as additional `.sops.yaml` recipients for **manual**
-CLI/keyservice decryption. TPM sealing is complementary — it handles the
-unattended activation path where SecretSpec resolves 58 `sops://` secrets and
-feeds them to secretspec-creds systemd units.

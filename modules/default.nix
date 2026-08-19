@@ -47,8 +47,6 @@
     ./system/btrfs-compression.nix
     ./system/pi-models.nix
     ./system/btrfs-tuning.nix
-    # === TPM 2.0 age-key binding (cluster-wide hardening) ===
-    ./system/tpm2-age-binding.nix
     # Modular workload monitoring (replaced old compute-workload-monitor monolith)
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix
@@ -134,6 +132,7 @@
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/auto-update.nix
+    ./services/unified-autoupdate.nix
     ./services/hermes/default.nix
     ./services/hermes-cli.nix
     ./services/hermes-a2a-mesh.nix # Shared A2A mesh peers (4-host gateways, dendritic SPOC)
