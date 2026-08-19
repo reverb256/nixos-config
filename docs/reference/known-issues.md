@@ -139,8 +139,13 @@ After a motherboard replacement, TPM firmware update, or firmware setting
 change (which alters PCR 0):
 
 1. Boot to the new PCR state
-2. `sudo systemctl start tpm2-seal-age-keygen.service` on each affected host
-3. Verify unseal works: `sudo systemctl status tpm2-unseal-age.service`
-
-There is no automated re-seal on PCR mismatch — that would defeat the
-purpose of hardware-bound sealing.
+2. Remove the stale sealed blob:
+   ```bash
+   sudo rm -rf /var/lib/tpm2-age-sealed
+   sudo tpm2_getcap handles-persistent | grep 0x81  # find stale handle
+   sudo tpm2_evictcontrol -C o -c 0x81000000        # evict stale persistent object
+   ```
+3. Reboot — `tpm2-unseal-age.service` detects no sealed blob exists and
+   auto-seals the age key to the new PCR state on first boot
+4. Verify: `sudo systemctl status tpm2-unseal-age.service` (should show
+   `active (exited)` and log "auto-sealed age key")

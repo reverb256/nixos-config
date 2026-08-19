@@ -222,16 +222,24 @@ via `bootctl status`. PCR 7 (the Secure Boot PCR) therefore reflects the
 unchanged + Secure Boot stays off." If you later **enable** Secure Boot,
 PCR 7 changes and you must re-seal (`systemctl start tpm2-seal-age-keygen`).
 
-**Operator flow after deploy:**
+**Zero-touch provisioning:** the module auto-seals on first boot.
+After deploy, `tpm2-unseal-age.service` detects that no sealed blob exists
+at the TPM persistent handle, seals the host's age key to PCRs 0+7 inline,
+and then immediately unseals it to `/run/secrets/cluster-age-key`. No manual
+operator step is required.
+
+**Verify after deploy:**
 
 ```bash
-# On each host, one time:
-sudo systemctl start tpm2-seal-age-keygen.service
-
-# Verify:
+# Check the TPM service ran:
 sudo systemctl status tpm2-unseal-age.service  # should show "active (exited)"
-cat /run/secrets/cluster-age-key  # age key file (0400 root)
+ls -la /run/secrets/cluster-age-key  # age key file (0400 root)
+cat /var/lib/tpm2-age-sealed/meta   # shows auto_sealed=true, PCR policy, timestamp
+
+# Check the NixOS option took effect:
 nix eval .#nixosConfigurations.<host>.config.security.tpm2AgeBinding.enable  # true
+nix eval --raw .#nixosConfigurations.<host>.config.services.secretspec-creds.ageKeyFile
+# → /run/secrets/cluster-age-key
 ```
 
 **Failure mode:** if the TPM unseal fails (PCR mismatch, no sealed blob,
