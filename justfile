@@ -812,13 +812,13 @@ hermes-upgrade-profile:
         echo "       Install it first: nix profile install github:NousResearch/hermes-agent" >&2
         exit 1
     fi
-    OLD=$(nix profile list 2>/dev/null | grep -oP 'rev=\K[0-9a-f]+' | head -1)
+    OLD=$(nix profile list 2>/dev/null | grep 'Locked flake URL' | grep -oP 'hermes-agent/\K[0-9a-f]+' | head -1)
     echo "Upgrading hermes-agent in user nix profile (tracking main)..."
-    nix profile upgrade hermes-agent 2>&1 | tail -15
-    NEW=$(nix profile list 2>/dev/null | grep -oP 'rev=\K[0-9a-f]+' | head -1)
+    nix profile upgrade hermes-agent 2>&1 | tail -15 || true
+    NEW=$(nix profile list 2>/dev/null | grep 'Locked flake URL' | grep -oP 'hermes-agent/\K[0-9a-f]+' | head -1)
     echo "  old rev: ${OLD:-none}"
     echo "  new rev: ${NEW:-none}"
-    if [ "${OLD}" = "${NEW}" ]; then
+    if [ "${OLD:-none}" = "${NEW:-none}" ]; then
         echo "  (already at latest commit on main — nothing changed)"
     else
         echo "  upgraded."
@@ -839,9 +839,9 @@ hermes-upgrade-profile-all:
             ssh -o ConnectTimeout=15 "$host" 'bash --norc --noprofile -c "
                 if ! nix profile list 2>/dev/null | grep -q hermes-agent; then
                     echo \"  hermes-agent not in profile - skipping\"; exit 0; fi
-                nix profile upgrade hermes-agent 2>&1 | tail -5
+                nix profile upgrade hermes-agent 2>&1 | tail -5 || true
                 echo \"  installed: $(hermes --version 2>/dev/null | head -1)\"
-            "' 2>&1 || echo "  (ssh failed)"
+            "' 2>&1 || echo "  (ssh failed or flake metadata missing - install with: nix profile install github:NousResearch/hermes-agent)"
         fi
     done
 
