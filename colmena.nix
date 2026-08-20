@@ -21,12 +21,17 @@
   # machinesFile is generated from the NEXUS view (never a self-entry): nexus
   # distributes its builds to zephyr + sentry (forge is a last-resort
   # consumer, never a colmena build target while it mines).
+  #
+  # SELF-HEALING (2026-08-20): the file is written at RUNTIME by
+  # scripts/deploy/nexus-dispatch.sh, which probes each builder's live
+  # max-jobs and drops any builder whose daemon can't accept remote builds
+  # (e.g. zephyr's stale max-jobs=0). Colmena reads the file when it runs,
+  # so the path must be stable and need not exist at eval time.
   buildMachines = import ./lib/build-machines.nix {
     inherit (inputs.nixpkgs) lib;
     userHome = "/home/j_kro";
   };
-  colmenaMachinesText = buildMachines.machinesTextFor "nexus" [];
-  colmenaMachinesFile = builtins.toFile "colmena-machines" colmenaMachinesText;
+  colmenaMachinesFile = /tmp/colmena-machines;
 
   # mkColmenaHost — derive per-host colmneda config from `hosts.<name>`.
   # Guard: assert that h.hostName, when present, matches the attrset key. If

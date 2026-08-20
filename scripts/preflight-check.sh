@@ -58,7 +58,12 @@ for HOST in $HOSTS; do
   REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
   if [ "$REMOTE_HEAD" != "$CANONICAL" ]; then
     log "  ⚠ $HOST ($REMOTE_HEAD) != origin/main ($CANONICAL) — self-healing"
-    ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch origin main 2>&1 | tail -1 && git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
+    # Hosts use `central` (nexus git server) as their fetch remote, not
+    # `origin` — `git fetch origin` fails silently and `git reset --hard
+    # origin/main` resets to a stale ref (observed 2026-08-20). Use the
+    # remote the host actually has.
+    REMOTE=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git remote 2>/dev/null | grep -E \"^(origin|central)$\" | head -1'" 2>/dev/null || echo "central")
+    ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch $REMOTE main 2>&1 | tail -1 && git reset --hard $REMOTE/main 2>&1 | tail -1'" 2>&1 | tail -1
     REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
     if [ "$REMOTE_HEAD" = "$CANONICAL" ]; then
       pass "$HOST synced"
@@ -86,7 +91,18 @@ if [[ "${DAEMON_WORKERS:-0}" -gt 0 ]]; then
     DETECTED="$DETECTED nix-daemon-workers($DAEMON_WORKERS)"
 fi
 if [[ -n "$DETECTED" ]]; then
-    fail "in-flight build processes on nexus:$DETECTED — wait for them to finish before deploying"
+    # SELF-HEAL: a lingering \`colmena apply\` from a failed/wedged deploy never
+    # finishes on its own — it blocks every future deploy (observed 2026-08-20:
+    # a 26-min colmena apply + its nix-eval child after an OOM-killed NSS
+    # build). A REAL nix-daemon worker (active compile) is left alone; a
+    # wedged colmena/nixos-rebuild is killed so the next deploy can proceed.
+    if echo "$DETECTED" | grep -q "colmena\|nixos-rebuild\|switch-to-configuration"; then
+        log "  ⚠ stale deploy process on nexus:$DETECTED — killing (failed/wedged deploys never self-clean)"
+        ssh nexus "bash --norc --noprofile -c 'pgrep -x colmena 2>/dev/null | xargs -r kill -9; pgrep -f "colmenaHive" 2>/dev/null | xargs -r kill -9; pgrep -x nixos-rebuild 2>/dev/null | xargs -r kill -9; pgrep -x switch-to-configuration 2>/dev/null | xargs -r kill -9; sleep 1; echo KILLED'" 2>&1 | tail -1
+        pass "stale deploy process killed"
+    else
+        fail "in-flight build processes on nexus:$DETECTED — wait for them to finish before deploying"
+    fi
 else
     pass "no in-flight builds on nexus (incl. nix-daemon workers)"
 fi

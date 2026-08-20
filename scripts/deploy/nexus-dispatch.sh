@@ -144,6 +144,49 @@ executor() {
     NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
   fi
 
+  # ── SELF-HEALING BUILDER PROBE (2026-08-20) ────────────────────────────
+  # colmena's meta.machinesFile points at /tmp/colmena-machines (a stable
+  # path written HERE, not baked at eval). Probe each declared remote
+  # builder's LIVE max-jobs; drop any builder whose daemon refuses remote
+  # builds (max-jobs=0, e.g. zephyr's stale config before its deploy
+  # lands). Without this, colmena dispatches to a dead builder and the
+  # whole deploy fails with "unable to start any build; remote machines may
+  # not have all required system features".
+  #
+  # Builders (from lib/build-machines.nix, nexus view): zephyr, sentry.
+  # forge is never a builder (GPU miner). The probe reads the daemon's
+  # EFFECTIVE max-jobs (nix show-config as the builder's j_kro, which
+  # reports the daemon value for a daemon-restricted setting).
+  write_colmena_machines() {
+    local builders=("zephyr" "sentry")
+    local out="/tmp/colmena-machines"
+    : > "$out"
+    local healthy=""
+    for b in "${builders[@]}"; do
+      local mj
+      mj=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$b" 'nix show-config 2>/dev/null | awk "/^max-jobs/ {print \$3}"' 2>/dev/null || echo 0)
+      if [[ "${mj:-0}" -gt 0 ]]; then
+        healthy="$healthy $b(max-jobs=$mj)"
+        # Machine line (8-col format with host key). Keep in sync with
+        # lib/build-machines.nix formatMachine.
+        case "$b" in
+          zephyr)
+            echo "ssh-ng://j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUEwL3BUWGEvSDdtdnkzK1lQSnE5VTJtRktPNCtZckxTT1lkOHNQVTQ0K3Egcm9vdEB6ZXBoeXIK" >> "$out"
+            ;;
+          sentry)
+            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 2 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
+            ;;
+        esac
+      else
+        echo "  WARN: builder $b has max-jobs=$mj — excluded from colmena builders" >&2
+      fi
+    done
+    echo "colmena builders (self-healed):$healthy"
+    echo "  machines file: $out"
+    cat "$out" >&2
+  }
+  write_colmena_machines
+
   if [[ "$TARGET" == "nexus" ]]; then
     # nexus is the local executor host (deployment.targetHost = null). colmena
     # `apply` only targets SSH hosts — select_nodes() drops nodes with no
