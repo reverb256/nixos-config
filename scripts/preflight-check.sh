@@ -60,9 +60,13 @@ for HOST in $HOSTS; do
     log "  ⚠ $HOST ($REMOTE_HEAD) != origin/main ($CANONICAL) — self-healing"
     # Hosts use `central` (nexus git server) as their fetch remote, not
     # `origin` — `git fetch origin` fails silently and `git reset --hard
-    # origin/main` resets to a stale ref (observed 2026-08-20). Use the
-    # remote the host actually has.
-    REMOTE=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git remote 2>/dev/null | grep -E \"^(origin|central)$\" | head -1'" 2>/dev/null || echo "central")
+    # origin/main` resets to a stale ref (observed 2026-08-20). Try origin
+    # first, fall back to central (simple, avoids nested-quote hell that
+    # broke `git remote | grep` under the fish login shell).
+    REMOTE="origin"
+    if ! ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --verify origin/main >/dev/null 2>&1'" 2>/dev/null; then
+      REMOTE="central"
+    fi
     ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch $REMOTE main 2>&1 | tail -1 && git reset --hard $REMOTE/main 2>&1 | tail -1'" 2>&1 | tail -1
     REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
     if [ "$REMOTE_HEAD" = "$CANONICAL" ]; then
