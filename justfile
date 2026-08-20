@@ -130,6 +130,8 @@ git-push:
 
 # Dispatch deployment through Nexus. Zephyr remains the authoring/source-of-truth host;
 # Nexus performs the canonical build and Colmena activation.
+# WIRED (2026-08-20): after the NixOS switch, runs Layer-2 Home Manager activation
+# for the same target so one `just deploy` converges BOTH layers.
 deploy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -138,7 +140,19 @@ deploy host="all":
         echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
         exit 1
     }
-    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
+    {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
+
+    # Layer 2: HM activation for the deployed host(s). nexus is built by
+    # hm-deploy's ssh-ng builder; local zephyr uses the same path.
+    if [ "{{host}}" = "all" ]; then
+        for h in zephyr nexus forge sentry; do
+            echo ">>> HM deploy: $h"
+            just hm-deploy "$h" || echo "  (hm-deploy $h failed — NixOS switch succeeded, investigate separately)"
+        done
+    else
+        echo ">>> HM deploy: {{host}}"
+        just hm-deploy "{{host}}"
+    fi
 
 # Submit a disconnect-safe deployment to Nexus. The command returns after
 # creating the Nexus-side tmux job; inspect the reported log/session.
