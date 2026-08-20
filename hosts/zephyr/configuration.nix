@@ -376,6 +376,10 @@
     k3s-cluster = {
       enable = true;
       role = "agent";
+      # 2026-08-20 FRESH BOOTSTRAP: wipe stale agent state (old cluster's
+      # client certs) for a clean join. One-shot — REVERT wipeState=false
+      # after the recovery deploy.
+      wipeState = true;
       # Join the HA server cluster via the keepalived VIP (10.1.1.100).
       # serverAddr defaults to https://10.1.1.100:6443 (the VIP).
       serverAddr = "https://10.1.1.100:6443";

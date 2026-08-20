@@ -200,7 +200,10 @@
       # stale standalone-etcd (from the 2026-08-11 nexus outage pivot) so it
       # could rejoin nexus's HA etcd; the wipe has completed and sentry is
       # now a healthy member, so this is back to false.
-      wipeState = false;
+      # 2026-08-20 FRESH BOOTSTRAP: wipe stale sentry k3s state (244M from
+      # failed joins) so it re-joins nexus's fresh etcd. One-shot — REVERT
+      # to false after the recovery deploy.
+      wipeState = true;
 
       # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
       # file or directory" on activation is fixed at a different layer:
@@ -502,7 +505,12 @@
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
     enable = true;
-    ageKeyFile = "/home/j_kro/.config/sops/age/keys-combined.txt";
+    # ageKeyFile defaults to /etc/nixos/.age/key.txt (module contract). The
+    # 2026-08-20 agent fix (7267114e) pointed at
+    # ~/.config/sops/age/keys-combined.txt — a stale pre-rotation 378B key
+    # that FAILS to decrypt (verified on forge). The working key is zephyr's
+    # /etc/nixos/.age/key.txt (189B JSON envelope = cluster_age recipient);
+    # it must be seeded onto this host before the recovery deploy.
     secrets = import ./secretspec-creds-wiring.nix;
   };
 

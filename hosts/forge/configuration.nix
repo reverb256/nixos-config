@@ -245,6 +245,10 @@
       nvidia.enable = true;
       role = "server";
       clusterInit = false;
+      # 2026-08-20 FRESH BOOTSTRAP: wipe stale forge k3s state (1.3G from
+      # failed starts) so it re-joins nexus's fresh etcd. One-shot — REVERT
+      # wipeState=false after the recovery deploy.
+      wipeState = true;
       calico.enable = true;
       nodeName = "forge";
       serverAddr = "https://10.1.1.120:6443"; # direct nexus join for recovery
@@ -786,15 +790,17 @@
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
-    # Forge's age key lives at the operator home path (not /etc/nixos/.age/key.txt,
-    # which is zephyr-only). Point SOPS_AGE_KEY_FILE at the real key so sops -d works.
-    ageKeyFile = "/home/j_kro/.config/sops/age/keys.txt";
+    # ageKeyFile defaults to /etc/nixos/.age/key.txt (module contract). The
+    # previous override (~/.config/sops/age/keys.txt) was a stale 378B key
+    # that FAILS to decrypt (verified 2026-08-20). All hosts now share the
+    # working cluster_age key at /etc/nixos/.age/key.txt — seed it before the
+    # recovery deploy.
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
   services.secretspec-validator = {
-    ageKeyFile = "/etc/sops/age/key.txt";
+    # ageKeyFile defaults to /etc/nixos/.age/key.txt — aligned with creds.
     enable = true;
     production = true;
     # Aligned with cluster default 2026-08-10 (see SECRETSPEC-CONSOLIDATION.md):

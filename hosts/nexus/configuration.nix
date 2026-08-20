@@ -114,7 +114,12 @@
 
   services.secretspec-creds = {
     enable = true;
-    ageKeyFile = "/home/j_kro/.config/sops/age/keys-combined.txt";
+    # ageKeyFile defaults to /etc/nixos/.age/key.txt (module contract). The
+    # 2026-08-20 agent fix (7267114e) pointed at
+    # ~/.config/sops/age/keys-combined.txt — a stale pre-rotation 378B key
+    # that FAILS to decrypt (verified on forge). The working key is zephyr's
+    # /etc/nixos/.age/key.txt (189B JSON envelope = cluster_age recipient);
+    # it must be seeded onto this host before the recovery deploy.
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
@@ -273,6 +278,10 @@
       nvidia.enable = true;
       role = "server";
       clusterInit = true;
+      # 2026-08-20 FRESH BOOTSTRAP: wipe all k3s state once so nexus re-inits
+      # etcd with the STORE token (k3s-cluster-token.yaml) as truth. One-shot
+      # only — REVERT wipeState=false after the recovery deploy.
+      wipeState = true;
       nodeName = "nexus";
       serverAddr = "";
       tokenFile = "/run/secrets/k3s-cluster-token";

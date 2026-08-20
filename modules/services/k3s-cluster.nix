@@ -236,10 +236,15 @@ in {
         then cfg.serverAddr
         else "";
 
-      tokenFile =
-        if cfg.clusterInit
-        then null
-        else cfg.tokenFile;
+      # Always pass the token file — INCLUDING at cluster-init. A fresh
+      # bootstrap (wipeState) must adopt the canonical store token
+      # (secrets/k8s/k3s-cluster-token.yaml) so joining servers provision the
+      # same value and the cluster token is single-sourced. The previous
+      # `if clusterInit then null` made nexus generate a RANDOM token on
+      # bootstrap, which drifted from the store token (2026-08-20: live
+      # K10dac1f… vs store K1058bcb… — the exact mismatch that kept the
+      # cluster quorum-less). k3s accepts --token-file at cluster-init.
+      tokenFile = cfg.tokenFile;
 
       nodeIP =
         if cfg.nodeIP != ""
