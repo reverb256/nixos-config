@@ -359,7 +359,7 @@ preflight:
 check:
     #!/usr/bin/env bash
     set -e
-  cd {{FLAKE}} && nix flake check
+    cd {{FLAKE}} && nix flake check
 
 # Network-dependent cache provenance audit. This does not build; it evaluates
 # host toplevel derivations and probes configured upstream/community/custom
@@ -740,7 +740,7 @@ hermes-update:
     echo "3/6 Building zephyr toplevel (full build — verifies hermes-cli.nix patches + all inputs)..."
     # buildRustPackage branch (which carries the sops:// subprocess
     # Dispatcher module) for transitively-included pkgs.secretspec.
-  nix build --no-link --print-out-paths \
+    nix build --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20
 
     echo "4/6 Deploying to all hosts (full system switch)..."
@@ -770,7 +770,7 @@ hermes-update-check:
     echo "Building zephyr toplevel to verify hermes-cli.nix patches + all inputs apply..."
     # above: pkgs.secretspec inside zephyr's toplevel needs the cachix-fork
     # branch selected to ship sops:// provider registration at runtime.
-  nix build --no-link --print-out-paths \
+    nix build --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20 \
         && echo "OK: everything builds. Run 'just hermes-update' to deploy."
 
@@ -877,7 +877,7 @@ validate-k8s:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}}
-  # No: k8s manifests don't transitively depend on
+    # No: k8s manifests don't transitively depend on
     nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
 # Validate all *.yaml/*.yml files in the repo. Lenient of Nix toJSON, SOPS, and
