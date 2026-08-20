@@ -292,7 +292,7 @@ in {
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
-    environment.systemPackages = [ pkgs.noctalia.overrideAttrs (oldAttrs => { oldAttrs.version = "5.0.0-beta.8"; }); ];
+    environment.systemPackages = [ pkgs.noctalia.overrideAttrs (oldAttrs: oldAttrs // { version = "5.0.0-beta.8"; }); ];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;
