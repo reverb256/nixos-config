@@ -18,7 +18,14 @@
   # for VRChat in-world video players. Consumed via
   # programs.steam.extraCompatPackages only (see modules/gaming/gaming-vr-unlock.nix).
   proton-ge-rtsp = prev.callPackage ../packages/proton-ge-rtsp.nix {};
-  niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix {inherit (prev) niri-unstable;};
+  niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix {inherit (prev) niri-unstable writeText;};
+  # Instrumented variant for HDR/color diagnosis and tuning. Full debug
+  # symbols + debug assertions + -instrumented version tag. Flip
+  # programs.niri.package = pkgs.niri-hdr-instrumented in desktop.nix to use.
+  niri-hdr-instrumented = prev.callPackage ../pkgs/niri-hdr.nix {
+    inherit (prev) niri-unstable writeText;
+    enableInstrumentation = true;
+  };
   assimp = prev.assimp.overrideAttrs (_old: {doCheck = false;});
   # 2026-08-04: cups notifier-permission fix REMOVED from build phase.
   # The build-time `overrideAttrs { postInstall = chmod notifier dirs }` forked

@@ -16,6 +16,13 @@
   systemd,
   eudev,
   niri-unstable,
+  writeText,
+  # Instrumentation toggle (default off — normal production build).
+  # Set true for a diagnosis/tuning build: full debug symbols, debug
+  # assertions, and a distinct `-instrumented` version tag. Used with
+  # RUST_LOG=debug/trace at runtime (the fork already ships tracing with
+  # release_max_level_debug) to debug the HDR/color pipeline.
+  enableInstrumentation ? false,
 }:
 # HDR-enabled niri fork: reverb256/niri-hdr-fork @ hdr-latest (980aa465) —
 # latest upstream niri (60628446) + full HDR support (rebased from
@@ -36,6 +43,16 @@
 # while `cargoDeps` is a derivation and coerces to its store path safely.
 # outputHashes keys are "${pkg.name}-${pkg.version}" in this nixpkgs.
 let
+  # Cargo profile override for the instrumented build. Plain TOML via
+  # writeText (in scope from args) — referenced by the postPatch below.
+  cargoInstrumentedConfig = writeText "cargo-config-instrumented.toml" ''
+    [profile.release]
+    debug = 2
+    debug-assertions = true
+    [profile.release.package."*"]
+    opt-level = 1
+  '';
+
   smithaySrc = fetchFromGitHub {
     owner = "reverb256";
     repo = "smithay";
@@ -45,7 +62,6 @@ let
 in
   niri-unstable.overrideAttrs (old: {
     pname = "niri-hdr";
-    version = "2026-08-15-reverb256-fork";
 
     # hdr-latest branch tip (2026-08-15): latest upstream niri + full HDR.
     src = fetchFromGitHub {
@@ -66,12 +82,6 @@ in
     # patchPhase) diffs the source Cargo.lock against the vendored one from
     # importCargoLock — a stale lock fails the build with "Cargo.lock is not the
     # same in /build/cargo-vendor-dir".
-    postPatch =
-      (old.postPatch or "")
-      + ''
-        cp ${./niri-hdr-Cargo.lock} Cargo.lock
-      '';
-
     # x86-64-v3: all fleet CPUs support AVX2 + SSE4.2 + popcnt. target-cpu
     # lets rustc emit v3-native instructions (avx2, bmi2, fma, etc.) across
     # the niri + smithay dependency tree — compositor, DRM/KMS, rendering.
@@ -83,6 +93,23 @@ in
     env = old.env // {
       RUSTFLAGS = (old.env.RUSTFLAGS or "") + " -C target-cpu=x86-64-v3";
     };
+
+    # Instrumented build (enableInstrumentation=true): full debug symbols
+    # (debug=2 vs upstream's line-tables-only), debug-assertions on, and a
+    # distinct version tag so the store path identifies this build.
+    # Cargo profile.release is patched via .cargo/config.toml (created with
+    # writeText above) so rustc applies it workspace-wide (niri + smithay).
+    postPatch =
+      (old.postPatch or "")
+      + ''
+        cp ${./niri-hdr-Cargo.lock} Cargo.lock
+      ''
+      + lib.optionalString enableInstrumentation ''
+        cp ${cargoInstrumentedConfig} .cargo/config.toml
+      '';
+    version = if enableInstrumentation
+      then "2026-08-15-reverb256-fork-instrumented"
+      else "2026-08-15-reverb256-fork";
 
     # Regenerated Cargo.lock (2026-08-15) from the fork checkout (hdr-latest
     # 980aa465): `nix develop --command cargo generate-lockfile` — pins smithay
