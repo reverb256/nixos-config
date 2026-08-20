@@ -67,6 +67,11 @@ for HOST in $HOSTS; do
     if ! ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --verify origin/main >/dev/null 2>&1'" 2>/dev/null; then
       REMOTE="central"
     fi
+    # SELF-HEAL: colmena apply (running as root) can leave root-owned objects
+    # in /etc/nixos/.git, breaking the NEXT fetch with "insufficient
+    # permission ... unpack-objects failed" (observed on nexus/sentry/forge
+    # 2026-08-20). Normalize ownership before fetching.
+    ssh "$HOST" "sudo chown -R j_kro:users /etc/nixos/.git 2>/dev/null || true" 2>/dev/null
     ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch $REMOTE main 2>&1 | tail -1 && git reset --hard $REMOTE/main 2>&1 | tail -1'" 2>&1 | tail -1
     REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
     if [ "$REMOTE_HEAD" = "$CANONICAL" ]; then
