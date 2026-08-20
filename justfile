@@ -154,6 +154,11 @@ deploy host="all":
         just hm-deploy "{{host}}"
     fi
 
+# Convenience alias: deploy all 4 hosts (nexus dispatcher, canonical order).
+# Delegates to `deploy all` so preflight + canonical-ref + HM wiring stay single-source.
+deploy-all:
+    just deploy all
+
 # Submit a disconnect-safe deployment to Nexus. The command returns after
 # creating the Nexus-side tmux job; inspect the reported log/session.
 deploy-async host="all":
