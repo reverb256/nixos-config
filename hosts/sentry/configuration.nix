@@ -502,6 +502,7 @@
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
     enable = true;
+    ageKeyFile = "/home/j_kro/.config/sops/age/keys-combined.txt";
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
