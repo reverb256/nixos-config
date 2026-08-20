@@ -144,47 +144,43 @@ executor() {
     NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
   fi
 
-  # ── SELF-HEALING BUILDER PROBE (2026-08-20) ────────────────────────────
+  # ── COLMENA MACHINES (source of truth, 2026-08-20) ───────────────────
   # colmena's meta.machinesFile points at /tmp/colmena-machines (a stable
-  # path written HERE, not baked at eval). Probe each declared remote
-  # builder's LIVE max-jobs; drop any builder whose daemon refuses remote
-  # builds (max-jobs=0, e.g. zephyr's stale config before its deploy
-  # lands). Without this, colmena dispatches to a dead builder and the
-  # whole deploy fails with "unable to start any build; remote machines may
-  # not have all required system features".
+  # path written HERE, not baked at eval). This MUST come from
+  # lib/build-machines.nix — the single source of truth for the cluster's
+  # builder topology (nexus 10, zephyr 10, sentry 9; forge never a builder).
   #
-  # Builders (from lib/build-machines.nix): nexus (primary), sentry, zephyr.
-  # forge is never a builder (GPU miner). The probe reads the daemon's
-  # EFFECTIVE max-jobs (nix show-config as the builder's j_kro, which
-  # reports the daemon value for a daemon-restricted setting).
+  # Prior bug (2026-08-20, fixed): the old hardcoded probe re-wrote machine
+  # lines by hand, (a) including nexus as a SELF-ENTRY — colmena running on
+  # nexus dispatched builds back to itself over SSH and deadlocked on store
+  # locks (documented at modules/system/distributed-builds.nix:310-319), and
+  # (b) dropped zephyr whenever its live max-jobs read 0 (stale deployed
+  # config), silently reducing the fleet to a single local builder.
+  #
+  # Fix: evaluate machinesTextFor "nexus" [] from the flake. That function
+  # already excludes the CURRENT host (never self) and uses the declarative
+  # topology + pinned host keys. No SSH probing of live max-jobs — the
+  # declarative max-jobs/speedFactor in build-machines.nix is authoritative;
+  # a builder whose daemon is down will simply not accept work and nix will
+  # fall back to the remaining builders, not deadlock.
   write_colmena_machines() {
-    local builders=("nexus" "sentry" "zephyr")
     local out="/tmp/colmena-machines"
-    : > "$out"
-    local healthy=""
-    for b in "${builders[@]}"; do
-      local mj
-      mj=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$b" 'nix show-config 2>/dev/null | awk "/^max-jobs/ {print \$3}"' 2>/dev/null || echo 0)
-      if [[ "${mj:-0}" -gt 0 ]]; then
-        healthy="$healthy $b(max-jobs=$mj)"
-        # Machine line (8-col format with host key). Keep in sync with
-        # lib/build-machines.nix formatMachine.
-        case "$b" in
-          nexus)
-            echo "ssh-ng://j_kro@nexus x86_64-linux,i686-linux /home/j_kro/.ssh/id_ed25519 5 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU50dHZHbjRldFFYNkFieVQySHBYcm15R2FURkwzZ3VyLzJJbUhUTHpCT2wgcm9vdEBuZXh1cwo=" >> "$out"
-            ;;
-          sentry)
-            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 3 9 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
-            ;;
-          zephyr)
-            echo "ssh-ng://j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUEwL3BUWGEvSDdtdnkzK1lQSnE5VTJtRktPNCtZckxTT1lkOHNQVTQ0K3Egcm9vdEB6ZXBoeXIK" >> "$out"
-            ;;
-        esac
-      else
-        echo "  WARN: builder $b has max-jobs=$mj — excluded from colmena builders" >&2
-      fi
-    done
-    echo "colmena builders (self-healed):$healthy"
+    local machines_text
+    # Derive the machines file from lib/build-machines.nix (single source of
+    # truth) via the flake package output. machinesTextFor "nexus" [] excludes
+    # the current host (never self-entry) and lists zephyr + sentry with
+    # declarative max-jobs / speedFactor / pinned host keys.
+    machines_text="$(
+      nix build --print-out-paths .#packages.x86_64-linux.buildMachinesText 2>&1 \
+        | tail -1 \
+        | xargs -I{} cat {}
+    )"
+    if [[ -z "$machines_text" ]]; then
+      echo "ERROR: could not generate colmena machines from lib/build-machines.nix" >&2
+      exit 1
+    fi
+    printf '%s\n' "$machines_text" > "$out"
+    echo "colmena builders (from lib/build-machines.nix, nexus view):"
     echo "  machines file: $out"
     cat "$out" >&2
   }

@@ -537,6 +537,20 @@
             program = nixpkgs.lib.getExe colmena.packages.x86_64-linux.colmena;
             meta.description = "Colmena multi-host NixOS deployment";
           };
+          # Builders machines text (single source of truth, 2026-08-20).
+          # `nix eval .#packages.x86_64-linux.buildMachinesText --raw` (or
+          # `nix eval .#buildMachinesText --raw`) prints the machine lines for
+          # the nexus view (self excluded). Used by
+          # scripts/deploy/nexus-dispatch.sh to write /tmp/colmena-machines
+          # for colmena. The old hardcoded probe in nexus-dispatch.sh caused
+          # the nexus self-entry deadlock + zephyr exclusion (2026-08-20).
+          packages.buildMachinesText = let
+            bm = import ./lib/build-machines.nix {
+              inherit (nixpkgs) lib;
+              userHome = "/home/j_kro";
+            };
+          in
+            pkgs.writeText "colmena-machines" (bm.machinesTextFor "nexus" []);
           # ── FORMATTING GATE ───────────────────────────────────────
           # `nix fmt` -> alejandra (format) across the tree.
           formatter = pkgs.alejandra;
