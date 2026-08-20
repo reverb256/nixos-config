@@ -20,14 +20,6 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ bun makeWrapper ];
 
-  # bun install fetches npm tarballs at build time. The fleet's nix sandbox
-  # blocks network (sandbox = true everywhere), so this derivation must opt
-  # out of the sandbox to reach registry.npmjs.org. This is the standard
-  # escape hatch for build-time-fetching derivations; everything else stays
-  # sandboxed. Without it the deploy fails with:
-  #   error: ConnectionRefused downloading tarball <pkg>
-  __noChroot = true;
-
   buildPhase = ''
     runHook preBuild
     if [ -f bun.lock ] || [ -f bun.lockb ]; then
