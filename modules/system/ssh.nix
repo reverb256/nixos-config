@@ -130,7 +130,7 @@ in {
     ServerAliveCountMax 3
     Compression yes
     TCPKeepAlive yes
-    UserKnownHostsFile ~/.ssh/known_hosts
+    UserKnownHostsFile ~/.ssh/known_hosts /etc/ssh/ssh_known_hosts
 
     Host *
       User j_kro
