@@ -175,15 +175,6 @@ in {
       # Don't abort the build if a local cache is temporarily unreachable.
       fallback = true;
 
-      # Reduce stalled-download-timeout from the 60s default to 15s.
-      # The default causes multi-minute stalls when a substituter doesn't
-      # respond — Nix waits the full 60s per path before retrying.
-      # With multiple community caches (cachix, niri, noctalia, etc.),
-      # a single slow cache stalls the entire rebuild.
-      stalled-download-timeout = 15;
-      connect-timeout = 10;
-      filetransfer-retry-attempts = 3;
-
       # Cache "narinfo not found" responses so a briefly-down cache doesn't
       # trigger a re-query storm on every operation (pairs with fallback=true).
       # 300s = 5 min; trade-off is up to 5 min staleness if a cache recovers
