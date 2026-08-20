@@ -2,6 +2,18 @@
 # One entry per /run/secrets/ path
 {
   # ── aiServices ──────────────────────────────────────────────
+  # memlawb zero-knowledge encryption passphrase. Deployed declaratively via
+  # sops so the healthcheck (memlawb-healthcheck.nix) and Hermes MCP bridge
+  # can source it from /run/secrets, not the hand-placed
+  # /home/j_kro/.memlawb-passphrase.txt. Zero-knowledge: never sent to server.
+  MEMLAWB_PASSPHRASE = {
+    path = "/run/secrets/memlawb-passphrase";
+    file = "ai/memlawb-passphrase.yaml";
+    key = "data";
+    mode = "0400";
+    owner = "j_kro";
+    group = "users";
+  };
   EXA_API_KEY = {
     path = "/run/secrets/exa-api-key";
     file = "ai/exa-api-key.yaml";

@@ -29,7 +29,7 @@ let
     BUN="''${BUN_BIN:-/run/current-system/sw/bin/bun}"
     MEMLAWB_BIN="''${MEMLAWB_BIN:-/home/j_kro/.local/share/memlawb/bin/memlawb.ts}"
     CLIENT_LIB="''${MEMLAWB_CLIENT:-/home/j_kro/.local/share/memlawb/client/index.ts}"
-    PASSPHRASE_FILE="''${MEMLAWB_PASSPHRASE_FILE:-/home/j_kro/.memlawb-passphrase.txt}"
+    PASSPHRASE_FILE="''${MEMLAWB_PASSPHRASE_FILE:-/run/secrets/memlawb-passphrase}"
 
     export MEMLAWB_URL
     export MEMLAWB_NAMESPACE
@@ -104,8 +104,8 @@ in {
 
     passphraseFile = lib.mkOption {
       type = lib.types.str;
-      default = "/home/j_kro/.memlawb-passphrase.txt";
-      description = "File with the zero-knowledge passphrase (chmod 600, j_kro).";
+      default = "/run/secrets/memlawb-passphrase";
+      description = "File with the zero-knowledge passphrase (secretspec-provisioned via sops).";
     };
 
     binPath = lib.mkOption {
