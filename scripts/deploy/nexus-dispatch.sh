@@ -153,12 +153,12 @@ executor() {
   # whole deploy fails with "unable to start any build; remote machines may
   # not have all required system features".
   #
-  # Builders (from lib/build-machines.nix, nexus view): zephyr, sentry.
+  # Builders (from lib/build-machines.nix): nexus (primary), sentry, zephyr.
   # forge is never a builder (GPU miner). The probe reads the daemon's
   # EFFECTIVE max-jobs (nix show-config as the builder's j_kro, which
   # reports the daemon value for a daemon-restricted setting).
   write_colmena_machines() {
-    local builders=("zephyr" "sentry")
+    local builders=("nexus" "sentry" "zephyr")
     local out="/tmp/colmena-machines"
     : > "$out"
     local healthy=""
@@ -170,11 +170,14 @@ executor() {
         # Machine line (8-col format with host key). Keep in sync with
         # lib/build-machines.nix formatMachine.
         case "$b" in
-          zephyr)
-            echo "ssh-ng://j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUEwL3BUWGEvSDdtdnkzK1lQSnE5VTJtRktPNCtZckxTT1lkOHNQVTQ0K3Egcm9vdEB6ZXBoeXIK" >> "$out"
+          nexus)
+            echo "ssh-ng://j_kro@nexus x86_64-linux,i686-linux /home/j_kro/.ssh/id_ed25519 5 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU50dHZHbjRldFFYNkFieVQySHBYcm15R2FURkwzZ3VyLzJJbUhUTHpCT2wgcm9vdEBuZXh1cwo=" >> "$out"
             ;;
           sentry)
-            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
+            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 3 9 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
+            ;;
+          zephyr)
+            echo "ssh-ng://j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUEwL3BUWGEvSDdtdnkzK1lQSnE5VTJtRktPNCtZckxTT1lkOHNQVTQ0K3Egcm9vdEB6ZXBoeXIK" >> "$out"
             ;;
         esac
       else
