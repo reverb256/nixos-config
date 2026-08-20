@@ -101,7 +101,25 @@ let
     # nixpkgs' applyPatches never double-applies. The fixes above (mimalloc,
     # mdbook-linkcheck2 + cacert, doCheck=false, contrib-plugins off) are
     # nixpkgs-packaging concerns, not source patches, so they remain here.
-    patches = old.patches or [];
+    # 2026-08-20: nixpkgs' lix glue ALSO ships its own lix patches
+    # (e.g. lix-f2-increase-timeouts-and-max-worker-count.patch), and the
+    # homelab/2.96 fork has since absorbed those changes IN-TREE too
+    # (verified: tests/functional2/meson.build already has `timeout : 1800`).
+    # Keeping `old.patches` unchanged double-applies them -> "Reversed (or
+    # previously applied) patch detected" at patchPhase. Filter out any
+    # nixpkgs patch whose filename the fork already carries. If a future
+    # nixpkgs bump adds a patch the fork lacks, it must NOT be filtered —
+    # only these known in-tree ones are excluded.
+    patches =
+      builtins.filter
+      (p:
+        !(builtins.any
+          (name: pkgs.lib.hasSuffix name (toString p))
+          [
+            # Fork has absorbed these nixpkgs-side patches in-tree.
+            "lix-f2-increase-timeouts-and-max-worker-count.patch"
+          ]))
+      (old.patches or []);
 
     # Tune Lix to this host's CPU. This nixpkgs rev's cc-wrapper has a
     # SINGLE compile-flag channel: NIX_CFLAGS_COMPILE is injected into both
