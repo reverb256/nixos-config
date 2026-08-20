@@ -9,8 +9,8 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "reverb256";
     repo = "fleet-deck";
-    rev = "5f4c0cc06ed630552ed6078f9676bf92b7deac7e";
-    hash = "sha256-8ag0ggf6Mqxc+UEuht4eq5Wha7OCnajauaE3oYd8CY0=";
+    rev = "6bcea47";
+    hash = "sha256-8eIQHGBGwHcdYmD2AKTVQyNmuVh+CmUc+lzRJAam7Lw=";
   };
 
   # Vendor hash (discovered via first build).
