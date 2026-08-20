@@ -26,7 +26,7 @@
     # programs.starship.enableZshIntegration (home-manager-config/modules/starship.nix).
     # Layer-1 keeps zsh's own prompt defaults; HM injects starship into
     # ~/.config/zsh/.zshrc. Single owner = no double init.
-    interactiveShellInit = '''
+    interactiveShellInit = ''
       # Environment
       export EDITOR=nvim
       export VISUAL=nvim
