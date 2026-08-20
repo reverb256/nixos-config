@@ -422,6 +422,8 @@
   systemd.tmpfiles.rules = [
     # Clean old etcd data directory before starting (NixOS-managed cleanup)
     "R /var/lib/etcd - - - - -"
+    # HDD offload target for GitHub runner caches (bind-mounted at /var/lib/runner)
+    "d /storage/runner 0755 j_kro users - -"
   ];
 
   # ============================================================================
@@ -639,4 +641,34 @@
 
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
   services.llama-swap-cluster.enable = true;
+
+  # ----------------------------------------------------------------------------
+  # STORAGE OFFLOAD — move bulky/latency-tolerant state off the 230G root SSD
+  # onto the 1TB HDD (/storage). Root hit 100% (224G/0) on 2026-08-20 and the
+  # nix daemon died; GC recovered only 21G. HDD keeps k3s etcd + prometheus
+  # TSDB (latency-sensitive, stay on SSD) but takes the GitHub runner caches.
+  # ----------------------------------------------------------------------------
+  # HDD offload target dir is created via the systemd.tmpfiles.rules block above.
+  # Bind-mount the runner work/cache tree onto the HDD. Covers both
+  # /var/lib/runner and /var/lib/runner-siteagency (same parent).
+  fileSystems."/var/lib/runner" = {
+    device = "/storage/runner";
+    fsType = "none";
+    options = [ "bind" ];
+    # Don't fail boot if HDD is somehow not up yet; services wait on the mount.
+    noCheck = true;
+  };
+  # GC retention: override fleet weekly/30d (distributed-builds.nix) — sentry's
+  # 230G root hit 100% because daily nixos-auto-update `boot` rebuilds created
+  # generations younger than 30d. 7d cutoff actually prunes them. The fleet's
+  # separate nix-gc-prune timer (keep newest-N) still complements this.
+  # (bind-mount is ordered before local-fs.target; runner services start
+  # later in multi-user.target, so no explicit After= wiring needed.)
+  nix.gc = {
+    # mkOverride 0 outranks mkForce (priority 50) used in nix-config.nix,
+    # which is imported later in the module chain.
+    automatic = lib.mkOverride 0 true;
+    dates = lib.mkOverride 0 "daily";
+    options = lib.mkOverride 0 "--delete-older-than 7d";
+  };
 }
