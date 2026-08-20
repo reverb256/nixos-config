@@ -82,4 +82,10 @@
   };
 
   services.multimedia.gstreamer.enable = true;
+
+  # Steam Remote Play — stream games from zephyr to other devices.
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+  };
 }
