@@ -11,6 +11,26 @@
   inputs,
   ...
 }: {
+  # Forge is a headless GPU mining rig — drop all GUI session components.
+  # modules/default.nix imports desktop/*.nix which sets niri/enable/flatpak
+  # via mkDefault; lib.mkForce here overrides those defaults so the GUI
+  # packages are never built or activated on this host.
+  programs.niri.enable = lib.mkForce false;
+  programs.uwsm.enable = lib.mkForce false;
+  services.flatpak.enable = lib.mkForce false;
+  services.displayManager.autoLogin.enable = lib.mkForce false;
+  # Forge has no display — disable SDDM entirely. Required because
+  # modules/desktop/desktop.nix sets sddm.enable=mkDefault true and that
+  # is evaluated before these lib.mkForce overrides take effect.
+  services.displayManager.sddm.enable = lib.mkForce false;
+  # defaultSession must be a valid session name. Since sddm is disabled
+  # (forge is headless), we must also set defaultSession to an empty/null
+  # value accepted by the assertion. Using a nop session approach:
+  # services.displayManager.defaultSession overridden below after disabling sddm.
+  # amdgpu.wayland=true comes from the forge-mining node profile; forge has
+  # no display, so Wayland GPU initialization is unnecessary.
+  hardware.amdgpu.wayland.enable = lib.mkForce false;
+
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
@@ -87,10 +107,10 @@
     ./firewall.nix
     # Declarative non-volatile state.
     ./preservation.nix
-    # Desktop (niri + uwsm + SDDM autoLogin) — must be imported or
-    # services.displayManager.defaultSession/autoLogin stay null and the
-    # SDDM autologin assertion fails eval.
-    ./desktop.nix
+    # Desktop (niri + uwsm + SDDM autoLogin) — removed 2026-08-20.
+    # forge is headless; all GUI session settings are now lib.mkForce false
+    # above in this config block so the desktop.nix import is unnecessary.
+    # ./desktop.nix
     # All other modules (desktop, networking, services, etc.)
     ../../modules/default.nix
     # GPU support (wayland-specific, host-dependent)
