@@ -50,16 +50,11 @@ in {
               # nix-daemon memory guard below (MemoryMax=90%, OOMScoreAdjust=500)
               # ensures a runaway compile dies before the miners. (2026-08-19)
               if currentHost == "zephyr"
-              then 8 # 50% of 32 logical; 2*8=16 threads, 16 reserved
+              then 5 # 32 logical; 3*5=15 threads (47%) — 50% thread cap
               else if currentHost == "nexus"
-              then 9 # 3900X = 24 logical; 2*9=18 threads, 25% reserved
+              then 3 # 3900X = 24 logical; 5*3=15 threads (62.5%), 9 reserved
               else if currentHost == "sentry"
-              then 6 # R7 1700 = 16 logical; 2*6=12 threads (75%), 4 reserved.
-                     # Raised from 4 (50%) on 2026-08-19: sentry's crashes were
-                     # proven to be ENOSPC (journald watchdog timeout on a full
-                     # disk), NOT CPU saturation, so the extra headroom was
-                     # buying nothing. k3s control plane + Vulkan inference keep
-                     # 4 threads.
+              then 4 # R7 1700 = 16 logical; 3*4=12 threads (75%), 4 reserved
               else if currentHost == "forge"
               then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under load
                      # is revenue-critical — keep CPU entirely free for k3s + miners.
@@ -75,12 +70,11 @@ in {
               # The former max-jobs=0 was a protective wedge while the llama issue was
               # unresolved; now that it is resolved, zephyr builds locally again.
               if currentHost == "zephyr"
-              then 3 # 75% of 32 logical cores; 24 threads for builds, 8 for desktop
+              then 3 # 3*5=15 threads (47%) ≤ 50% cap; 17 reserved for desktop/gaming
               else if currentHost == "nexus"
-              then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
+              then 5 # 5*3=15 threads (62.5%); 9 reserved — primary builder
               else if currentHost == "sentry"
-              then 2 # x cores=6 -> 12 of 16 logical threads (75%); 4 reserved
-                     # for the k3s control plane and Vulkan inference
+              then 3 # 3*4=12 threads (75%); 4 reserved for k3s + inference
               else if currentHost == "forge"
               then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under
                      # load is revenue-critical — CPU stays fully free for miners + k3s.

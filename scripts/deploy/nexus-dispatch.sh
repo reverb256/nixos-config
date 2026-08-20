@@ -174,7 +174,7 @@ executor() {
             echo "ssh-ng://j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUEwL3BUWGEvSDdtdnkzK1lQSnE5VTJtRktPNCtZckxTT1lkOHNQVTQ0K3Egcm9vdEB6ZXBoeXIK" >> "$out"
             ;;
           sentry)
-            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 2 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
+            echo "ssh-ng://j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 3 10 big-parallel,kvm - c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK" >> "$out"
             ;;
         esac
       else

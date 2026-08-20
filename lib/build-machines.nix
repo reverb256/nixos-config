@@ -54,7 +54,7 @@
       systems = ["x86_64-linux" "i686-linux"];
       sshUser = "j_kro";
       sshKey = userHome + "/.ssh/id_ed25519";
-      maxJobs = 2;
+      maxJobs = 5;
       speedFactor = 10;
       supportedFeatures = ["big-parallel" "kvm"];
       mandatoryFeatures = [];
@@ -65,7 +65,7 @@
       systems = ["x86_64-linux"];
       sshUser = "j_kro";
       sshKey = userHome + "/.ssh/id_ed25519";
-      maxJobs = 2;
+      maxJobs = 3;
       speedFactor = 10;
       supportedFeatures = ["big-parallel" "kvm"];
       mandatoryFeatures = [];
