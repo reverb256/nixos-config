@@ -61,6 +61,11 @@
     TZ = "America/Winnipeg";
   };
 
+  # Register zsh (the sole login shell) in /etc/shells so login tools
+  # (chsh, PAM, SSH AuthorizedKeysCommand) accept it. fish was removed
+  # 2026-08-19; zsh is the only interactive/login shell cluster-wide.
+  environment.shells = [ pkgs.zsh ];
+
   security.pam.services.login.setEnvironment = true;
 
   environment.etc."environment".text = ''
