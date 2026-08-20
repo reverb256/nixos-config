@@ -11,6 +11,17 @@
   inputs,
   ...
 }: {
+  # Sentry is a headless k3s + Vulkan inference server — drop all GUI.
+  # modules/default.nix imports desktop/*.nix which sets niri/enable/flatpak
+  # via mkDefault; lib.mkForce here overrides those defaults so the GUI
+  # packages are never built or activated on this host.
+  programs.niri.enable = lib.mkForce false;
+  programs.uwsm.enable = lib.mkForce false;
+  services.flatpak.enable = lib.mkForce false;
+  # Sentry has no display — disable SDDM and autologin.
+  services.displayManager.sddm.enable = lib.mkForce false;
+  services.displayManager.autoLogin.enable = lib.mkForce false;
+
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -484,8 +495,6 @@
     generateLeaf = false;
   };
 
-  # Disable autologin — sentry is k3s server, not interactive desktop
-  services.displayManager.autoLogin.enable = lib.mkForce false;
   # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
@@ -613,11 +622,6 @@
   # airscan device — both useless here. modules/system/boot-error-fixes.nix
   # force-mirrors services.printing.enable from this includePrinting flag.
   services.boot-error-fixes.includePrinting = lib.mkForce false;
-  # SDDM greeter NULL-derefs at every boot (sddm-helper-sta segfault at 0, core-dumped).
-  # Sentry has no interactive Wayland session attached (no keyboard/monitor);
-  # suppress the greeter entirely. Other hosts that need a desktop keep the
-  # default.
-  services.displayManager.sddm.enable = lib.mkForce false;
   # alertmanager currently fails start: it tries to gossip-join a cluster
   # mesh despite listenAddress=127.0.0.1 having no private IP for cluster
   # advertise. Sentry runs solo. Disable clustering so the unit emits the
