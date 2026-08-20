@@ -40,6 +40,10 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     runHook preInstall
+    # bun's install cache leaves symlinks into the build dir (node_modules/.cache);
+    # they would dangle in the final store path and trip noBrokenSymlinks. Drop
+    # the cache — it is only needed at install time, not at runtime.
+    rm -rf node_modules/.cache
     mkdir -p "$out/share/memlawb"
     # Copy the full tree (server src + mcp client + bin + client + vendored
     # node_modules) into the store so the closure is self-contained.
