@@ -13,8 +13,8 @@ buildGoModule rec {
     hash = "sha256-8ag0ggf6Mqxc+UEuht4eq5Wha7OCnajauaE3oYd8CY0=";
   };
 
-  # FIXME(vendor): set after first build on nexus discovers the hash.
-  vendorHash = null;
+  # Vendor hash: set to a dummy SRI to discover via the build error.
+  vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
   ldflags = [ "-s" "-w" ];
 
