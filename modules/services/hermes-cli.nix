@@ -10,7 +10,7 @@
 # so `hermes` is on the user's PATH from the profile. This module keeps the
 # lightweight, Nix-managed pieces that don't require building the package:
 #   - ~/.hermes SOUL.md + session/memory/skill directory tree
-#   - fish shell completions (resolved via `command -v hermes` on PATH)
+#   - shell completions (resolved via `command -v hermes` on PATH)
 #   - the HERMES_HOME variable
 #
 # It no longer adds hermes to environment.systemPackages (the profile owns the

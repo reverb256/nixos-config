@@ -1,7 +1,7 @@
 # Zsh Shell Configuration Module
 # Sole interactive + login shell for j_kro (POSIX) so AI agents, `sh -c`, and
 # SSH sessions get predictable bash-compatible behavior. Fish was removed
-# 2026-08-18 (see issue #645 — login shell was already zsh; fish disabled).
+# 2026-08-18 (see issue #645 — login shell was already zsh).
 { pkgs, ... }: {
   programs.zsh = {
     enable = true;
@@ -22,16 +22,15 @@
     ];
 
     # Interactive shell configuration (prompt, navigation, environment)
+    # NOTE: starship init is NOT here — Layer-2 home-manager owns it via
+    # programs.starship.enableZshIntegration (home-manager-config/modules/starship.nix).
+    # Layer-1 keeps zsh's own prompt defaults; HM injects starship into
+    # ~/.config/zsh/.zshrc. Single owner = no double init.
     interactiveShellInit = '''
       # Environment
       export EDITOR=nvim
       export VISUAL=nvim
       export TZ=America/Winnipeg  # User timezone (system time remains UTC)
-
-      # Starship prompt
-      if command -v starship >/dev/null 2>&1; then
-        eval "$(starship init zsh)"
-      fi
 
       # zoxide (smart cd)
       if command -v zoxide >/dev/null 2>&1; then
@@ -102,7 +101,7 @@
       "..." = "cd ../..";
       "...." = "cd ../../..";
 
-      # ScopeBuddy (gaming helpers, formerly fish-only)
+      # ScopeBuddy (gaming helpers)
       scb = "scopebuddy";
       scopebuddy = "scopebuddy";
       scb-detect = "scopebuddy-detect";
@@ -127,7 +126,7 @@
     fastfetch
     starship
 
-    # Container / Docker-compose helpers (migrated from fish.nix)
+    # Container / Docker-compose helpers
     lazydocker
     podman-compose
   ];

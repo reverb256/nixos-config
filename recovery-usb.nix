@@ -94,7 +94,6 @@
             htop
             curl
             wget
-            fish
             starship
             eza
             bat

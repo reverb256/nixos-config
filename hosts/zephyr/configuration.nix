@@ -154,8 +154,8 @@
 
   # Hermes Agent CLI: nixos-config no longer builds/installs hermes (issue #334);
   # the `hermes` binary comes from the user nix profile. Keep the module enabled
-  # only for SOUL.md / dir setup + fish completions if desired. Disabled here to
-  # avoid forcing it; enable explicitly if you want the activation scripts.
+  # only for SOUL.md / dir setup. Disabled here to avoid forcing it; enable
+  # explicitly if you want the activation scripts.
   # services.hermes-cli.enable = true;
 
   boot.kernel.sysctl = {
@@ -1036,7 +1036,6 @@
   # Package referenced via flake input (outside with pkgs; scope)
   environment.systemPackages = with pkgs; [
     # Shell & CLI
-    fish
     zoxide
     fzf
     eza

@@ -362,7 +362,7 @@ in {
       All keys managed via agenix secrets:
       - context7-api-key → /run/secrets/context7-api-key
       - nvidia-api-key → /run/secrets/nvidia-api-key
-      Keys are loaded into shell environment (fish/bash) and referenced
+      Keys are loaded into shell environment and referenced
       in configs at generation time.
     '';
   };

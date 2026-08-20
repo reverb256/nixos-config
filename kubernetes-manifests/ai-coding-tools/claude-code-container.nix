@@ -33,7 +33,6 @@ in
       pkgs.bash
       pkgs.coreutils
       pkgs.claude-code
-      pkgs.fish
       pkgs.git
       pkgs.gnugrep
       pkgs.gnused
@@ -48,7 +47,7 @@ in
         "USER=j_kro"
         "PATH=/run/current-system/sw/bin:/usr/bin:/bin"
         "CLAUDE_CONFIG_DIR=/home/j_kro/.claude"
-        "SHELL=/run/current-system/sw/bin/fish"
+        "SHELL=/run/current-system/sw/bin/bash"
       ];
       ExposedPorts = {
         "8080/tcp" = {};

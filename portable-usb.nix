@@ -101,12 +101,6 @@
                 binPath = "/run/current-system/sw/bin/niri-session";
               };
             };
-            fish = {
-              enable = true;
-              interactiveShellInit = ''
-                starship init fish | source
-              '';
-            };
             starship = {
               enable = true;
             };
@@ -118,7 +112,6 @@
             git
             vim
             tmux
-            fish
             starship
             eza
             bat

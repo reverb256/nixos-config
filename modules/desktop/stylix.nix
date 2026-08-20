@@ -94,7 +94,7 @@ in
 
     # ── NEW-APP THEMING RULE (read before adding a themed program) ──
     # autoEnable=false means stylix only themes targets that are EXPLICITLY
-    # enabled. Terminal-app targets (starship, alacritty, kitty, fish, btop,
+    # enabled. Terminal-app targets (starship, alacritty, kitty, btop,
     # lazygit, gtk, qt, zen-browser) are HOME-MANAGER targets — empower them
     # in the standalone Layer-2 flake's `stylix` block
     # (home-manager-config/modules/shared-leaf-modules.nix stylixTargets), NOT
@@ -128,7 +128,7 @@ in
   };
   # Per-host distinct palettes (sibling of `stylix`, not nested). Each host
   # gets its own identity from boot (systemd-boot + console/TTY, NixOS-level
-  # stylix targets) through the SSH shell (fish/starship/kitty via Home Manager
+  # stylix targets) through the SSH shell (starship/kitty via Home Manager
   # followSystem) to the DE. mkForce overrides the shared default so hosts never
   # collide. Keyed by config.networking.hostName.
   stylix.base16Scheme = lib.mkForce (hostThemes.${config.networking.hostName} or hostThemes.zephyr);

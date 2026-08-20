@@ -263,7 +263,6 @@ in {
     fd
     fzf
     starship
-    fish
     tmux
     htop
     neovim

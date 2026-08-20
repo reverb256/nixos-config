@@ -25,7 +25,7 @@
     "zen"
     "vesktop"
     # herdr coordinator + MCP bridge (2026-08-14): herdr runs as a plain user
-    # process (alacritty->fish) with NO systemd unit, so it inherits the
+    # process (alacritty) with NO systemd unit, so it inherits the
     # default user@.service oom_score_adj=100 (kill-favoring). earlyoom
     # --avoid covers earlyoom's own scoring; this covers the kernel killer.
     # comm names are truncated to 15 chars: herdr-simple-mcp -> herdr-simple-mc

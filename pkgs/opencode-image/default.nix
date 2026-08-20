@@ -16,7 +16,6 @@ pkgs.dockerTools.buildImage {
       pkgs.opencode
       pkgs.bash
       pkgs.coreutils
-      pkgs.fish
       pkgs.git
     ];
     pathsToLink = [
@@ -38,7 +37,7 @@ pkgs.dockerTools.buildImage {
       "USER=j_kro"
       "PATH=/home/j_kro/.nix-profile/bin:/bin"
       "OPENCODE_CONFIG_DIR=/home/j_kro/.opencode"
-      "SHELL=/bin/fish"
+      "SHELL=/bin/bash"
     ];
     Labels = {
       "org.opencontainers.image.title" = "OpenCode";
