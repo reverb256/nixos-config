@@ -324,7 +324,7 @@ in {
         # lock' via ssh-ng://j_kro@nexus, even for a direct nix-store
         # --realise). Local builds use max-jobs; the machines file only ever
         # lists remote builders.
-        text = buildMachines.machinesTextFor currentHost;
+        text = buildMachines.machinesTextFor currentHost [];
       };
     };
 

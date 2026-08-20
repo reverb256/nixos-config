@@ -96,9 +96,14 @@
   # Build the machines text for a given host: all OTHER hosts (never self —
   # a self-entry makes nix-daemon dispatch derivations back to itself over
   # SSH and deadlock on store locks; observed 2026-08-08).
-  machinesTextFor = currentHost:
+  # `exclude` removes specific hosts (e.g. a builder that isn't ready to
+  # accept remote builds yet — zephyr had max-jobs=0 until its deploy lands).
+  machinesTextFor = currentHost: exclude: let
+    notSelf = m: m.hostName != currentHost;
+    notExcluded = m: !builtins.elem m.hostName exclude;
+  in
     lib.concatStringsSep "\n" (
-      map formatMachine (builtins.filter (m: m.hostName != currentHost) allMachines)
+      map formatMachine (builtins.filter (m: notSelf m && notExcluded m) allMachines)
     ) + "\n";
 in {
   inherit allMachines formatMachine machinesTextFor;

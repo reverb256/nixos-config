@@ -21,11 +21,16 @@
   # machinesFile is generated from the NEXUS view (never a self-entry): nexus
   # distributes its builds to zephyr + sentry (forge is a last-resort
   # consumer, never a colmena build target while it mines).
+  #
+  # zephyr is EXCLUDED from the colmena builders until its max-jobs=0 stale
+  # config is deployed (its daemon rejects remote builds with "unable to
+  # start any build"). Without the exclusion, colmena dispatches to zephyr
+  # and the whole deploy fails. Remove the exclusion after zephyr deploys.
   buildMachines = import ./lib/build-machines.nix {
     inherit (inputs.nixpkgs) lib;
     userHome = "/home/j_kro";
   };
-  colmenaMachinesText = buildMachines.machinesTextFor "nexus";
+  colmenaMachinesText = buildMachines.machinesTextFor "nexus" ["zephyr"];
   colmenaMachinesFile = builtins.toFile "colmena-machines" colmenaMachinesText;
 
   # mkColmenaHost — derive per-host colmneda config from `hosts.<name>`.
