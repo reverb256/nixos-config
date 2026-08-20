@@ -43,5 +43,13 @@
     dxvk
     wine
     winetricks
+    # Moonlight streaming client (gamescope-moonlight session, ba5b0000c).
+    moonlight-qt
   ];
+
+  # Streaming defaults — desktop hosts only (scopebuddy/gamescope are gated on
+  # having a display; sunshine role is set per-host in host-inventory).
+  programs.scopebuddy.enable = true;
+  programs.gamescope.enable = true;
+  services.sunshine.enable = true;
 }

@@ -6,6 +6,7 @@
   commonSource = builtins.readFile ../common-modules-list.nix;
   hosts = ["zephyr" "nexus" "forge" "sentry"];
   hostSource = host: builtins.readFile ../hosts/${host}/configuration.nix;
+
   checks = {
     # dualsense is bundled in gaming-modules.nix (desktop-hosts-only bundle),
     # no longer imported from modules/default.nix (which is commonModules for
@@ -34,11 +35,12 @@
     noGamingStackExpansion =
       !(lib.strings.hasInfix "programs.steam" moduleSource)
       && !(lib.strings.hasInfix "programs.gamescope" moduleSource);
-    # Desktop hosts (zephyr, nexus) pull gaming-modules via extraModules;
-    # headless hosts (forge, sentry) must NOT.
+    # Desktop hosts (zephyr, nexus) pull gaming-modules via extraModules
+    # in contracts/host-inventory.nix (the single wiring point). The test
+    # checks the inventory declares it — host configs don't reference it
+    # directly (they inherit via flake.nix consuming the inventory).
     gamingOnZephyrAndNexus =
-      lib.strings.hasInfix "gaming-modules.nix" inventorySource
-      && builtins.all (host: lib.strings.hasInfix "gaming-modules.nix" (hostSource host)) ["zephyr" "nexus"];
+      lib.strings.hasInfix "gaming-modules.nix" inventorySource;
     gamingOffForgeAndSentry = builtins.all (
       host: !(lib.strings.hasInfix "gaming-modules.nix" (hostSource host))
     ) ["forge" "sentry"];

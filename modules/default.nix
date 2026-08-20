@@ -1,6 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{}: {
+{ ... }: {
   imports = [
     # ============================================================================
     # SHARED DEFAULTS
@@ -195,12 +195,5 @@
     # Freebuff Desktop icon (hicolor) — launcher owned by home-manager-config
     # appimage-updater (self-wrapped copy at ~/.local/opt/freebuff-desktop).
     ./services/freebuff-desktop.nix
-  
-config = {
-  programmes.scopebuddy.enable = true;
-  programmes.gamescope.enable = true;
-  environment.systemPackages = [ moonlight ];
-  services.sunshine.enable = true;
-};
-];
+  ];
 }
