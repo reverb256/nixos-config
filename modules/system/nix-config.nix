@@ -181,10 +181,14 @@ in {
       # faster than that.
       narinfo-cache-negative-ttl = 300;
 
-      # Canonical trust policy: the cluster operator + root only. The wildcard
-      # ("*") grants every local user trusted-user access to the Nix daemon and
-      # its cache/configuration controls — do not restore it (issue #395).
-      trusted-users = lib.mkForce ["root" "j_kro"];
+      # Canonical trust policy: cluster operator + root + CI runners.
+      # CI runners (runner-lix on sentry, runner-nixos on nexus, etc.) get
+      # trusted-user status so workflows can use --option sandbox false for
+      # tests that need it (e.g. nix's own functional suite, which spawns a
+      # daemon with its own sandbox that conflicts with build-user sandboxing).
+      # The wildcard ("*") was previously here but is NOT restored — it grants
+      # every local user full nix daemon control (issue #395).
+      trusted-users = lib.mkForce [ "root" "j_kro" "runner-lix" "runner-nixos" "runner-hm" "runner-quill" "runner-siteagency" ];
 
       # Cache provenance is meaningful only when Nix verifies signatures.
       # Every configured cache has a corresponding trusted public key in the

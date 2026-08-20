@@ -33,11 +33,18 @@
         repo = "reverb256/lix";
         patFile = "/run/secrets/github-runner-pat";
         autoStart = true;
-        labels = ["self-hosted" "nixos"];
-        extraLabels = ["sentry" "builder"];
+        labels = [ "self-hosted" "nixos" ];
+        extraLabels = [ "sentry" "builder" ];
         runnerName = "sentry-lix-runner";
         # Lix CI delegates the heavy build to the nix daemon (not the runner
         # cgroup), so the listener needs little RAM. Capped for sentry's 31GiB.
+        #
+        # disableNoNewPrivileges: the lix test suite runs nix sandboxed
+        # (unshare CLONE_NEWUSER | CLONE_NEWNS). NoNewPrivileges=true blocks
+        # that even when kernel.unprivileged_userns_clone=1. The old GitHub-
+        # hosted workflow got root via sudo; the self-hosted runner runs as
+        # runner-lix, so we must allow user namespaces for sandboxing to work.
+        disableNoNewPrivileges = true;
         memoryHigh = "6G";
         memoryMax = "10G";
       };

@@ -167,7 +167,7 @@ let
           "/usr"
         ];
         PrivateTmp = true;
-        NoNewPrivileges = true;
+        NoNewPrivileges = !inst.disableNoNewPrivileges or false;
         ReadWritePaths = [ runnerHome ];
         MemoryHigh = memoryHigh;
         MemoryMax = memoryMax;
