@@ -1,12 +1,18 @@
 {pkgs ? import <nixpkgs> {}}: let
   inherit (pkgs) lib;
   moduleSource = builtins.readFile ../modules/gaming/dualsense.nix;
-  defaultSource = builtins.readFile ../modules/default.nix;
+  gamingModulesSource = builtins.readFile ../modules/gaming-modules.nix;
+  inventorySource = builtins.readFile ../contracts/host-inventory.nix;
   commonSource = builtins.readFile ../common-modules-list.nix;
   hosts = ["zephyr" "nexus" "forge" "sentry"];
   hostSource = host: builtins.readFile ../hosts/${host}/configuration.nix;
   checks = {
-    moduleImportedByDefault = lib.strings.hasInfix "./gaming/dualsense.nix" defaultSource;
+    # dualsense is bundled in gaming-modules.nix (desktop-hosts-only bundle),
+    # no longer imported from modules/default.nix (which is commonModules for
+    # every host). The 2026-08-20 refactor moved the whole gaming/VR/Steam
+    # closure off headless sentry/forge.
+    moduleImportedByDefault = lib.strings.hasInfix "./gaming/dualsense.nix" gamingModulesSource;
+    notImportedFromDefault = !(lib.strings.hasInfix "./gaming/dualsense.nix" (builtins.readFile ../modules/default.nix));
     defaultImportedByCommon = lib.strings.hasInfix "./modules/default.nix" commonSource;
     hidPlaystation = lib.strings.hasInfix "hid_playstation" moduleSource;
     usbAndBluetoothUaccess =
@@ -28,6 +34,14 @@
     noGamingStackExpansion =
       !(lib.strings.hasInfix "programs.steam" moduleSource)
       && !(lib.strings.hasInfix "programs.gamescope" moduleSource);
+    # Desktop hosts (zephyr, nexus) pull gaming-modules via extraModules;
+    # headless hosts (forge, sentry) must NOT.
+    gamingOnZephyrAndNexus =
+      lib.strings.hasInfix "gaming-modules.nix" inventorySource
+      && builtins.all (host: lib.strings.hasInfix "gaming-modules.nix" (hostSource host)) ["zephyr" "nexus"];
+    gamingOffForgeAndSentry = builtins.all (
+      host: !(lib.strings.hasInfix "gaming-modules.nix" (hostSource host))
+    ) ["forge" "sentry"];
     allHostsImportCommon = builtins.all (
       host: lib.strings.hasInfix "../../modules/default.nix" (hostSource host)
     ) hosts;
