@@ -66,7 +66,7 @@
       sshUser = "j_kro";
       sshKey = userHome + "/.ssh/id_ed25519";
       maxJobs = 3;
-      speedFactor = 10;
+      speedFactor = 9;
       supportedFeatures = ["big-parallel" "kvm"];
       mandatoryFeatures = [];
       publicHostKey = hostKeys.sentry;
