@@ -176,6 +176,56 @@ let
       # derivation construction — the cluster's actual rebuild shape).
       LLVM_PROFILE_FILE="$TMPDIR/pgo/deep-%p.profraw" "$out/bin/nix-instantiate" --eval --strict \
         --expr "let ec = import ${pkgs.path}/nixos/lib/eval-config.nix; in builtins.length (builtins.attrNames (ec { modules = [{ boot.loader.grub.enable = false; fileSystems.\"/\" = { device = \"/dev/sda1\"; fsType = \"ext4\"; }; }]; }).config.system.build.toplevel)" > /dev/null
+      # Workload 3 (rich options): evaluate a NixOS config with many module
+      # options set (networking, systemd, users, security, nix settings).
+      # This exercises the same mkIf/mkMerge branches that the cluster's
+      # real configs hit. Unlike Workload 2, this stops at config.attrNames
+      # (not system.build.toplevel) so no store access is needed -- the
+      # module system evaluates fully but derivation realization is skipped.
+      # Adds ~25% more profile counts on the same functions.
+      # Uses a heredoc to avoid shell-escaping the long Nix expression.
+      cat > "$TMPDIR/pgo/options.nix" << 'NIXEOF'
+let
+  ec = import ${pkgs.path}/nixos/lib/eval-config.nix;
+  r = ec {
+    modules = [
+      { boot.loader.grub.enable = false;
+        fileSystems."/".device = "/dev/sda1";
+        fileSystems."/".fsType = "ext4";
+      }
+      { networking.hostName = "pgo-trainer";
+        networking.useDHCP = false;
+        networking.firewall.enable = true;
+        networking.firewall.allowedTCPPorts = [ 22 80 443 ];
+        networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+      }
+      { systemd.services.pgo-test = {
+          description = "PGO training";
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig.Type = "oneshot";
+          serviceConfig.ExecStart = "/bin/true";
+        };
+        systemd.tmpfiles.rules = [ "d /tmp/pgo 0755 root root -" ];
+      }
+      { users.mutableUsers = false;
+        users.users.root = { shell = "/bin/sh"; };
+        users.groups.pgo = {};
+      }
+      { boot.loader.grub.device = "/dev/sda";
+        boot.cleanTmpDir = true;
+      }
+      { security.sudo.wheelNeedsPassword = false; }
+      { time.timeZone = "UTC"; }
+      { nix.settings.experimental-features = [ "nix-command" "flakes" ];
+        nix.settings.auto-optimise-store = true;
+        nix.settings.trusted-users = [ "root" "wheel" ];
+      }
+    ];
+  };
+in builtins.length (builtins.attrNames r.config)
+NIXEOF
+      LLVM_PROFILE_FILE="$TMPDIR/pgo/options-%p.profraw" "$out/bin/nix-instantiate" --eval --strict \
+        --expr "$(cat "$TMPDIR/pgo/options.nix")" > /dev/null
       # No `|| true` here on purpose: if training fails, the build must
       # fail loudly rather than ship a near-empty profile.
       llvm-profdata merge -o "$out/pgo.profdata" "$TMPDIR"/pgo/*.profraw
