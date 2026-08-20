@@ -228,7 +228,7 @@ in {
       chmod 750 "$HERMES_HOME" 2>/dev/null || true
     '';
 
-    programs.zsh.initExtra = lib.mkAfter ''
+    programs.zsh.interactiveShellInit = lib.mkAfter ''
       # Hermes completions (resolved via profile `hermes` on PATH)
       if command -v hermes &>/dev/null; then
         source <(hermes completion zsh 2>/dev/null)

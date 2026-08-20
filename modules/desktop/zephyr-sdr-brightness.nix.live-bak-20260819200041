@@ -3,7 +3,7 @@
   lib,
   pkgs,
   inputs,
-  ...
+  ... 
 }: let
   inherit (lib) mkIf mkForce mkOverride mkOption types;
   cfg = config.desktop.zephyr-sdr-brightness;
@@ -32,7 +32,13 @@
     enable_ddcutil = true
 
     [brightness.monitor."HDMI-A-1"]
-    backend = "none"
+    backend = "normal"
+
+    [nightLight]
+    enabled = true
+    color_temp = 3400
+    sunset_time = "18:30"
+    sunrise_time = "06:30"
 
     # Launch Electron apps (Vesktop, Discord, Hermes Desktop, etc.) as transient
     # systemd --user units instead of direct spawn. Direct spawn of Electron under
@@ -41,86 +47,8 @@
     # service, which it does here. ENABLE 2026-08-11 for Hermes Desktop launcher.
     [shell]
     launch_apps_as_systemd_services = true
-
-    # ── v4 → v5 TOML migration (2026-08-19) ─────────────────────────────
-    # Noctalia v5 ignores settings.json; it only reads TOML from
-    # /etc/noctalia (set by NOCTALIA_CONFIG_HOME=/etc on the unit). The v4
-    # settings.json carried 24 top-level sections; only [brightness] + [shell]
-    # had been migrated. This block restores the sections whose keys ACTUALLY
-    # exist in the v5 schema (noctalia 5.0.0-beta.8, config_schema.cpp). v4 keys
-    # with no v5 equivalent (general, ui, session_menu, templates, plugins,
-    # systemMonitor, and most sub-fields) are intentionally OMITTED — the daemon
-    # silently drops unknown keys, so emitting them is dead config. Every key
-    # below was verified with: noctalia config validate /etc/noctalia/config.toml
-    # Per-urgency notification durations / media / battery toasts / markdown were
-    # removed from the v5 schema; history is kept via history_retention_hours = 0.
-    # The Stylix palette activation lives in theme-stylix.toml (below) — do NOT
-    # duplicate [theme] here. NOTE: the live state file
-    # ~/.local/state/noctalia/settings.toml still carries [theme] source="community"
-    # which overrides Stylix post-deploy; strip that [theme] block once after deploy.
-
-    [wallpaper]
-    enabled = true
-    fill_mode = "crop"
-    fill_color = "#000000"
-    transition = ["fade", "disc", "stripes", "wipe", "pixelate", "honeycomb"]
-    transition_duration = 1500
-    edge_smoothness = 0.05
-    directory = "/home/j_kro/Pictures/Wallpapers/osaka-jade"
-
-    [wallpaper.automation]
-    enabled = true
-    interval_seconds = 300
-    order = "random"
-    recursive = true
-
-    [notification]
-    enable_daemon = true
-    show_app_name = true
-    show_actions = true
-    position = "top_right"
-    layer = "overlay"
-    background_opacity = 0.66
-    monitors = ["DP-5"]
-    history_retention_hours = 0
-
-    [osd]
-    enabled = true
-    position = "top_right"
-    background_opacity = 1.0
-
-    [dock]
-    enabled = true
-    position = "bottom"
-    auto_hide = true
-    background_opacity = 1.0
-    launcher_position = "end"
-    active_monitor_only = true
-
-    [nightlight]
-    enabled = false
-    force = false
-    temperature_day = 6500
-    temperature_night = 4000
-
-    [location]
-    auto_locate = true
-    address = "Winnipeg"
-
-    [idle.behavior.lock]
-    enabled = false
-    timeout = 0
-    action = "lock"
-
-    [idle.behavior.screen-off]
-    enabled = false
-    timeout = 0
-    action = "screen_off"
-
-    [idle.behavior.suspend]
-    enabled = false
-    timeout = 0
-    action = "suspend"
+    # Night Light bugs (2026-08-18): v5 expects [nightLight] not [night_light],
+    # and save_to_history_* keys belong under [notifications.save_to_history], not flat.
   '';
 
   # ── Stylix palette → Noctalia v5 (declarative, system-managed) ──────────
@@ -218,6 +146,7 @@
     custom_palette = "Stylix"
     wallpaper_scheme = "m3-tonal-spot"
   '';
+
 in {
   options.desktop.zephyr-sdr-brightness = {
     enable = mkOption {
@@ -255,8 +184,7 @@ in {
         # Root cause: on zephyr (31 GB RAM, near-constant pressure from
         # control-plane + gaming + AI + mining), systemd-oomd marked
         # noctalia.service and the alacritty scope as victims at the 90%
-        # mem+swap threshold (noctalia peaked at 10.3 GB before kill).
-        # Cap the daemon so it self-throttles at 4G / self-kills at 6G
+        # mem+swap threshold (noctalia peaked at 10.3 GB before kill).        # Cap the daemon so it self-throttles at 4G / self-kills at 6G
         # BEFORE the global oomd threshold; soften kernel scoring so
         # noctalia is a lower-priority victim if anything bigger pushes
         # the system past limits. OOMPolicy=continue keeps the daemon
@@ -292,7 +220,7 @@ in {
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
-    environment.systemPackages = [ pkgs.noctalia.overrideAttrs (oldAttrs => { oldAttrs.version = "5.0.0-beta.8"; }); ];
+    environment.systemPackages = [pkgs.noctalia];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;
@@ -304,4 +232,3 @@ in {
     environment.etc."noctalia/palettes/Stylix.json".text = stylixNoctaliaPalette;
     environment.etc."noctalia/theme-stylix.toml".source = stylixNoctaliaTheme;
   };
-}

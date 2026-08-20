@@ -9,7 +9,7 @@
   ];
 
   # Zsh shell aliases for quick access
-  programs.zsh.initExtra = lib.mkAfter ''
+  programs.zsh.interactiveShellInit = lib.mkAfter ''
     # TP-Link Switch Management aliases
     alias tplink='/etc/nixos/scripts/tplink'
     alias sw='/etc/nixos/scripts/tplink status'
