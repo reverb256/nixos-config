@@ -10,7 +10,7 @@ buildGoModule rec {
     owner = "reverb256";
     repo = "fleet-deck";
     rev = "5f4c0cc06ed630552ed6078f9676bf92b7deac7e";
-    hash = "sha256-1389gj3s2dx1p7dai7c2ndms35db3vg8cbj1z5faqcps0y139a7i";
+    hash = "sha256-8ag0ggf6Mqxc+UEuht4eq5Wha7OCnajauaE3oYd8CY0=";
   };
 
   # FIXME(vendor): set after first build on nexus discovers the hash.
