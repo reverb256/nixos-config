@@ -42,6 +42,7 @@ let
       bumpScript = program.bumpScript;
       commit = program.commit;
       hosts = program.hosts;
+      priority = program.priority;
     }) cfg.programs;
   });
 
@@ -85,6 +86,9 @@ let
       NAME=$(jq -r ".programs[$i].name" "$CONFIG_FILE")
       REPO=$(jq -r ".programs[$i].github" "$CONFIG_FILE")
       TYPE=$(jq -r ".programs[$i].type" "$CONFIG_FILE")
+      PRIORITY=$(jq -r ".programs[$i].priority // empty" "$CONFIG_FILE")
+      PRI_FLAG=""
+      if [ -n "$PRIORITY" ]; then PRI_FLAG="--priority $PRIORITY"; fi
 
       log "Checking $NAME ($REPO, type=$TYPE)"
 
@@ -162,9 +166,9 @@ let
             if [ -z "$CURRENT" ]; then
               log "  $NAME: not installed on $host, installing $LATEST_TAG"
               if [ "$host" = "$(hostname)" ] || [ "$host" = "localhost" ]; then
-                nix profile install "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
+                nix profile install $PRI_FLAG "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
               else
-                ssh "$host" "nix profile install github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
+                ssh "$host" "nix profile install $PRI_FLAG github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
               fi
             else
               CURRENT_TAG=$(echo "$CURRENT" | grep -oP "$NAME-[0-9.]+" | head -1 | sed "s/.*-//" || true)
@@ -172,9 +176,9 @@ let
                 log "  $NAME: upgrading $host from $CURRENT_TAG to $LATEST_VER"
                 if [ "$host" = "$(hostname)" ] || [ "$host" = "localhost" ]; then
                   nix profile remove "$NAME" 2>/dev/null || true
-                  nix profile install "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
+                  nix profile install $PRI_FLAG "github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
                 else
-                  ssh "$host" "nix profile remove $NAME 2>/dev/null; nix profile install github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
+                  ssh "$host" "nix profile remove $NAME 2>/dev/null; nix profile install $PRI_FLAG github:$REPO/$LATEST_TAG" 2>&1 | tee -a "$LOG_FILE" || true
                 fi
               else
                 log "  $NAME: $host already at $LATEST_VER"
@@ -277,6 +281,16 @@ in {
             type = types.listOf types.str;
             default = [];
             description = "SSH targets to upgrade (nix-profile type only).";
+          };
+
+          priority = mkOption {
+            type = types.nullOr types.int;
+            default = null;
+            description = ''
+              Profile priority for `nix profile install` (lower number wins
+              filename collisions). Null uses the Nix default (5). Set to 1 to
+              make this program always win over other profile entries.
+            '';
           };
         };
       });

@@ -583,6 +583,7 @@
       hermes-agent = {
         github = "NousResearch/hermes-agent";
         nixProfile = true;
+        priority = 1;  # always win filename collisions over other profile entries
         hosts = [
           "j_kro@10.1.1.110"   # zephyr
           "j_kro@10.1.1.120"   # nexus
