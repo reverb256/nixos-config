@@ -14,10 +14,10 @@
       targetUser = "j_kro";
       buildOnTarget = false;
       allowLocalDeployment = false;
-      tags = ["control-plane" "k8s-master" "k8s-node" "local" "desktop"];
+      tags = ["control-plane" "k8s-node" "k8s-agent" "local" "desktop"];
       system = "x86_64-linux";
       memoryMiB = 31744;
-      capabilities = ["workstation" "development" "gaming" "nvidia" "k3s-excluded"];
+      capabilities = ["workstation" "development" "gaming" "nvidia" "k3s-agent"];
       ipAddress = "10.1.1.110";
       interfaceName = "enp38s0";
       extraModules = [../modules/desktop/desktop-modules.nix];

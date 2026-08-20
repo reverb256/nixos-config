@@ -3,6 +3,13 @@
 # Composes the reusable WSL profile with the NixOS-WSL flake module.
 # Adds: RTX 4060 GPU passthrough + CUDA ComfyUI (art-asset pipeline for Anime Arena).
 {config, inputs, pkgs, lib, ...}: {
+  # nixpkgs (nixos-unstable) ships its own services.comfyui module that
+  # duplicates the comfyui-nix fork's option. The fork's module has the
+  # gpuSupport/enableManager/user/group/createUser/openFirewall options
+  # wsl-krash3 needs; the built-in does not. Disable the built-in via its
+  # full store path (inputs.nixpkgs resolves to the current nixpkgs root).
+  disabledModules = [ "${inputs.nixpkgs}/nixos/modules/services/misc/comfyui.nix" ];
+
   imports = [
     ../../profiles/wsl.nix
     inputs.comfyui-nix.nixosModules.default

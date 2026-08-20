@@ -22,9 +22,10 @@
     ./firewall.nix
     # Desktop configuration (SDR brightness, Samsung TV, SDDM)
     ./desktop.nix
-    # Kubernetes control plane (zephyr does NOT enable k3s — see services block below)
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
+    # Kubernetes worker node (agent) — joins the nexus/forge/sentry server cluster
+    ../../modules/services/k3s-cluster.nix
 
     # Storage assertions (partlabel/uuid/boot checks)
     ../../modules/system/storage-assertions.nix
@@ -368,15 +369,24 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - zephyr does NOT run k3s.
-    # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
-    # No manifest auto-apply on zephyr -- only control-plane nodes do this.
+    # KUBERNETES - zephyr joins as a worker (agent) node.
+    # Control plane (k3s servers): nexus, forge, sentry (HA via etcd, VIP 10.1.1.100).
+    # Zephyr is an agent only: no 6443/2379/2380 ports, no manifest auto-apply.
     k8s-manifest-autoapply.enable = false;
-    # zephyr stays OFF k3s: the option is never imported (see
-    # tests/k3s-topology-evidence.nix). A dangling `k3s-cluster.enable =
-    # lib.mkForce false` here would reference a nonexistent option (k3s-cluster.nix
-    # is not in zephyr's imports chain) and break eval — absence of the import IS
-    # the guard.
+    k3s-cluster = {
+      enable = true;
+      role = "agent";
+      # Join the HA server cluster via the keepalived VIP (10.1.1.100).
+      # serverAddr defaults to https://10.1.1.100:6443 (the VIP).
+      serverAddr = "https://10.1.1.100:6443";
+      tokenFile = "/run/secrets/k3s-cluster-token";
+      nodeIP = "10.1.1.110";
+      nodeName = "zephyr";
+      # No etcd, no encryption key needed on agents — k3s handles secrets
+      # server-side. The token comes from secretspec via sops (k3s-cluster-token.yaml).
+      # RTX 3090 passthrough: zephyr runs GPU workloads (llama, ComfyUI, inference).
+      nvidia.enable = true;
+    };
 
     # Keepalived VIP lives on the k3s servers (nexus/forge/sentry), not zephyr.
     # Removed to stop the enp38s0 dual-IP collision that broke k3s startup.
@@ -650,9 +660,10 @@
   # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
-  # Zephyr never builds locally (31 GiB RAM — local `nix build` is the
-  # documented OOM root cause). The shared distributed-builds module owns
-  # this policy: max-jobs = 0, distributed builds enabled, builders = machines.
+  # Zephyr builds locally again (max-jobs=2, cores=8) since 2026-08-18.
+  # The OOM root cause was a llama misconfiguration, since resolved; local
+  # builds are safe. The shared distributed-builds module owns this policy:
+  # max-jobs = 2, distributed builds enabled, builders = machines.
   # Do NOT override nix.settings here; the shared module's mkForce applies.
 
   # ============================================================================
@@ -951,8 +962,7 @@
     monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
-    # kubernetes = false — zephyr is NOT a k3s node; the k3s token secret is
-    # not needed here (control plane is nexus/forge/sentry).
+    kubernetes = true; # zephyr joins as agent; needs k3s-cluster-token + encryption key
     selfHosting = false; # These services run on other hosts
   };
 

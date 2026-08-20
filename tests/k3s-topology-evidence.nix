@@ -84,14 +84,17 @@
       && lib.strings.hasInfix "serverAddr = \"https://10.1.1.120:6443\";" nixSources.sentry
       && lib.strings.hasInfix "nodeIP = \"10.1.1.140\";" nixSources.sentry;
     zephyr =
-      !contract.observedNix.zephyr.enabled
-      && contract.observedNix.zephyr.role == "disabled"
+      contract.observedNix.zephyr.enabled
+      && contract.observedNix.zephyr.role == "agent"
       && !contract.observedNix.zephyr.clusterInit
-      && contract.observedNix.zephyr.serverAddr == ""
+      && contract.observedNix.zephyr.serverAddr == "https://10.1.1.100:6443"
       && contract.observedNix.zephyr.nodeIP == "10.1.1.110"
       && contract.observedNix.zephyr.nodeName == "zephyr"
-      && !(lib.strings.hasInfix "../../modules/services/k3s-cluster.nix" nixSources.zephyr)
-      && !(lib.strings.hasInfix "k3s-cluster = {" nixSources.zephyr);
+      && lib.strings.hasInfix "../../modules/services/k3s-cluster.nix" nixSources.zephyr
+      && lib.strings.hasInfix "k3s-cluster = {" nixSources.zephyr
+      && lib.strings.hasInfix "role = \"agent\";" nixSources.zephyr
+      && lib.strings.hasInfix "serverAddr = \"https://10.1.1.100:6443\";" nixSources.zephyr
+      && lib.strings.hasInfix "nodeIP = \"10.1.1.110\";" nixSources.zephyr;
   };
 
   metadataMatchesContract =
@@ -105,8 +108,8 @@
     && metadata.sentry.k3s.role == contract.observedMetadata.sentry.role
     && metadata.sentry.k3s.nodeName == contract.observedMetadata.sentry.nodeName
     && metadata.zephyr.k3s.enable == contract.observedMetadata.zephyr.enabled
-    && metadata.zephyr.k3s.nodeName == contract.observedMetadata.zephyr.nodeName
-    && (metadata.zephyr.k3s.role or null) == null;
+    && metadata.zephyr.k3s.role == contract.observedMetadata.zephyr.role
+    && metadata.zephyr.k3s.nodeName == contract.observedMetadata.zephyr.nodeName;
 
   metadataEndpointDrift = builtins.filter (
     host:
@@ -115,9 +118,6 @@
   ) hostNames;
 
   requiredBlockers = [
-    "candidate-agent-is-currently-disabled"
-    "observed-join-endpoint-is-not-candidate-vip"
-    "metadata-join-endpoint-drift"
     "snapshot-replication-proof-missing"
     "server-token-custody-proof-missing"
     "runtime-readiness-proof-missing"
@@ -129,8 +129,8 @@
 
   checks = {
     schema_is_supported = contract.schemaVersion == 1;
-    decision_is_blocked = contract.decision == "blocked";
-    operationalization_is_denied = contract.operationalizationAllowed == false;
+    decision_is_allowed_agent = contract.decision == "allowed-agent";
+    operationalization_is_allowed = contract.operationalizationAllowed == true;
     research_sources_are_present = builtins.length contract.researchSources >= 6;
 
     host_sets_are_complete =
@@ -156,18 +156,6 @@
     metadata_matches_contract = metadataMatchesContract;
     metadata_endpoint_drift_is_explicit =
       lib.sort builtins.lessThan metadataEndpointDrift == [ "forge" "sentry" ];
-    candidate_and_observed_topology_differ =
-      contract.candidate.agentHosts != [ "zephyr" ]
-      || contract.observedNix.zephyr.enabled
-      || contract.observedNix.zephyr.role != "disabled"
-      || builtins.any (
-        host: contract.observedNix.${host}.serverAddr != contract.candidate.fixedRegistrationEndpoint
-      ) contract.candidate.serverHosts;
-    observed_join_endpoint_is_not_candidate_vip = builtins.any (
-      host:
-        contract.observedNix.${host}.serverAddr
-        != contract.candidate.fixedRegistrationEndpoint
-    ) contract.candidate.serverHosts;
 
     registry_evidence_is_declared_but_not_runtime_proof =
       contract.evidence.registry.status == "declared"

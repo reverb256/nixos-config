@@ -65,15 +65,6 @@ rm-worktree number:
 
 HOSTS := "zephyr nexus forge sentry"
 
-# Local secretspec fork paths — overridable so CI runners / other users can
-# point at their own clones without forking the recipe per-env. Defaults
-# resolve to ~/. The cachix fork (`secretspec-core`) supplies the CLI binary
-# + sops Provider module. The provider fork (`secretspec`) supplies the
-# NDJSON dispatcher binary spawned by cachix's SopsProvider at runtime.
-LOCAL_SECRETSPEC_CORE := env_var_or_default('SECRETSPEC_LOCAL_CORE', env_var('HOME') + '/Projects/secretspec-core')
-LOCAL_SECRETSPEC_PROVIDER := env_var_or_default('SECRETSPEC_LOCAL_PROVIDER', env_var('HOME') + '/Projects/secretspec')
-LOCAL_SECRETSPEC_PROVIDER_DIR := LOCAL_SECRETSPEC_PROVIDER + '/provider-rust'
-
 # Show git status on all hosts
 git-status:
     #!/usr/bin/env bash
@@ -184,7 +175,7 @@ deploy-direct-legacy host="all":
         if [ "$host" = "$LOCAL" ]; then
             if [ "$host" = "zephyr" ]; then
                 # Zephyr never builds locally (31GB OOM) — build on nexus, copy back, activate.
-                OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-deploy | tail -1)
+        OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths .#nixosConfigurations.zephyr.config.system.build.toplevel" 2>/dev/null)
                 echo "  copying closure..."
                 ssh nexus "nix-copy-closure --to j_kro@zephyr $OUT" 2>&1 | grep -v "copying path\|already exists" || true
                 echo "  activating..."
@@ -201,12 +192,7 @@ deploy-direct-legacy host="all":
             # /etc/nixos to the canonical ref BEFORE building so the produced
             # toplevel reflects origin/main, never nexus's drifted local checkout.
             ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
-            # `--option pure-eval false` is REQUIRED for hosts with a cachix
-            # fork present at ~/Projects/secretspec-core. Without it, the
-            # secretspec derivation silently falls back to the upstream
-            # tarball (no sops://) on the cluster-side rebuild. CI runners
-            # (no fork) still work via the fall-through branch.
-            OUT=$(ssh nexus "cd /etc/nixos && nix build --option pure-eval false --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
+      OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
                 echo "Build failed for $host"; exit 1
             }
             # G5 hostname guard (build side): refuse to deploy if the
@@ -373,7 +359,7 @@ preflight:
 check:
     #!/usr/bin/env bash
     set -e
-    cd {{FLAKE}} && nix flake check --option pure-eval false
+  cd {{FLAKE}} && nix flake check
 
 # Network-dependent cache provenance audit. This does not build; it evaluates
 # host toplevel derivations and probes configured upstream/community/custom
@@ -389,18 +375,14 @@ build:
     cd {{FLAKE}}
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
-        # Zephyr never builds locally (31GB OOM). Use remote-build.sh which
-        # runs nix build directly ON nexus via systemd-run -- avoiding the
-        # ssh-ng remote-build pipe-draining wedge (NixOS/nix#5701).
-        exec {{FLAKE}}/scripts/remote-build.sh zephyr zephyr-build
+    exec ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths .#nixosConfigurations.zephyr.config.system.build.toplevel" 2>/dev/null
     else
         NIX_SSHOPTS="-o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=30" \
-        # --option pure-eval false is required on hosts with a cachix fork
         # checkout at ~/Projects/secretspec-core so flake eval probes the
         # absolute local-fork path and selects the buildRustPackage branch
         # (with sops://) instead of falling back to the upstream tarball.
         # See pkgs/secretspec/default.nix header comment for full rationale.
-        nix build --option pure-eval false --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$HOST
+    nix build --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$HOST
     fi
 
 switch:
@@ -411,14 +393,14 @@ switch:
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
         echo "Building on nexus for $HOST..."
-        OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-switch | tail -1)
+    OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths .#nixosConfigurations.zephyr.config.system.build.toplevel" 2>/dev/null)
         echo "  copying closure to $HOST..."
         ssh nexus "nix-copy-closure --to j_kro@${HOST} $OUT" 2>&1 | grep -v "copying path\|already exists" || true
         echo "  activating..."
         sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
         sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -10
     else
-        sudo nixos-rebuild switch --flake .#$HOST --option pure-eval false
+    sudo nixos-rebuild switch --flake .#$HOST
     fi
 
 # ── HOME MANAGER (Layer 2) — independent cadence from NixOS (Layer 1) ──
@@ -570,7 +552,7 @@ test-apply:
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
         echo "Building on nexus for $HOST (test)..."
-        OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-test)
+    OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths .#nixosConfigurations.zephyr.config.system.build.toplevel" 2>/dev/null)
         echo "  copying closure to $HOST..."
         ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
         echo "  testing..."
@@ -756,10 +738,9 @@ hermes-update:
     fi
 
     echo "3/6 Building zephyr toplevel (full build — verifies hermes-cli.nix patches + all inputs)..."
-    # --option pure-eval false is required to trigger the cachix-fork
     # buildRustPackage branch (which carries the sops:// subprocess
     # Dispatcher module) for transitively-included pkgs.secretspec.
-    nix build --option pure-eval false --no-link --print-out-paths \
+  nix build --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20
 
     echo "4/6 Deploying to all hosts (full system switch)..."
@@ -787,10 +768,9 @@ hermes-update-check:
     echo "Bumping ALL flake inputs to latest upstream..."
     nix flake update 2>&1 | tail -5
     echo "Building zephyr toplevel to verify hermes-cli.nix patches + all inputs apply..."
-    # --option pure-eval false required for the same reason as hermes-update
     # above: pkgs.secretspec inside zephyr's toplevel needs the cachix-fork
     # branch selected to ship sops:// provider registration at runtime.
-    nix build --option pure-eval false --no-link --print-out-paths \
+  nix build --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20 \
         && echo "OK: everything builds. Run 'just hermes-update' to deploy."
 
@@ -897,11 +877,7 @@ validate-k8s:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}}
-    # No --option pure-eval false: k8s manifests don't transitively depend on
-    # pkgs.secretspec (they're YAML/Kustomize), so flake pure-eval restrictions
-    # don't apply. Other recipes in this justfile still need the flag for the
-    # cachix-fork buildRustPackage path (validate-local, build, hermes-update*,
-    # deploy-nexus) — those reach `builtins.pathExists` on the local fork.
+  # No: k8s manifests don't transitively depend on
     nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
 # Validate all *.yaml/*.yml files in the repo. Lenient of Nix toJSON, SOPS, and
@@ -1041,8 +1017,8 @@ mcp-list:
 
 # ── DUAL-FORK SECRETSPEC CI/CD ───────────────────────────────────────────────
 # The cluster builds secretspec from TWO local forks:
-#   ~/$Projects/secretspec-core/   — cachix/secretspec fork + sops Provider
-#   ~/$Projects/secretspec/        — provider-rust fork + NDJSON dispatcher
+
+
 # These recipes keep them in sync with upstream and rebuild the closure.
 
 lint:

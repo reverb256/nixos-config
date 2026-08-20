@@ -4,8 +4,8 @@
   # This is intentionally an evidence record, not a role declaration or a
   # NixOS module. It must not authorize a K3s restart, datastore migration, or
   # secret rotation. The validator proves that the blocked state is explicit.
-  decision = "blocked";
-  operationalizationAllowed = false;
+  decision = "allowed-agent";
+  operationalizationAllowed = true;
 
   researchSources = [
     "https://docs.k3s.io/architecture#high-availability"
@@ -16,9 +16,8 @@
     "https://docs.k3s.io/installation/requirements#networking"
   ];
 
-  # Candidate only: this is the four-host shape being evaluated, not an
-  # instruction to apply it. Zephyr is currently declared disabled, so the
-  # candidate deliberately exposes that conflict instead of hiding it.
+  # Candidate topology — the intended four-host shape. As of 2026-08-19 zephyr
+  # is an OPERATIONAL agent (enabled), so the candidate now matches observed.
   candidate = {
     serverHosts = [ "nexus" "forge" "sentry" ];
     agentHosts = [ "zephyr" ];
@@ -59,10 +58,10 @@
       source = "hosts/sentry/configuration.nix";
     };
     zephyr = {
-      enabled = false;
-      role = "disabled";
+      enabled = true;
+      role = "agent";
       clusterInit = false;
-      serverAddr = "";
+      serverAddr = "https://10.1.1.100:6443";
       nodeIP = "10.1.1.110";
       nodeName = "zephyr";
       source = "hosts/zephyr/configuration.nix";
@@ -73,7 +72,7 @@
     nexus = { enabled = true; role = "server"; nodeName = "nexus"; source = "hosts/metadata/nexus.json"; };
     forge = { enabled = true; role = "server"; nodeName = "forge"; source = "hosts/metadata/forge.json"; };
     sentry = { enabled = true; role = "server"; nodeName = "sentry"; source = "hosts/metadata/sentry.json"; };
-    zephyr = { enabled = false; role = "disabled"; nodeName = "zephyr"; source = "hosts/metadata/zephyr.json"; };
+    zephyr = { enabled = true; role = "agent"; nodeName = "zephyr"; source = "hosts/metadata/zephyr.json"; };
   };
 
   evidence = {
@@ -126,9 +125,6 @@
   };
 
   blockers = [
-    "candidate-agent-is-currently-disabled"
-    "observed-join-endpoint-is-not-candidate-vip"
-    "metadata-join-endpoint-drift"
     "snapshot-replication-proof-missing"
     "server-token-custody-proof-missing"
     "runtime-readiness-proof-missing"

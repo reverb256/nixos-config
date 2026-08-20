@@ -4,8 +4,8 @@
   "targetHost": "10.1.1.110",
   "tags": [
     "control-plane",
-    "k8s-master",
     "k8s-node",
+    "k8s-agent",
     "local",
     "desktop"
   ],
@@ -56,14 +56,14 @@
     "enable": false
   },
   "k3s": {
-    "enable": false,
-    "role": null,
+    "enable": true,
+    "role": "agent",
     "nvidia": {
       "enable": true
     },
     "clusterInit": false,
     "nodeName": "zephyr",
-    "serverAddr": "",
+    "serverAddr": "https://10.1.1.100:6443",
     "tokenFile": "/run/secrets/k3s-cluster-token",
     "nodeIP": "10.1.1.110",
     "calico": {

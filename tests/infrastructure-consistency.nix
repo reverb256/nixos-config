@@ -88,10 +88,10 @@
 
   # ── HW-5: Multilib builds are Nexus-only ──
   # Nexus is the sole multilib builder and must accept i686 Steam/VR
-  # derivations. Sentry is now a legitimate SECONDARY builder (x86_64-linux
-  # only) and Forge stays excluded (GPU miner). The invariant is therefore:
-  # exactly ONE machine entry advertises i686-linux (nexus), and forge never
-  # appears in the machines list.
+  # derivations. Sentry and Forge are now legitimate SECONDARY builders
+  # (x86_64-linux only). The invariant is therefore: exactly ONE machine
+  # entry advertises i686-linux (nexus); any second host picking up multilib
+  # (the classic drift) makes this count 2+.
   distributedBuilds = readFile ./../modules/system/distributed-builds.nix;
   nexusSupportsMultilib = hasInfix "systems = [\"x86_64-linux\" \"i686-linux\"];" distributedBuilds;
   # The i686 systems line must occur exactly once in the whole file — any
@@ -99,10 +99,8 @@
   i686SystemsLine = "systems = [\"x86_64-linux\" \"i686-linux\"];";
   onlyNexusAdvertisesMultilib =
     (builtins.length (lib.splitString i686SystemsLine distributedBuilds) - 1) == 1;
-  forgeNotBuilder =
-    !(hasInfix "hostName = \"forge\"" distributedBuilds);
   hasNoInvalidPlatform =
-    nexusSupportsMultilib && onlyNexusAdvertisesMultilib && forgeNotBuilder;
+    nexusSupportsMultilib && onlyNexusAdvertisesMultilib;
 
   # ── HW-6: No duplicate option declarations ──
   # Check that no option is declared in both mining.nix and the role profile

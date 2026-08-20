@@ -74,7 +74,7 @@ in {
         pcr_arg="-l sha256:${lib.concatStringsSep "," cfg.pcrList}"
 
         do_seal() {
-          echo "gnome-keyring-tpm: sealing keyring password to PCRs [${cfg.pcrList}]..."
+          echo "gnome-keyring-tpm: sealing keyring password to PCRs [$pcrs]..."
           workdir=$(mktemp -d)
           trap 'rm -rf "$workdir"' EXIT
 

@@ -227,7 +227,7 @@ in {
       # (ssh-ng) inherit this via nix.conf and produce wrong content for
       # home-manager derivations otherwise (observed: hash mismatch importing
       # hm_dolphinrc / niri-config-reload.path from sentry).
-      pure-eval = false;
+      pure-eval = true;
       eval-cache = true;
 
       auto-optimise-store = true;

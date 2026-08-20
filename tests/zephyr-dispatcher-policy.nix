@@ -19,7 +19,7 @@
 
   sharedForcesZephyrZero =
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
-    && lib.strings.hasInfix "then 2 # 50% of 32 logical cores" distributedBuilds;
+    && lib.strings.hasInfix "then 3 # 75% of 32 logical cores" distributedBuilds;
 
   # Nexus is the primary builder; the shared module forces its capacity
   # (9 cores = 25% reserved of the 3900X's 24 logical threads, 2 max-jobs
@@ -39,7 +39,7 @@
   # = 8. Deliberately lower than nexus's 75% — do not raise it to match nexus.
   sharedForcesSentryHalfCapacity =
     lib.strings.hasInfix "currentHost == \"sentry\"" distributedBuilds
-    && lib.strings.hasInfix "then 4 # R7 1700 = 16 logical" distributedBuilds;
+    && lib.strings.hasInfix "then 2 # x cores=6 -> 12 of 16 logical threads (75%)" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 

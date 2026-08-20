@@ -22,7 +22,7 @@
     ];
 
     # Interactive shell configuration (prompt, navigation, environment)
-    interactiveShellInit = ''
+    interactiveShellInit = '''
       # Environment
       export EDITOR=nvim
       export VISUAL=nvim

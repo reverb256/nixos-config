@@ -138,6 +138,14 @@
     owner = "j_kro";
     group = "users";
   };
+  # k3s cluster join token — zephyr joins as an AGENT (2026-08-19). Without
+  # this secret the k3s agent hangs on `Waiting for file
+  # "/run/secrets/k3s-cluster-token"` (same class as forge's 2026-08-16 hang).
+  K3S_CLUSTER_TOKEN = {
+    path = "/run/secrets/k3s-cluster-token";
+    file = "k8s/k3s-cluster-token.yaml";
+    owner = "root";
+  };
 
   # ── storage (garage S3) ────────────────────────────────────
   # backup-to-garage reads these to authenticate to nexus garage

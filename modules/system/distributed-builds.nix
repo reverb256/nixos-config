@@ -58,28 +58,29 @@ in {
                      # buying nothing. k3s control plane + Vulkan inference keep
                      # 4 threads.
               else if currentHost == "forge"
-              then 2 # i5-9500 = 6 logical; 1*2=2 threads, 4 reserved for miners
+              then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under load
+                     # is revenue-critical — keep CPU entirely free for k3s + miners.
               else 2
             );
 
       max-jobs = lib.mkForce (
               # zephyr: local build capacity re-enabled 2026-08-18. OOM root cause was a
-              # llama misconfiguration that has been resolved. max-jobs=2 with cores=8
-              # (50% of 32 logical) gives zephyr 16 build threads while leaving 16 for
+              # llama misconfiguration that has been resolved. max-jobs=3 with cores=8
+              # (75% of 32 logical) gives zephyr 24 build threads while leaving 8 for
               # desktop, gaming, and gaming VMs. derivations offload to nexus via
               # /etc/nix/machines when local capacity is saturated.
               # The former max-jobs=0 was a protective wedge while the llama issue was
               # unresolved; now that it is resolved, zephyr builds locally again.
               if currentHost == "zephyr"
-              then 2 # 50% of 32 logical cores; 16 threads for builds, 16 for desktop
+              then 3 # 75% of 32 logical cores; 24 threads for builds, 8 for desktop
               else if currentHost == "nexus"
               then 2 # 12 cores x 2 jobs = 12 threads — half of SMT to prevent OOM (2026-08-16)
               else if currentHost == "sentry"
               then 2 # x cores=6 -> 12 of 16 logical threads (75%); 4 reserved
                      # for the k3s control plane and Vulkan inference
               else if currentHost == "forge"
-              then 1 # ONE job only: mining is revenue-critical, so keep build
-                     # concurrency minimal. 1*cores=2 -> 2 of 6 threads (33%).
+              then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under
+                     # load is revenue-critical — CPU stays fully free for miners + k3s.
               else 0
             );
 
@@ -162,7 +163,7 @@ in {
   # 1) reverb-os cachix (incremental — skips already-cached paths). The
   #    nix-daemon runs as root, so the token must be exported explicitly
   #    (cachix-auth caches it only for j_kro). Gated to the builder hosts
-  #    (nexus/sentry) — zephyr never builds locally and forge is the GPU
+  #    (nexus/sentry) — zephyr builds locally + remote since 2026-08-18 (llama OOM root cause resolved) and forge is the GPU
   #    miner (do not disturb). Runs BACKGROUNDED (flock-serialized) so a
   #    slow WAN upload never blocks nix-daemon's next build; failures are
   #    logged to /var/log/cachix-push.log instead of being swallowed.
@@ -325,45 +326,18 @@ in {
               # exactly one usable remote builder (sentry) while a 32-thread
               # workstation sat idle during multi-hour deploys.
               #
-              # maxJobs=2 mirrors zephyr's own max-jobs; combined with its
-              # cores=8 that is 16 of 32 logical threads (50%), leaving 16 for
+              # maxJobs=3 mirrors zephyr's own max-jobs; combined with its
+              # cores=8 that is 24 of 32 logical threads (75%), leaving 8 for
               # desktop, gaming, and gaming VMs.
-              maxJobs = 2;
-              # speedFactor below nexus (10) and sentry (6): zephyr is the
+              maxJobs = 3;
+              # speedFactor tied at 10 with nexus + sentry: all three primary
               # interactive workstation, so it should be chosen last when other
               # builders have capacity.
-              speedFactor = 3;
-              connectTimeout = 1;
+              speedFactor = 10;
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
               ];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "forge";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = userHome + "/.ssh/id_ed25519";
-              # 2026-08-19: forge joins as a SMALL build slot. It mines on its
-              # GPUs, not its CPU — measured load 0.25 on an i5-9500 with both
-              # peakminers at 100% GPU utilisation, and the top CPU consumer was
-              # a transient shell. So its 6 CPU threads are almost entirely idle.
-              #
-              # maxJobs=1 (not 2) and cores=2 keep this to 2 of 6 threads (33%),
-              # leaving 4 for the miners' host-side work, k3s, and monitoring.
-              # Mining is revenue-critical: the rule is "never disrupt miners",
-              # so this is deliberately the smallest useful slot rather than a
-              # proportional share.
-              maxJobs = 1;
-              # Lowest speedFactor in the fleet (nexus 10, sentry 6, zephyr 3):
-              # forge is picked only when every other builder is saturated.
-              speedFactor = 2;
-              connectTimeout = 1;
-              # big-parallel is NOT advertised: those are the heavy derivations
-              # (chromium/llvm/kernel) that would contend with mining. kvm is
-              # omitted for the same reason — no VM builds on the miner.
-              supportedFeatures = [];
               mandatoryFeatures = [];
             }
             {
@@ -402,8 +376,7 @@ in {
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
               maxJobs = 2;
-              speedFactor = 6; # secondary — below nexus's 10
-              connectTimeout = 1;
+              speedFactor = 10; # tied primary with nexus + zephyr
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -411,9 +384,8 @@ in {
               mandatoryFeatures = [];
             }
           ];
-          # Nexus is the primary builder (speedFactor 10). Sentry (6) and zephyr
-          # (3) take overflow; forge (2) is last-resort only, a 2-thread slot on
-          # otherwise-idle CPU while its GPUs mine — never big-parallel work.
+          # All three primary builders (nexus, zephyr, sentry) are tied at speedFactor 10.
+          # forge (2) is last-resort only, a 2-thread slot on otherwise-idle CPU while its GPUs mine.
           #
           # REMOTE-ONLY, never a self-entry. When a host builds its own closure
           # (nexus via colmena apply-local, or any manual nixos-rebuild), a
@@ -442,15 +414,13 @@ in {
               # Order corrected below; trailing empty `mandatoryFeatures`
               # suppressed to avoid a trailing-empty column.
               # Connection timing is controlled by Nix's global
-              # `connect-timeout` setting and the SSH config above. Keep this
-              # field limited to actual machine capability tags.
-              # connect-timeout must be IN the machine line — ssh-ng does not
-              # honor ssh_config ConnectTimeout for the builder probe, so a
-              # down builder would stall every derivation for the full TCP
-              # timeout (the 2026-08-06 forge stall). Nix parses it as a
-              # feature token; emit it first so dead remotes fail in ~1s.
-              timeoutOpt = "connect-timeout=" + toString (if m ? connectTimeout then m.connectTimeout else 1);
-              optFeatures = concatStringsSep "," ([timeoutOpt] ++ m.supportedFeatures);
+              # `connect-timeout` setting (set to 10 at line 91) and the SSH
+              # config above — NOT by a machine-line token. Nix's machines.cc
+              # parser has no connect-timeout column; emitting
+              # "connect-timeout=1" here only parses as a no-op supportedFeatures
+              # tag (confirmed 2026-08-19). Keep optFeatures limited to real
+              # capability tags (big-parallel, kvm, ...).
+              optFeatures = concatStringsSep "," m.supportedFeatures;
               mandFeatures =
                 if m.mandatoryFeatures == []
                 then ""

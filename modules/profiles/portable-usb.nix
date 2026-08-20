@@ -18,7 +18,7 @@
   #     closure inline via storePaths — the stick carries its own store,
   #     satisfying the rescue closure-carry requirement (#243).
   #
-  # Build (on the nexus builder, never zephyr-local — OOM guard):
+  # Build (on the nexus builder, OR zephyr-local since 2026-08-18 — OOM guard resolved):
   #   nix build .#portable-image
   #   sudo dd if=result/portable.raw of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync
   meshKeys = import ../../mesh-keys.nix;
