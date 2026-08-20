@@ -9,6 +9,9 @@
   # #309: derive from the declared user instead of hardcoding, so pure
   # cross-host evaluation does not depend on /home/j_kro existing.
   userHome = config.users.users.j_kro.home or "/home/j_kro";
+  # Single source of truth for the remote-builder topology (shared with
+  # colmena.nix via lib/build-machines.nix).
+  buildMachines = import ../../lib/build-machines.nix {inherit lib userHome;};
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -311,136 +314,17 @@ in {
       '';
 
       "nix/machines" = {
-        text = let
-          allMachines = [
-            {
-              hostName = "zephyr";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = userHome + "/.ssh/id_ed25519";
-              # 2026-08-19: was maxJobs = 0 ("zephyr never builds"), which was
-              # left behind when zephyr's OWN nix.settings.max-jobs was restored
-              # to 2 on 2026-08-18 (the OOM root cause was a llama
-              # misconfiguration, since resolved). The stale 0 here meant nexus
-              # would never dispatch a derivation to zephyr, so the cluster had
-              # exactly one usable remote builder (sentry) while a 32-thread
-              # workstation sat idle during multi-hour deploys.
-              #
-              # maxJobs=3 mirrors zephyr's own max-jobs; combined with its
-              # cores=8 that is 24 of 32 logical threads (75%), leaving 8 for
-              # desktop, gaming, and gaming VMs.
-              maxJobs = 3;
-              # speedFactor tied at 10 with nexus + sentry: all three primary
-              # interactive workstation, so it should be chosen last when other
-              # builders have capacity.
-              speedFactor = 10;
-              supportedFeatures = [
-                "big-parallel"
-                "kvm"
-              ];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "nexus";
-              # Nexus is the exclusive builder and also serves Steam/VR
-              # multilib closures (for example volk.i686-linux). An x86_64
-              # kernel can build the i686 target, so advertise both systems
-              # explicitly; without this Nix rejects the derivation before
-              # the remote build starts.
-              systems = ["x86_64-linux" "i686-linux"];
-              sshUser = "j_kro";
-              sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 2; # sync with nix.settings.max-jobs on nexus (2026-08-16)
-              speedFactor = 10; # exclusive builder
-              connectTimeout = 1;
-              supportedFeatures = [
-                "big-parallel"
-                "kvm"
-              ];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "sentry";
-              # Secondary builder (R7 1700, 8 physical / 16 logical, 31 GiB).
-              # ssh-ng was wedged here before at 16-job oversubscription
-              # (pipe-drain NixOS/nix#5701); the new low-jobs config (1 job,
-              # connect-timeout=1) keeps pipe pressure low, and nexus has run
-              # ssh-ng fine under this config since. If it wedges again,
-              # flip protocol to "ssh" (nix-store --serve, no pipe-drain path).
-              # maxJobs=2 syncs with sentry's own nix.settings.max-jobs. The
-              # per-job thread count is set by sentry's nix.settings.cores=6,
-              # capping it at 12 of 16 logical threads (75%) — sentry also runs
-              # the k3s control plane and Vulkan inference. (2026-08-19)
-              protocol = "ssh-ng";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 2;
-              speedFactor = 10; # tied primary with nexus + zephyr
-              supportedFeatures = [
-                "big-parallel"
-                "kvm"
-              ];
-              mandatoryFeatures = [];
-            }
-          ];
-          # All three primary builders (nexus, zephyr, sentry) are tied at speedFactor 10.
-          # forge (2) is last-resort only, a 2-thread slot on otherwise-idle CPU while its GPUs mine.
-          #
-          # REMOTE-ONLY, never a self-entry. When a host builds its own closure
-          # (nexus via colmena apply-local, or any manual nixos-rebuild), a
-          # `ssh-ng://<self>` machine entry makes nix-daemon dispatch
-          # derivations back to itself over SSH; the serve session then waits
-          # on store locks the local daemon already holds -> permanent deadlock
-          # (observed 2026-08-08: wivrn build stalled 3600s on 'waiting for
-          # lock' via ssh-ng://j_kro@nexus, even for a direct nix-store
-          # --realise). Local builds use max-jobs; the machines file only ever
-          # lists remote builders.
-          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-          formatMachine = m:
-            with builtins; let
-              # Join ALL systems with commas so the nix builder line advertises
-              # the supported x86_64-linux target.
-              allSystems = lib.concatStringsSep "," m.systems;
-              # Nix's machine parser (libstore/machines.cc) reads positions
-              # strictly as: URL systemTypes(comma-joined) sshKey maxJobs
-              # speedFactor supportedFeatures mandatoryFeatures. Earlier this
-              # function emitted space-separated systems + a tilde key path
-              # (`URL x86_64-linux ~/.ssh/...`), which pushed the
-              # sshKey into Nix's maxJobs slot and triggered
-              # `error: bad machine specification: failed to convert column
-              # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch,
-              # confirmed live 2026-08-01 on nexus's deployed machines file).
-              # Order corrected below; trailing empty `mandatoryFeatures`
-              # suppressed to avoid a trailing-empty column.
-              # Connection timing is controlled by Nix's global
-              # `connect-timeout` setting (set to 10 at line 91) and the SSH
-              # config above — NOT by a machine-line token. Nix's machines.cc
-              # parser has no connect-timeout column; emitting
-              # "connect-timeout=1" here only parses as a no-op supportedFeatures
-              # tag (confirmed 2026-08-19). Keep optFeatures limited to real
-              # capability tags (big-parallel, kvm, ...).
-              optFeatures = concatStringsSep "," m.supportedFeatures;
-              mandFeatures =
-                if m.mandatoryFeatures == []
-                then ""
-                else concatStringsSep "," m.mandatoryFeatures;
-            in
-              concatStringsSep " " [
-                ("${m.protocol or "ssh-ng"}://" + "${m.sshUser}@${m.hostName}")
-                allSystems
-                (
-                  if m.sshKey != null
-                  then m.sshKey
-                  else "-"
-                )
-                (toString m.maxJobs)
-                (toString m.speedFactor)
-                optFeatures
-                mandFeatures
-              ];
-        in
-          lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
+        # Generated from lib/build-machines.nix (single source of truth).
+        # REMOTE-ONLY, never a self-entry. When a host builds its own closure
+        # (nexus via colmena apply-local, or any manual nixos-rebuild), a
+        # `ssh-ng://<self>` machine entry makes nix-daemon dispatch
+        # derivations back to itself over SSH; the serve session then waits
+        # on store locks the local daemon already holds -> permanent deadlock
+        # (observed 2026-08-08: wivrn build stalled 3600s on 'waiting for
+        # lock' via ssh-ng://j_kro@nexus, even for a direct nix-store
+        # --realise). Local builds use max-jobs; the machines file only ever
+        # lists remote builders.
+        text = buildMachines.machinesTextFor currentHost;
       };
     };
 

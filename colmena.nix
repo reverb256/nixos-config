@@ -16,6 +16,18 @@
       overlays = [((import ./overlays/default.nix) {inherit inputs;})];
     };
 
+  # Remote-builder topology shared with distributed-builds.nix. Colmena
+  # ALWAYS executes on nexus (see scripts/deploy/nexus-dispatch.sh), so the
+  # machinesFile is generated from the NEXUS view (never a self-entry): nexus
+  # distributes its builds to zephyr + sentry (forge is a last-resort
+  # consumer, never a colmena build target while it mines).
+  buildMachines = import ./lib/build-machines.nix {
+    inherit (inputs.nixpkgs) lib;
+    userHome = "/home/j_kro";
+  };
+  colmenaMachinesText = buildMachines.machinesTextFor "nexus";
+  colmenaMachinesFile = builtins.toFile "colmena-machines" colmenaMachinesText;
+
   # mkColmenaHost — derive per-host colmneda config from `hosts.<name>`.
   # Guard: assert that h.hostName, when present, matches the attrset key. If
   # h.hostName is missing (drift), throw loudly. The directory lookup uses
@@ -49,7 +61,7 @@ in
       # nodeNixpkgs is derived from the unified `hosts` attrset — adding a new
       # host in flake.nix gives you a nodeNixpkgs entry here automatically.
       nodeNixpkgs = builtins.mapAttrs (_: _: tunedNixpkgs "x86_64-linux") hosts;
-      machinesFile = ./machines;
+      machinesFile = colmenaMachinesFile;
       # Use the exact specialArgs factory used by the dendritic host evaluator.
       # Colmena's nodeNixpkgs remains overlay-tuned for deployment, while the
       # module argument contract is identical to nixosConfigurations.*.

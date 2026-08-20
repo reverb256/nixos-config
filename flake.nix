@@ -315,7 +315,8 @@
           # zephyr/forge while keeping nexus/sentry free of niri/etc)
           # Adding a 5th host = 1 attr in contracts/host-inventory.nix +
           # ./hosts/<n>/configuration.nix + a host file under modules/hosts/<n>/.
-          #   NOTE: also update ./machines (its keys are colmena machine entries).
+          #   NOTE: colmena remote builders come from lib/build-machines.nix
+          #   (colmena.nix meta.machinesFile), shared with distributed-builds.nix.
 
           # Portable USB stick — standalone rescue/pinch config (wayfinder #421/#425).
           # Shared by nixosConfigurations.portable and packages.portable-image.
