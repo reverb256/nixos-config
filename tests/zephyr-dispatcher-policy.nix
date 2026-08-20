@@ -17,9 +17,13 @@
   # override attempt on the dispatcher policy.
   hasSettingsAttrsetOverride = lib.strings.hasInfix "nix.settings = {" zephyrConfig;
 
-  sharedForcesZephyrZero =
+  # Zephyr is a 50%-capped builder: max-jobs=3 x cores=5 = 15 threads of 32
+  # logical (47% < 50% cap). Local builds are enabled (2026-08-18+); the
+  # 50% cap leaves 17 logical for desktop/gaming. 2026-08-20 policy.
+  sharedForcesZephyrHalfCapacity =
     lib.strings.hasInfix "currentHost == \"zephyr\"" distributedBuilds
-    && lib.strings.hasInfix "then 3 # 75% of 32 logical cores" distributedBuilds;
+    && lib.strings.hasInfix "then 5 # 32 logical; 3*5=15 threads (47%)" distributedBuilds
+    && lib.strings.hasInfix "then 3 # 3*5=15 threads (47%)" distributedBuilds;
 
   # Nexus is the primary builder; the shared module forces its capacity
   # (9 cores = 25% reserved of the 3900X's 24 logical threads, 2 max-jobs
@@ -29,17 +33,24 @@
   # a max-jobs trailing comment. The previous check matched the literal string
   # "then 2 # 12 cores x 2 jobs", so a pure comment edit failed the test while
   # the policy was unchanged. Comments are not policy; the numbers are.
+  # Nexus is the primary builder, capped at 75%: max-jobs=5 x cores=3 = 15
+  # threads of 24 logical (62.5% < 75%). 2026-08-20 policy.
   sharedForcesNexusCapacity =
     lib.strings.hasInfix "currentHost == \"nexus\"" distributedBuilds
-    && lib.strings.hasInfix "then 9 # 3900X = 24 logical" distributedBuilds;
+    && lib.strings.hasInfix "then 5 # 5*3=15 threads (62.5%)" distributedBuilds
+    && lib.strings.hasInfix "then 3 # 3900X = 24 logical; 5*3=15 threads" distributedBuilds;
 
   # Sentry is the SECONDARY builder and also the k3s control plane + Vulkan
   # inference host (Zen 1 R7 1700, 31 GiB, documented hard-lockup history under
   # load). It is capped at 50% of its 16 logical threads: cores=4 x max-jobs=2
   # = 8. Deliberately lower than nexus's 75% — do not raise it to match nexus.
-  sharedForcesSentryHalfCapacity =
+  # Sentry is capped at 75%: max-jobs=3 x cores=4 = 12 threads of 16 logical
+  # (75% exactly). 2026-08-20 policy (was 2x6; k3s + Vulkan inference retain
+  # the remaining 4 threads).
+  sharedForcesSentryCapacity =
     lib.strings.hasInfix "currentHost == \"sentry\"" distributedBuilds
-    && lib.strings.hasInfix "then 2 # x cores=6 -> 12 of 16 logical threads (75%)" distributedBuilds;
+    && lib.strings.hasInfix "then 4 # R7 1700 = 16 logical; 3*4=12 threads" distributedBuilds
+    && lib.strings.hasInfix "then 3 # 3*4=12 threads (75%)" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 
@@ -49,9 +60,9 @@
     zephyrHasNoBuildersOverride = !hasEmptyBuildersOverride;
     zephyrHasNoSettingsAttrsetOverride = !hasSettingsAttrsetOverride;
     inherit
-      sharedForcesZephyrZero
+      sharedForcesZephyrHalfCapacity
       sharedForcesNexusCapacity
-      sharedForcesSentryHalfCapacity
+      sharedForcesSentryCapacity
       sharedBuildersUseSubstitutes
       ;
   };

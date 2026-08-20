@@ -92,13 +92,17 @@
   # (x86_64-linux only). The invariant is therefore: exactly ONE machine
   # entry advertises i686-linux (nexus); any second host picking up multilib
   # (the classic drift) makes this count 2+.
-  distributedBuilds = readFile ./../modules/system/distributed-builds.nix;
-  nexusSupportsMultilib = hasInfix "systems = [\"x86_64-linux\" \"i686-linux\"];" distributedBuilds;
+  # Builder topology lives in lib/build-machines.nix (single source of truth
+  # for machines files, both NixOS /etc/nix/machines and colmena). The old
+  # check read distributed-builds.nix, which never carried the i686 line
+  # (stale since the build-machines.nix extraction) and always failed.
+  buildMachinesSrc = readFile ./../lib/build-machines.nix;
+  nexusSupportsMultilib = hasInfix "systems = [\"x86_64-linux\" \"i686-linux\"];" buildMachinesSrc;
   # The i686 systems line must occur exactly once in the whole file — any
   # second host picking up multilib (the classic drift) makes this count 2+.
   i686SystemsLine = "systems = [\"x86_64-linux\" \"i686-linux\"];";
   onlyNexusAdvertisesMultilib =
-    (builtins.length (lib.splitString i686SystemsLine distributedBuilds) - 1) == 1;
+    (builtins.length (lib.splitString i686SystemsLine buildMachinesSrc) - 1) == 1;
   hasNoInvalidPlatform =
     nexusSupportsMultilib && onlyNexusAdvertisesMultilib;
 
