@@ -13,8 +13,8 @@ buildGoModule rec {
     hash = "sha256-8ag0ggf6Mqxc+UEuht4eq5Wha7OCnajauaE3oYd8CY0=";
   };
 
-  # Vendor hash: set to a dummy SRI to discover via the build error.
-  vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  # Vendor hash (discovered via first build).
+  vendorHash = "sha256-WyS27hUROWUbP4VtZBuPnsvO2jFOUoJizf7r4oz+2rM=";
 
   ldflags = [ "-s" "-w" ];
 
