@@ -14,6 +14,9 @@
   haven-desktop = prev.callPackage ../packages/haven-desktop.nix {};
   kokoro-tts = prev.callPackage ../packages/kokoro-tts.nix {};
   chatterbox-tts = prev.callPackage ../packages/chatterbox-tts.nix {};
+  # fleet-deck — Charm BubbleTea fleet observability dashboard (runs in the
+  # fleet-mon tmux "deck" window). Installed via home.packages on zephyr.
+  fleet-deck = prev.callPackage ../packages/fleet-deck.nix {};
   # Proton-GE-RTSP — Proton-GE fork with hardware video decode (h264/RTMP)
   # for VRChat in-world video players. Consumed via
   # programs.steam.extraCompatPackages only (see modules/gaming/gaming-vr-unlock.nix).
