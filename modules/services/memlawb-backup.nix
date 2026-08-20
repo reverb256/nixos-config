@@ -167,7 +167,6 @@ in {
       description = "Backup memlawb fs blobstore to Garage S3";
       after = [
         "network-online.target"
-        "garage.service"
       ];
       wants = ["network-online.target"];
 
