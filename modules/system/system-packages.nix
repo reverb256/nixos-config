@@ -6,219 +6,214 @@
 }: {
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
-  environment.systemPackages = with pkgs; [
-    # ============================================================================
-    # SYSTEM UTILITIES
-    # Needed by system services, scripts, or all users
-    # ============================================================================
-    ripgrep
-    fd
-    parallel
-    parallel-full
-    htop
-    btop
-    eza
-    bat
-    fzf
-    fastfetch
-    wget
-    curl
-    jq
-    jo # JSON output from shell (companion to jq)
-    yq # YAML processor (go-based)
-    mosh
-    nmap
-    netcat
-    socat
-    tmux
-    xh # Modern HTTP debugging tool (curl alternative)
-    hexdump # Binary file inspection
-    xxd # Hex dump from Vim
-    file # File type detection (enhanced)
-    tree # Directory tree viewer
-    bc # Arbitrary precision calculator
-    units # Unit conversion tool
-    # websocat - REMOVED
+  environment.systemPackages = with pkgs;
+    [
+      # ============================================================================
+      # SYSTEM UTILITIES
+      # Needed by system services, scripts, or all users
+      # ============================================================================
+      ripgrep
+      fd
+      parallel
+      parallel-full
+      htop
+      btop
+      eza
+      bat
+      fzf
+      fastfetch
+      wget
+      curl
+      jq
+      jo # JSON output from shell (companion to jq)
+      yq # YAML processor (go-based)
+      mosh
+      nmap
+      netcat
+      socat
+      tmux
+      xh # Modern HTTP debugging tool (curl alternative)
+      hexdump # Binary file inspection
+      xxd # Hex dump from Vim
+      file # File type detection (enhanced)
+      tree # Directory tree viewer
+      bc # Arbitrary precision calculator
+      units # Unit conversion tool
+      # websocat - REMOVED
 
-    # ============================================================================
-    # NETWORK MANAGEMENT
-    # System-level networking tools
-    # ============================================================================
-    networkmanager
+      # ============================================================================
+      # NETWORK MANAGEMENT
+      # System-level networking tools
+      # ============================================================================
+      networkmanager
 
-    # ============================================================================
-    # VERSION CONTROL AND BUILD TOOLS
-    # Required for system operations
-    # ============================================================================
-    git
-    vim
-    just
-    hostname
+      # ============================================================================
+      # VERSION CONTROL AND BUILD TOOLS
+      # Required for system operations
+      # ============================================================================
+      git
+      vim
+      just
+      hostname
 
-    # ============================================================================
-    # SECRETS MANAGEMENT
-    # ssh-to-age for agenix SSH key conversion
-    # ============================================================================
-    ssh-to-age
+      # ============================================================================
+      # SECRETS MANAGEMENT
+      # ssh-to-age for agenix SSH key conversion
+      # ============================================================================
+      ssh-to-age
 
-    # ============================================================================
-    # FILE SYSTEM TOOLS
-    # ============================================================================
-    btrfs-progs
-    rclone # For backup-to-garage S3 sync
-    awscli2 # For S3 backup automation
+      # ============================================================================
+      # FILE SYSTEM TOOLS
+      # ============================================================================
+      btrfs-progs
+      rclone # For backup-to-garage S3 sync
+      awscli2 # For S3 backup automation
 
-    # ============================================================================
-    # HARDWARE DETECTION
-    # Used by system scripts and hardware configuration
-    # ============================================================================
-    pciutils
-    usbutils
-    lshw
-    dmidecode # SMBIOS/BIOS hardware info
-    hwinfo # Comprehensive hardware detection
-    smartmontools # SMART disk monitoring (smartctl)
+      # ============================================================================
+      # HARDWARE DETECTION
+      # Used by system scripts and hardware configuration
+      # ============================================================================
+      pciutils
+      usbutils
+      lshw
+      dmidecode # SMBIOS/BIOS hardware info
+      hwinfo # Comprehensive hardware detection
+      smartmontools # SMART disk monitoring (smartctl)
 
-    # ============================================================================
-    # DIAGNOSTIC AND DEBUGGING TOOLS
-    # System tracing, profiling, and debugging utilities
-    # ============================================================================
-    strace # System call tracer
-    ltrace # Library call tracer
-    perf-tools # Linux performance profiling tools
-    iotop # I/O monitoring
-    perf # Kernel performance analysis
+      # ============================================================================
+      # DIAGNOSTIC AND DEBUGGING TOOLS
+      # System tracing, profiling, and debugging utilities
+      # ============================================================================
+      strace # System call tracer
+      ltrace # Library call tracer
+      perf-tools # Linux performance profiling tools
+      iotop # I/O monitoring
+      perf # Kernel performance analysis
 
-    # ============================================================================
-    # NETWORK DIAGNOSTICS
-    # Advanced network troubleshooting and monitoring
-    # ============================================================================
-    ethtool # Network card configuration and diagnostics
-    bmon # Bandwidth monitor (console-based)
-    iftop # Interactive bandwidth monitoring
-    tcpdump # Packet capture and analysis
-    mtr # Network diagnostic (ping + traceroute hybrid)
-    dnsutils # DNS lookup utilities (dig, nslookup)
+      # ============================================================================
+      # NETWORK DIAGNOSTICS
+      # Advanced network troubleshooting and monitoring
+      # ============================================================================
+      ethtool # Network card configuration and diagnostics
+      bmon # Bandwidth monitor (console-based)
+      iftop # Interactive bandwidth monitoring
+      tcpdump # Packet capture and analysis
+      mtr # Network diagnostic (ping + traceroute hybrid)
+      dnsutils # DNS lookup utilities (dig, nslookup)
 
-    # ============================================================================
-    # STORAGE AND FILE SYSTEM UTILITIES
-    # Additional tools for storage management and data handling
-    # ============================================================================
-    parted # GPT partition management
-    gptfdisk # GPT fdisk (for modern partitioning)
-    ncdu # Disk usage analyzer (ncurses-based)
-    rsync # Fast file synchronization
-    pv # Pipe viewer for monitoring data throughput
-    progress # Coreutils progress viewer
+      # ============================================================================
+      # STORAGE AND FILE SYSTEM UTILITIES
+      # Additional tools for storage management and data handling
+      # ============================================================================
+      parted # GPT partition management
+      gptfdisk # GPT fdisk (for modern partitioning)
+      ncdu # Disk usage analyzer (ncurses-based)
+      rsync # Fast file synchronization
+      pv # Pipe viewer for monitoring data throughput
+      progress # Coreutils progress viewer
 
-    # ============================================================================
-    # ARCHIVE AND COMPRESSION
-    # Additional formats beyond basic tar/gzip
-    # ============================================================================
-    zip # ZIP archive support
-    unzip # ZIP extraction
-    p7zip # 7z archive support
-    rar # RAR archive support
+      # ============================================================================
+      # ARCHIVE AND COMPRESSION
+      # Additional formats beyond basic tar/gzip
+      # ============================================================================
+      zip # ZIP archive support
+      unzip # ZIP extraction
+      p7zip # 7z archive support
+      rar # RAR archive support
 
-    # ============================================================================
-    # SCREEN AND SESSION MANAGEMENT
-    # Terminal multiplexer alternatives
-    # ============================================================================
-    screen # Alternative terminal multiplexer
+      # ============================================================================
+      # SCREEN AND SESSION MANAGEMENT
+      # Terminal multiplexer alternatives
+      # ============================================================================
+      screen # Alternative terminal multiplexer
 
-    # ============================================================================
-    # GAMING SUPPORT
-    # steam-run + game launchers (steam-run, xrizer, opencomposite, dxvk, wine,
-    # winetricks, vulkan-validation-layers, vulkan-headers) moved to
-    # modules/gaming-modules.nix — loaded only on desktop/gaming hosts
-    # (zephyr + nexus) via contracts/host-inventory.nix extraModules. Headless
-    # hosts (sentry, forge) must not pull the Steam closure.
-    # (2026-08-20: j_kro "get the steam and vr and gaming stuff off sentry")
+      # ============================================================================
+      # GAMING SUPPORT
+      # Vulkan support — KEPT global: headless sentry needs RADV Vulkan-loader for
+      # Bonsai / llama-swap inference (GPU compute), not just gaming.
+      vulkan-loader
+      vulkan-tools
 
-    # Vulkan support — KEPT global: headless sentry needs RADV Vulkan-loader for
-    # Bonsai / llama-swap inference (GPU compute), not just gaming.
-    vulkan-loader
-    vulkan-tools
+      # ============================================================================
+      # PERIPHERAL SUPPORT
+      steam-run
+      pkgsi686Linux.glibc
+      # Razer and Corsair device management tools
+      # Razer packages now handled by hardware.openrazer module
+      # liquidctl - Cross-platform CLI for AIO coolers, PSUs, and Corsair Vengeance RAM
+      # ============================================================================
 
-    # ============================================================================
-    # PERIPHERAL SUPPORT
-    # Razer and Corsair device management tools
-    # Razer packages now handled by hardware.openrazer module
-    # liquidctl - Cross-platform CLI for AIO coolers, PSUs, and Corsair Vengeance RAM
-    # ============================================================================
+      # ============================================================================
+      # CUDA AND ML LIBRARIES
+      # System libraries for CUDA/ML workloads
+      # NOTE: These packages are now managed by hardware.gpu-compute module
+      # NOTE: cudatoolkit was causing cuda_compat dependency (Jetson-only package)
+      # REMOVED: cudatoolkit, cudnn, libcufft, libcusparse, libcutensor, libcurand, libcusolver, libnvjpeg
+      # The gpu-compute module provides cuda_cudart for basic CUDA runtime support
+      # Re-add individual packages here if needed for specific ML workloads
+      # ============================================================================
+      pkgs.cudaPackages.cuda_cudart
+      pkgs.cudaPackages.libcublas
 
+      # Required for system administration
+      # ============================================================================
+      nh
+      home-manager
+      # Colmena is managed via flake.nix (v0.5.0-pre with colmenaHive schema)
 
-    # ============================================================================
-    # CUDA AND ML LIBRARIES
-    # System libraries for CUDA/ML workloads
-    # NOTE: These packages are now managed by hardware.gpu-compute module
-    # NOTE: cudatoolkit was causing cuda_compat dependency (Jetson-only package)
-    # REMOVED: cudatoolkit, cudnn, libcufft, libcusparse, libcutensor, libcurand, libcusolver, libnvjpeg
-    # The gpu-compute module provides cuda_cudart for basic CUDA runtime support
-    # Re-add individual packages here if needed for specific ML workloads
-    # ============================================================================
-    pkgs.cudaPackages.cuda_cudart
-    pkgs.cudaPackages.libcublas
+      # ============================================================================
+      # DESKTOP ENVIRONMENT SUPPORT
+      # Niri/Wayland system packages
+      # GUI monitor dependencies are owned by desktop-monitor.nix.
+      # ============================================================================
+      xdg-desktop-portal
+      flatpak
 
-    # Required for system administration
-    # ============================================================================
-    nh
-    home-manager
-    # Colmena is managed via flake.nix (v0.5.0-pre with colmenaHive schema)
+      # ============================================================================
+      # MULTIMEDIA SUPPORT
+      # System-wide multimedia libraries
+      # NOTE: GStreamer packages moved to wayland-common.nix (desktop GUI packages)
+      # ============================================================================
 
-    # ============================================================================
-    # DESKTOP ENVIRONMENT SUPPORT
-    # Niri/Wayland system packages
-    # GUI monitor dependencies are owned by desktop-monitor.nix.
-    # ============================================================================
-    xdg-desktop-portal
-    flatpak
+      # ============================================================================
+      # VIDEO AND GPU ACCELERATION
+      # System video drivers and utilities
+      # ============================================================================
+      nvidia-vaapi-driver
+      vdpauinfo
+      # NOTE: nvtopPackages.full is in gaming.nix
+      egl-wayland
+      wayland-utils
+      # yt-dlp  # MOVED to home.nix - user media tool
 
-    # ============================================================================
-    # MULTIMEDIA SUPPORT
-    # System-wide multimedia libraries
-    # NOTE: GStreamer packages moved to wayland-common.nix (desktop GUI packages)
-    # ============================================================================
+      # NOTE: nvidia-smi and nvidia-settings are provided by the NVIDIA driver package
+      # which is configured per-host in hosts/<hostname>/configuration.nix
+      # Example: hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
 
-    # ============================================================================
-    # VIDEO AND GPU ACCELERATION
-    # System video drivers and utilities
-    # ============================================================================
-    nvidia-vaapi-driver
-    vdpauinfo
-    # NOTE: nvtopPackages.full is in gaming.nix
-    egl-wayland
-    wayland-utils
-    # yt-dlp  # MOVED to home.nix - user media tool
+      # ============================================================================
+      # DISPLAY MANAGEMENT
+      # System display configuration tools
+      # ============================================================================
+      xrdb
+      xrandr
+      # kanshi  # MOVED to home.nix - user display management tool
 
-    # NOTE: nvidia-smi and nvidia-settings are provided by the NVIDIA driver package
-    # which is configured per-host in hosts/<hostname>/configuration.nix
-    # Example: hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+      # ============================================================================
+      # WEB BROWSER SUPPORT
+      # NOTE: firefoxpwa moved to home.nix to avoid Firefox compilation
+      # ============================================================================
+      # firefoxpwa  # MOVED to home.nix - requires Firefox which compiles from source
 
-    # ============================================================================
-    # DISPLAY MANAGEMENT
-    # System display configuration tools
-    # ============================================================================
-    xrdb
-    xrandr
-    # kanshi  # MOVED to home.nix - user display management tool
+      # ============================================================================
+      # OPENCL SUPPORT
+      # ============================================================================
+      ocl-icd
 
-    # ============================================================================
-    # WEB BROWSER SUPPORT
-    # NOTE: firefoxpwa moved to home.nix to avoid Firefox compilation
-    # ============================================================================
-    # firefoxpwa  # MOVED to home.nix - requires Firefox which compiles from source
-
-    # ============================================================================
-    # OPENCL SUPPORT
-    # ============================================================================
-    ocl-icd
-
-    # ============================================================================
-    # AI TOOLS (System-level)
-    # NOTE: User AI tools moved to home.nix
-    # ============================================================================
-    # (kilo wrapper moved to home.nix - requires user nodejs)
+      # ============================================================================
+      # AI TOOLS (System-level)
+      # NOTE: User AI tools moved to home.nix
+      # ============================================================================
+      # (kilo wrapper moved to home.nix - requires user nodejs)
     ]
     ++ lib.optionals (config.networking.hostName != "sentry") [
       # Peripheral/RGB GUIs - only meaningful on interactive desktop hosts with the

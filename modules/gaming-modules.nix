@@ -11,7 +11,11 @@
 #
 # Ref: j_kro directive "get the steam and vr and gaming stuff off sentry —
 # make profiles" (2026-08-20).
-{ inputs, pkgs, ... }: {
+{
+  inputs,
+  pkgs,
+  ...
+}: {
   imports = [
     # ScopeBuddy gamescope wrapper (enable=true unconditionally upstream —
     # only meaningful on a desktop host with a display). THE leak we moved off

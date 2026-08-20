@@ -1,6 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{ lib, ... }: {
+{}: {
   imports = [
     # ============================================================================
     # SHARED DEFAULTS
@@ -151,7 +151,7 @@
     ./services/backup-to-garage.nix # Automated backups to Garage S3
     ./services/binary-cache.nix # Nix binary cache server for cluster
     ./system/boot-tuning.nix # OMARCHY-inspired boot speed tuning
-    ./system/uki-boot.nix      # UKI (Unified Kernel Image) boot via systemd-stub
+    ./system/uki-boot.nix # UKI (Unified Kernel Image) boot via systemd-stub
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
@@ -195,5 +195,12 @@
     # Freebuff Desktop icon (hicolor) — launcher owned by home-manager-config
     # appimage-updater (self-wrapped copy at ~/.local/opt/freebuff-desktop).
     ./services/freebuff-desktop.nix
-  ];
+  
+config = {
+  programmes.scopebuddy.enable = true;
+  programmes.gamescope.enable = true;
+  environment.systemPackages = [ moonlight ];
+  services.sunshine.enable = true;
+};
+];
 }
