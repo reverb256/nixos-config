@@ -175,6 +175,13 @@ in {
       # Don't abort the build if a local cache is temporarily unreachable.
       fallback = true;
 
+      # Prefer substitution over local building — even if local capacity is
+      # available. colmena builds the toplevel on the dispatcher (nexus) and
+      # huge closures (wine, boost, DXVK) hit dependency test failures when
+      # built locally. Keep builders for offload, but substitute first.
+      always-allow-substitutes = true;
+      builders-use-substitutes = true;
+
       # Cache "narinfo not found" responses so a briefly-down cache doesn't
       # trigger a re-query storm on every operation (pairs with fallback=true).
       # 300s = 5 min; trade-off is up to 5 min staleness if a cache recovers
