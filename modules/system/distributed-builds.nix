@@ -86,8 +86,14 @@ in {
       # HTTP/1.1 is slower but avoids multiplexed range-transfer resets.
       http2 = false;
       http-connections = 16;
-      connect-timeout = 10;
-      download-attempts = 10;
+      # Lix applies EXPONENTIAL BACKOFF to connect-timeout (gerrit 3856):
+      # each failed attempt waits initial, then 2x, 4x... up to
+      # max-connect-timeout. With 10+ substituters queried per path, the
+      # old 10s × 10 attempts × 10 caches caused multi-minute stalls
+      # (curl error 28 storms) before fallback moved on. 3s × 5 attempts
+      # fails fast and lets fallback=true use the next cache.
+      connect-timeout = 3;
+      download-attempts = 5;
 
       # ── Performance tuning (homelab fork, 2026-08-13) ──
       # Eval/fetch + store-DB latency knobs. Docs in Lix source:
