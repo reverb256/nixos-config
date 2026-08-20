@@ -1,15 +1,16 @@
-{ lib, buildGoModule, fetchgit }:
+{ lib, buildGoModule, fetchFromGitHub }:
 # fleet-deck — Charm BubbleTea fleet observability dashboard.
-# Built from the reverb256/fleet-deck repo (private). Uses fetchgit so the
-# SSH key authenticates (fetchFromGitHub tarball 404s on private repos).
+# Public repo → fetchFromGitHub (https tarball, sandbox-safe; git@ SSH
+# fetch fails inside the Nix sandbox — no ssh binary).
 buildGoModule rec {
   pname = "fleet-deck";
   version = "0.1.0";
 
-  src = fetchgit {
-    url = "git@github.com:reverb256/fleet-deck.git";
-    rev = "b4e59fbefbec3fad14765bb116cc0539b14b8bfe";
-    sha256 = "sha256-lkU2OJKFl0HBD5IinO3SVCvY0SYG6w/Sns/xa4Tl4lk=";
+  src = fetchFromGitHub {
+    owner = "reverb256";
+    repo = "fleet-deck";
+    rev = "5f4c0cc06ed630552ed6078f9676bf92b7deac7e";
+    hash = "sha256-1389gj3s2dx1p7dai7c2ndms35db3vg8cbj1z5faqcps0y139a7i";
   };
 
   # FIXME(vendor): set after first build on nexus discovers the hash.
