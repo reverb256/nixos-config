@@ -128,23 +128,17 @@
 
     # ============================================================================
     # GAMING SUPPORT
-    # Steam and gaming libraries (configured in gaming.nix)
-    # ============================================================================
-    steam-run
-    pkgsi686Linux.glibc
+    # steam-run + game launchers (steam-run, xrizer, opencomposite, dxvk, wine,
+    # winetricks, vulkan-validation-layers, vulkan-headers) moved to
+    # modules/gaming-modules.nix — loaded only on desktop/gaming hosts
+    # (zephyr + nexus) via contracts/host-inventory.nix extraModules. Headless
+    # hosts (sentry, forge) must not pull the Steam closure.
+    # (2026-08-20: j_kro "get the steam and vr and gaming stuff off sentry")
 
-    # Vulkan support
+    # Vulkan support — KEPT global: headless sentry needs RADV Vulkan-loader for
+    # Bonsai / llama-swap inference (GPU compute), not just gaming.
     vulkan-loader
     vulkan-tools
-
-    # Gaming tools - NOTE: gamescope, mangohud, goverlay, nvtop are in gaming.nix
-    xrizer
-    opencomposite
-    vulkan-validation-layers
-    vulkan-headers
-    dxvk
-    wine
-    winetricks
 
     # ============================================================================
     # PERIPHERAL SUPPORT

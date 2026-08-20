@@ -20,7 +20,7 @@
       capabilities = ["workstation" "development" "gaming" "nvidia" "k3s-agent"];
       ipAddress = "10.1.1.110";
       interfaceName = "enp38s0";
-      extraModules = [../modules/desktop/desktop-modules.nix];
+      extraModules = [../modules/desktop/desktop-modules.nix ../modules/gaming-modules.nix];
     };
 
     nexus = {
@@ -38,7 +38,10 @@
       # ci-runners (quill runner) is NOT in extraModules: it is a function-based
       # generator called from hosts/nexus/services.nix (modules/services/ci-runners.nix),
       # which avoids the colmena config.deployment extraction recursion (2026-08-13).
-      extraModules = [];
+      # gaming-modules.nix (Steam/ScopeBuddy/DualSense/GStreamer) added 2026-08-20:
+      # nexus is a gaming/Vulkan host (profiles.node.nexus-gaming) — it needs the
+      # gaming closure that headless sentry/forge no longer pull from commonModules.
+      extraModules = [../modules/gaming-modules.nix];
     };
 
     forge = {

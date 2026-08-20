@@ -1,6 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{...}: {
+{ lib, ... }: {
   imports = [
     # ============================================================================
     # SHARED DEFAULTS
@@ -95,13 +95,20 @@
     ./development/web-testing.nix
     ./development/ai-coding-tools.nix
 
-    # Gaming
-    ./gaming/dualsense.nix
+    # Gaming option declaration (services.gaming + hdr/vr sub-options) — KEPT in
+    # commonModules. gaming.nix is `mkIf cfg.enable` so it is inert on headless
+    # hosts (no weight); it only DECLARES the option that shared modules
+    # (role/implementations.nix, aagl.nix) reference. Removing it broke forge/
+    # sentry eval ("option services.gaming does not exist").
+    # The actual Steam/ScopeBuddy/DualSense BEHAVIOUR (the weight) is moved to
+    # modules/gaming-modules.nix, loaded only on zephyr + nexus via extraModules.
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
     # 2026-08-16: hoyoverse-launcher-env consolidated INTO
     # modules/desktop/aagl.nix (the aagl module owns ALL launcher config).
-    ./gaming/scopebuddy.nix
+    # ScopeBuddy (enable=true unconditionally upstream) + DualSense (mkDefault true)
+    # are the real gaming closure leak — MOVED to modules/gaming-modules.nix.
+    # (2026-08-20: j_kro "get the steam and vr and gaming stuff off sentry")
 
     # Mining
     # Most mining modules REMOVED (compute-market, lolminer, xmrig)
@@ -164,10 +171,8 @@
     # ./services/mining-exporter.nix (removed with compute-market)
     ./services/gputemps-exporter.nix
     ./services/dbus-broker-exporter.nix
-    # Multimedia modules
-    ./multimedia/gstreamer.nix
-    # Desktop modules (Spotify customization)
-    ./desktop/spotify-spotx.nix
+    # Multimedia / Spotify — MOVED to modules/gaming-modules.nix (desktop hosts
+    # only via extraModules). Headless hosts don't need the GStreamer/Spotify stack.
     # Distributed builds
     ./system/distributed-builds.nix
     # Flake lock sync (auto-enabled on remote hosts only)
