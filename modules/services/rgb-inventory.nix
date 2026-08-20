@@ -311,7 +311,10 @@ in {
 
     systemd.services.rgb-inventory = {
       description = "Read-only RGB hardware inventory and metrics";
+      # wants= makes the ordering meaningful: systemd warns when a unit is
+      # ordered after network-online.target without depending on it.
       after = ["network-online.target" "prometheus-node-exporter.service"];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         User = "root";

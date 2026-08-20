@@ -9,7 +9,7 @@
     sha256 = "1yaz5i5qdf2nb7llaml2g3wdck2mwpgpw8kyr787ma5777iplxhl";
   };
   # Extract the icon from the AppImage first
-  appimageContents = appimageTools.extractType2 {
+  appimageContents = appimageTools.extract {
     pname = "lmstudio";
     inherit version src;
   };

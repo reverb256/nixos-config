@@ -8,7 +8,7 @@
     url = "https://github.com/ancsemi/Haven-Desktop/releases/download/v${version}/Haven-${version}.AppImage";
     hash = "sha256-7GRsnwtccDOlhSNntzQYRROF38GPVounLDMWV/4IHEY=";
   };
-  appimageContents = appimageTools.extractType2 {
+  appimageContents = appimageTools.extract {
     pname = "haven-desktop";
     inherit version src;
   };

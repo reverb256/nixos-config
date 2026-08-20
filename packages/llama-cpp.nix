@@ -172,7 +172,7 @@ in
       done
     '';
 
-    postFixup = lib.optionalString stdenv.isLinux ''
+    postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
       # Shrink RPATH for smaller binaries
       find $out/bin -type f -executable -exec patchelf --shrink-rpath {} \; || true
     '';

@@ -45,7 +45,7 @@
   # installer needs the VirtIO ISO to see its disk. The official release ISO
   # is a plain data CD of that same tree, so build it offline from the
   # nixpkgs driver tree with xorriso (no external download, fully declarative).
-  virtioWinIso = pkgs.runCommandNoCC "virtio-win-iso" {
+  virtioWinIso = pkgs.runCommand "virtio-win-iso" {
     nativeBuildInputs = [ pkgs.libisoburn pkgs.virtio-win ];
   } ''
     mkdir -p "$out"
