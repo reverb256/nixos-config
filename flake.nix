@@ -492,6 +492,9 @@
           # store dependency (GC-safe) — previously a hand-placed ~/.local/bin
           # symlink lost its closure to nix-collect-garbage (exit 127).
           packages.chatterbox-tts = pkgs.chatterbox-tts;
+          # fleet-deck — fleet observability TUI (runs in fleet-mon "deck"
+          # window). Same GC-safe store-path pattern as chatterbox-tts.
+          packages.fleet-deck = pkgs.fleet-deck;
           # CONTAINER IMAGES (for Kubernetes deployment)
 
           # Claude Code container image for Kubernetes deployment
