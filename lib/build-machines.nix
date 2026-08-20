@@ -29,8 +29,9 @@
     sentry = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSU1wdmhXZkhxM0tWa3doZGxXOEdva1RMdzVQMFFtVUVaTUdhdWFqOG1hSlUgcm9vdEBzZW50cnkK";
   };
 
-  # The full builder topology. All three primary builders (zephyr, nexus,
-  # sentry) are tied at speedFactor 10. forge is deliberately NOT a builder:
+  # The full builder topology. nexus + zephyr tied at speedFactor 10 (highest
+  # priority — builders first); sentry at 9 (lower — k3s/inference host stays
+  # responsive under load). forge is deliberately NOT a builder:
   # its CPU is a GPU miner (2x 4060, 95C under load) — builds heat it up and
   # mining is revenue-critical. forge consumes remote builders but never
   # hosts them (matching its max-jobs=0 / cores=0 in distributed-builds.nix).
