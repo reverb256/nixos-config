@@ -194,10 +194,10 @@ just deploy
 just deploy zephyr
 
 # Direct app invocation (only when the just recipe is unsuitable)
-nix --option pure-eval false run .#apps.x86_64-linux.colmena -- apply --on zephyr
+nix --option pure-eval false run .#apps.x86_64-linux.deploy-rs -- .#zephyr
 
-# Build without deploying
-nix --option pure-eval false run .#apps.x86_64-linux.colmena -- build
+# Validate deploy profiles without deploying
+nix build --no-link .#checks.x86_64-linux.deploy-schema .#checks.x86_64-linux.deploy-activate
 ```
 
 ---
@@ -243,11 +243,11 @@ grep -r "undefinedOption" modules/
 ping zephyr
 ssh zephyr echo "connected"
 
-# Verify Colmena config
-colmena eval
+# Verify deploy-rs config
+nix eval --json .#deploy.nodes
 
 # Deploy with verbose output
-colmena apply --verbose --refresh
+nix run .#apps.x86_64-linux.deploy-rs -- .#all --log-format compact
 ```
 
 ### Rollback

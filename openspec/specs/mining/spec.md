@@ -9,7 +9,7 @@ This spec describes revenue-critical GPU mining operations across the cluster.
 Mining services SHALL run continuously and SHALL NOT be interrupted by cluster operations.
 
 #### Scenario: Deploy safety
-- GIVEN a colmena deploy is in progress
+- GIVEN a deploy-rs deploy is in progress
 - WHEN the deploy affects forge or krash1.5
 - THEN the deploy SHALL NOT restart or disable mining services
 - AND the mining revenue SHALL be preserved

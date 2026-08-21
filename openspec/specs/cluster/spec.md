@@ -49,10 +49,10 @@ Worker nodes SHALL be assigned to specific GPU workloads.
 - GIVEN a change is needed on any cluster node
 - THEN the change SHALL be made in /etc/nixos on zephyr
 - AND committed with `git add -A && git commit`
-- AND deployed with `colmena deploy`
+- AND deployed with `just deploy` (deploy-rs executor)
 - AND imperative changes on target hosts SHALL NOT be made
 
 #### Scenario: Deploy safety
 - GIVEN a deploy to revenue-critical nodes (forge, krash1.5)
 - THEN mining services SHALL NOT be disabled
-- AND the rollback plan SHALL be `git revert + git push + colmena deploy`
+- AND the rollback plan SHALL be `git revert + git push + just deploy`
