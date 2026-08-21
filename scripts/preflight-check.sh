@@ -9,11 +9,20 @@
 # Usage:  preflight-check.sh [--no-fetch]
 #   --no-fetch   Skip the git fetch (use cached remote refs)
 #
+# Env:
+#   PREFLIGHT_REF   Expected checked-out rev (CI passes the prod SHA it
+#                   validated). When set, the gate verifies the checkout
+#                   equals that rev AND that origin/main is an ancestor of it
+#                   (provenance — prod = main + the Layer-2 pin commit from
+#                   promote.yml). Without it (manual zephyr path), the gate
+#                   requires the checkout to equal origin/main exactly.
+#
 # Exit: 0 if safe to deploy, 1 if a drift/consistency problem was found.
 
 set -uo pipefail
 
 FLAKE="${FLAKE:-/etc/nixos}"
+PREFLIGHT_REF="${PREFLIGHT_REF:-}"
 NO_FETCH=0
 [[ "${1:-}" == "--no-fetch" ]] && NO_FETCH=1
 
@@ -38,11 +47,28 @@ log "=== Preflight: deploy consistency gate ==="
 log "  canonical origin/main = $CANONICAL"
 log "  local HEAD           = $LOCAL"
 
-# 1. Local (zephyr) must track canonical.
-if [ "$LOCAL" != "$CANONICAL" ]; then
-    fail "local /etc/nixos ($LOCAL) != origin/main ($CANONICAL) — commit/push before deploy"
+# 1. Checkout provenance. CI (PREFLIGHT_REF set) deploys the prod SHA it
+#    validated: the checkout must equal that rev, and origin/main must be an
+#    ancestor of it (prod is force-synced from main by promote.yml, then gets
+#    a Layer-2 lock pin commit — so prod HEAD != origin/main is expected).
+#    Manual zephyr path: local /etc/nixos must track origin/main exactly.
+if [[ -n "$PREFLIGHT_REF" ]]; then
+    if [ "$LOCAL" != "$PREFLIGHT_REF" ]; then
+        fail "checkout ($LOCAL) != expected prod ref ($PREFLIGHT_REF) — deploying unvalidated bytes"
+    else
+        pass "checkout matches validated prod ref ($PREFLIGHT_REF)"
+    fi
+    if ! git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
+        fail "origin/main is NOT an ancestor of $LOCAL — prod has diverged from main; re-promote"
+    else
+        pass "origin/main is an ancestor of the prod checkout (provenance OK)"
+    fi
 else
-    pass "local /etc/nixos matches origin/main"
+    if [ "$LOCAL" != "$CANONICAL" ]; then
+        fail "local /etc/nixos ($LOCAL) != origin/main ($CANONICAL) — commit/push before deploy"
+    else
+        pass "local /etc/nixos matches origin/main"
+    fi
 fi
 
 # 2-4. All remote hosts must match canonical.

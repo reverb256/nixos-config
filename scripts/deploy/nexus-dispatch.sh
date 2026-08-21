@@ -11,9 +11,11 @@
 #
 # Usage on Nexus:
 #   nexus-dispatch.sh --executor --target all|zephyr|nexus|forge|sentry
+#   nexus-dispatch.sh --executor --ref <rev> --target all|zephyr|nexus|forge|sentry
 #
 # The executor always fetches and hard-resets Nexus' checkout to origin/main
-# before evaluating the flake. This intentionally refuses to deploy an
+# before evaluating the flake (unless --ref overrides the rev — CI passes the
+# exact prod SHA it validated). This intentionally refuses to deploy an
 # unpushed local worktree or a drifted Nexus checkout.
 
 set -euo pipefail
@@ -21,10 +23,11 @@ set -euo pipefail
 FLAKE="${FLAKE:-/etc/nixos}"
 TARGET="all"
 MODE="sync"
+REF="origin/main"
 
 usage() {
   cat <<'EOF'
-Usage: nexus-dispatch.sh [MODE] [--target HOST]
+Usage: nexus-dispatch.sh [MODE] [--target HOST] [--ref REV]
 
 MODE:
   --sync       Run the deployment on Nexus and stream its output (default).
@@ -33,6 +36,10 @@ MODE:
 
 HOST:
   all, zephyr, nexus, forge, sentry
+
+REF:
+  Rev to deploy (default origin/main). CI passes the prod SHA it validated
+  so the executor ships exactly what CI checked, never a newer main.
 EOF
 }
 
@@ -45,6 +52,11 @@ while [[ $# -gt 0 ]]; do
     --target)
       [[ $# -ge 2 ]] || { echo "--target requires a host" >&2; exit 2; }
       TARGET="$2"
+      shift 2
+      ;;
+    --ref)
+      [[ $# -ge 2 ]] || { echo "--ref requires a rev" >&2; exit 2; }
+      REF="$2"
       shift 2
       ;;
     -h|--help)
@@ -114,12 +126,23 @@ executor() {
   fi
   git fetch origin main
 
-  # ── Per-dispatch worktree: immutable snapshot at origin/main. Two
-  #    concurrent executors each build from their OWN tree — no shared
+  # If CI passed an explicit --ref (prod SHA), ensure it's present locally
+  # (GitHub runners check out the full history, so the SHA is already there;
+  # a manual --ref on a drifted checkout would fail the verify below).
+  if [[ "$REF" != "origin/main" ]]; then
+    git rev-parse --verify --quiet "$REF^{commit}" >/dev/null || {
+      echo "ERROR: --ref '$REF' is not present in $FLAKE (fetch it first)" >&2
+      exit 1
+    }
+  fi
+
+  # ── Per-dispatch worktree: immutable snapshot at the target rev
+  #    (origin/main by default; --ref from CI pins the validated prod SHA).
+  #    Two concurrent executors each build from their OWN tree — no shared
   #    checkout to reset under each other (the old `git reset --hard`
   #    raced: a second dispatch could yank the first's build mid-eval).
   WORKTREE="/tmp/nexus-dispatch-$$"
-  git worktree add --detach "$WORKTREE" origin/main
+  git worktree add --detach "$WORKTREE" "$REF"
   cd "$WORKTREE"
   CANONICAL="$(git rev-parse --short HEAD)"
   echo "Nexus deployment executor at origin/main: $CANONICAL (worktree $WORKTREE)"

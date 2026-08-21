@@ -47,11 +47,12 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Preflight: the checkout below ($GITHUB_WORKSPACE) is what ships."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          # Fail closed unless the checked-out ref matches origin/main and no
-          # in-flight nexus build is active. This replaces the cosmetic
-          # `github.ref == main` guard with an actual provenance check, and
-          # self-heals nexus /etc/nixos to canonical if it drifted.
-          FLAKE="$GITHUB_WORKSPACE" ./scripts/preflight-check.sh
+          # Fail closed unless the checked-out ref is the validated prod SHA
+          # (with origin/main as an ancestor — prod = main + Layer-2 pin from
+          # promote.yml) and no in-flight nexus build is active. This replaces
+          # the cosmetic `github.ref == main` guard with an actual provenance
+          # check, and self-heals nexus /etc/nixos to canonical if it drifted.
+          FLAKE="$GITHUB_WORKSPACE" PREFLIGHT_REF="$GITHUB_SHA" ./scripts/preflight-check.sh
 
       - name: Pre-build validation
         run: |
@@ -142,35 +143,34 @@ jobs:
           GPU_HOSTS="zephyr nexus forge sentry"
 
           TARGET="${{ github.event.inputs.target }}"
-          if [ "$TARGET" = "all" ]; then
-            COLMENA_TARGET=""
-          else
-            COLMENA_TARGET="--on $TARGET"
-          fi
 
           # Signal deployment start for GPU nodes
           for host in $GPU_HOSTS; do
             signal_gpu_scheduler "AI_START" "$host"
           done
 
-          # Deploy using Colmena
-          if ! nix run .#apps.x86_64-linux.colmena -- apply $COLMENA_TARGET 2>&1 | tee /tmp/deploy-colmena.log; then
+          # Deploy via the canonical executor: nexus-dispatch.sh runs on Nexus
+          # with preflight gates + deploy-rs (autoRollback/magicRollback).
+          # Replaces the raw colmena apply that predates the deploy-rs migration.
+          #
+          # This runner runs ON nexus (label nexus), so use --executor directly
+          # (--sync requires initiating from zephyr and would be rejected here).
+          # --ref pins the exact prod SHA CI validated — the executor would
+          # otherwise deploy origin/main, which may be newer than prod.
+          # FLAKE points at the checked-out prod ref so the executor builds
+          # from the same tree CI validated.
+          if ! FLAKE="$GITHUB_WORKSPACE" ./scripts/deploy/nexus-dispatch.sh --executor --ref "$GITHUB_SHA" --target "$TARGET" 2>&1 | tee /tmp/deploy-rs.log; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "ERROR: Colmena deployment failed, attempting rollback..."
+            echo "ERROR: deploy-rs deployment failed (autoRollback should have"
+            echo "reverted the node; investigate /tmp/deploy-rs.log)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-            if [ -z "$COLMENA_TARGET" ]; then
-              nix run .#apps.x86_64-linux.colmena -- rollback --all 2>&1 | tee -a /tmp/deploy-colmena.log
-            else
-              nix run .#apps.x86_64-linux.colmena -- rollback --on "$TARGET" 2>&1 | tee -a /tmp/deploy-colmena.log
-            fi
 
             for host in $GPU_HOSTS; do
               signal_gpu_scheduler "" "$host"
             done
 
-            cat /tmp/deploy-colmena.log
+            cat /tmp/deploy-rs.log
             exit 1
           fi
 
@@ -179,7 +179,7 @@ jobs:
             signal_gpu_scheduler "" "$host"
           done
 
-          echo "✓ Successfully deployed using Colmena"
+          echo "✓ Successfully deployed using deploy-rs"
 
       - name: Sync central repo
         run: |
