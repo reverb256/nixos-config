@@ -45,6 +45,9 @@
   ./modules/system/oomd-fleet.nix
   ./modules/system/chronyd.nix
   ./modules/system/gnome-keyring-tpm.nix
+  # Fleet-wide masking of inert systemd units (portabled/importd — verified
+  # unused on all hosts; security-posture hardening, see module header).
+  ./modules/system/systemd-mask.nix
 
   ./modules/default.nix
 
