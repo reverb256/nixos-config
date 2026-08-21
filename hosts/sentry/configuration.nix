@@ -386,9 +386,14 @@
     tailscale.enable = true;
 
     # Encrypted cross-session memory backend (Hermes MCP points MEMLAWB_URL
-    # here). Runs the memlawb fs-store server on :8080. Interim: app is the
-    # /persistent/memlawb git checkout until memlawb is Nix-packaged.
-    memlawb-server.enable = true;
+    # here). Runs the memlawb fs-store server on :8080. Data lives on the
+    # HDD tier (/storage) — it is a tiny, low-QPS blobstore that does not
+    # need SSD latency, and keeping it off the 97%-full SSD root avoids the
+    # ENOSPC class that blocked writes on 2026-08-20.
+    memlawb-server = {
+      enable = true;
+      dataDir = "/storage/memlawb-data";
+    };
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
 
