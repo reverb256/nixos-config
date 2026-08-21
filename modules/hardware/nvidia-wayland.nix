@@ -148,6 +148,10 @@ in {
         # Disable NVIDIA dynamic power management on multi-GPU desktop
         # Prevents NVKMS memory import errors when secondary GPU sleeps
         "nvidia.NVreg_DynamicPowerManagement=0x00"
+        # Intel IOMMU for VFIO GPU passthrough (required on Intel platforms;
+        # enables IOMMU groups for device passthrough to VMs)
+        "intel_iommu=on"
+        "iommu=pt"
       ];
       # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
       # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
