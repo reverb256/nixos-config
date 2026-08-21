@@ -24,7 +24,7 @@
     # 66e4ffc5f (2026-08-18): gitlawb:// scheme support in libfetchers/git.cc —
     # add 'gitlawb' to scheme whitelist + guard toURL() serialization.
     lix = {
-      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=5e8362feb6b651797874b8c3fb86881774c3a769";
+      url = "git+https://github.com/reverb256/lix?ref=homelab%2F2.96&rev=960aa165f45a25c5bd532205f66c50b8549378d0";
       flake = false;
     };
     # astral-key — passkey-first auth + OIDC provider (replaces the retired
