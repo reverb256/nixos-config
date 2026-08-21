@@ -19,10 +19,16 @@
   #      env vars inline in the sync script
 
   fieldsForRemote = remote: let
+    # Credential fields: emit the value when set; OMIT the line when empty.
+    # rclone treats a missing/blank access_key_id + secret_access_key as
+    # "unset" — combined with env_auth = true it then falls back to
+    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from the environment.
+    # (2026-08-21: the old helper emitted "_" for empty fields, which rclone
+    # sent as a LITERAL access key → Garage 403 "No such key: _".)
     f = key: value:
       if value != null && value != ""
       then ["${key} = ${value}"]
-      else ["${key} = _"];
+      else [];
 
     common = ["type = ${remote.type}"];
 
@@ -34,13 +40,18 @@
       ++ f "access_key_id" remote.accessKeyId
       ++ f "secret_access_key" remote.secretAccessKey
       ++ ["region = ${remote.region or "us-east-1"}"]
-      ++ lib.optional remote.forcePathStyle "force_path_style = true";
+      ++ lib.optional remote.forcePathStyle "force_path_style = true"
+      # env_auth=true makes rclone read AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+      # from the environment (injected via sopsSecretEnvs) when the config
+      # fields are blank. Without it, rclone uses anonymous/static auth only.
+      ++ lib.optional (remote.accessKeyId == null || remote.accessKeyId == "")
+      "env_auth = true";
 
     tokenOpt = remote.token;
     oauthToken =
       if tokenOpt != null && tokenOpt != ""
       then ["token = ${tokenOpt}"]
-      else ["token = _"];
+      else [];
 
     b2 =
       f "account" remote.account

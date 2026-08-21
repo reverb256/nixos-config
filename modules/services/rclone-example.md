@@ -50,7 +50,7 @@ The `rclone-sync` module provides declarative rclone configuration with support 
         provider = "Other";
         endpoint = "http://10.1.1.110:3900";
         accessKeyId = "GKac91d924fc76a30b9bcf6c3e";
-        secretAccessKey = "";  # Set via sops-nix!
+        secretAccessKey = "";  # Set via sops-nix! Empty → omitted from config + env_auth=true
         region = "garage";
       };
     };
