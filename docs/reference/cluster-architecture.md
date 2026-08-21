@@ -24,7 +24,7 @@ and Sentry; Zephyr is not a K3s node.
 ```
 /etc/nixos/
 ├── flake.nix                  # inputs/outputs/checks; hosts come from modules/hosts/
-├── colmena.nix                # multi-host deployment; shares the dendritic evaluator
+├── colmena.nix                # hive evaluation/validation; shares the dendritic evaluator (deployment is deploy-rs)
 ├── common-modules-list.nix    # shared module list (inputs + modules/default.nix + overlays)
 ├── lib/dendritic-host.nix     # shared mkHost/mkSpecialArgs evaluator
 ├── justfile                   # deploy, check, rollback, and maintenance tasks

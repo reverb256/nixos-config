@@ -53,14 +53,15 @@ else
   fail "nix flake check FAILED"
 fi
 
-# ── 3. Colmena eval ──────────────────────────────────────────────────────────
+# ── 3. Deploy-rs validation ────────────────────────────────────────────────
 if [[ "$QUICK" -eq 0 ]]; then
-  log "Validating colmena configuration (remote hosts)..."
-  # --evaluator streaming: parallel eval via nix-eval-jobs (experimental).
-  if nix run .#apps.x86_64-linux.colmena -- build --evaluator streaming --on nexus,forge,sentry 2>&1; then
-    pass "Colmena build (remote hosts) succeeded"
+  log "Validating deploy-rs configuration (remote hosts)..."
+  # deployChecks (deploy-schema + deploy-activate) validate the deploy
+  # output before any deploy — the same gate `nix flake check` runs.
+  if nix build --no-link .#checks.x86_64-linux.deploy-schema .#checks.x86_64-linux.deploy-activate 2>&1; then
+    pass "deploy-rs validation succeeded"
   else
-    fail "Colmena build FAILED"
+    fail "deploy-rs validation FAILED"
   fi
 fi
 

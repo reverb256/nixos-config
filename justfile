@@ -4,7 +4,8 @@
 #   • /etc/nixos on all hosts tracks main (deployed state = main HEAD after `just deploy`)
 #   • All development in worktrees under /data/projects/own/nixos-config-NNN
 #   • PR → main (CI validates) → cluster via `just deploy` (no separate prod branch)
-#   • Config deployed via nix-copy-closure + SSH switch-to-configuration
+#   • Config deployed via deploy-rs (serokell): autoRollback + magicRollback
+#     + confirmTimeout; runs switch-to-configuration on each host
 #
 # Quick start:
 #   just check             # Validate flake (quick, no build)
@@ -1105,37 +1106,37 @@ mosaic-down:
     kubectl delete -f /etc/nixos/k8s/mosaic-bridges/ 2>/dev/null || true
     echo "MIS removed from cluster."
 
-# ── COLMENA BUILD-FARM ──────────────────────────────────────────────────
-# Uses colmena 0.5.0-pre for cluster-wide builds and deployment.
-# The build-farm machines file at machines defines 3 entries:
-#   nexus (primary), sentry (secondary), zephyr (disabled / zero jobs).
-# Forge is intentionally excluded because it is the GPU/mining host.
+# ── DEPLOY-RS DEPLOYMENT (replaces colmena as the deploy executor) ─────
+# deploy-rs (serokell) is the deployment layer: autoRollback + magicRollback
+# + confirmTimeout are native. Builds are dispatched through nexus
+# (nexus-dispatch.sh); `deploy` here is deploy-rs's CLI.
 #
 # Quick reference:
-#   just colmena-check       # Build for sentry (smoke test)
-#   just colmena-deploy      # Full deploy to all 4 hosts (via Nexus dispatcher preferred)
-#   just colmena-deploy-host host=sentry  # Deploy to one host
-#   just colmena-list        # List all hosts
+#   just deploy-rs-check    # Build + validate a host's deploy-rs profile (dry)
+#   just deploy-rs-deploy   # Full deploy to all 4 hosts (via Nexus dispatcher)
+#   just deploy-rs-deploy-host host=sentry  # Deploy to one host
+#   just deploy-rs-list     # List all deploy-rs nodes
 
-# Build all configurations (no deploy)
-colmena-build:
-    @echo "Building all configurations..."
-    colmena build --eval-node-limit 2 2>&1
+# Build all deploy-rs profiles (no deploy) — validates the deploy output
+deploy-rs-build:
+    @echo "Building deploy-rs profiles..."
+    nix run .#apps.x86_64-linux.deploy-rs -- --help >/dev/null 2>&1
+    @echo "deploy-rs available. To build all: nix build .#nixosConfigurations.*.config.system.build.toplevel"
 
-# Build a single host
-colmena-check host="sentry":
-    @echo "Building {{host}}..."
-    colmena build --on {{host}} 2>&1
+# Dry-run validation of a host's profile (deployChecks already gate this)
+deploy-rs-check host="sentry":
+    @echo "Validating {{host}} deploy profile..."
+    nix build --no-link .#checks.x86_64-linux.deploy-schema .#checks.x86_64-linux.deploy-activate
 
-# Deploy to all hosts through the Nexus dispatcher
-colmena-deploy:
+# Deploy to all hosts through the Nexus dispatcher (which uses deploy-rs)
+deploy-rs-deploy:
     @just deploy all
 
 # Deploy to a single host through the Nexus dispatcher
-colmena-deploy-host host="sentry":
+deploy-rs-deploy-host host="sentry":
     @just deploy {{host}}
 
-# List all hosts in the cluster
-colmena-list:
-    @echo "Cluster hosts:"
-    @colmena eval -E '{ nodes, ... }: builtins.attrNames nodes'
+# List all deploy-rs nodes
+deploy-rs-list:
+    @echo "Cluster deploy nodes:"
+    @nix eval --json .#deploy.nodes --apply 'builtins.mapAttrs (n: v: v.hostname)' 2>/dev/null

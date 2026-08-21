@@ -86,7 +86,7 @@ done
 # 4. In-flight build check — detect build types that indicate a DEPLOY or long build.
 #    nix-instantiate is EXCLUDED because it's a short-lived helper that spawns during
 #    any nix operation (including preflight itself) — counting it causes self-blocking.
-BUILD_TYPES=("colmena" "nix-build" "nix-copy" "nixos-rebuild" "switch-to-configuration")
+BUILD_TYPES=("colmena" "deploy" "nix-build" "nix-copy" "nixos-rebuild" "switch-to-configuration")
 DETECTED=""
 for btype in "${BUILD_TYPES[@]}"; do
     PIDS=$(ssh nexus "pgrep -x '$btype' 2>/dev/null | wc -l" 2>/dev/null)
@@ -105,9 +105,9 @@ if [[ -n "$DETECTED" ]]; then
     # a 26-min colmena apply + its nix-eval child after an OOM-killed NSS
     # build). A REAL nix-daemon worker (active compile) is left alone; a
     # wedged colmena/nixos-rebuild is killed so the next deploy can proceed.
-    if echo "$DETECTED" | grep -q "colmena\|nixos-rebuild\|switch-to-configuration"; then
+    if echo "$DETECTED" | grep -q "colmena\|deploy\|nixos-rebuild\|switch-to-configuration"; then
         log "  ⚠ stale deploy process on nexus:$DETECTED — killing (failed/wedged deploys never self-clean)"
-        ssh nexus "bash --norc --noprofile -c 'pgrep -x colmena 2>/dev/null | xargs -r kill -9; pgrep -f "colmenaHive" 2>/dev/null | xargs -r kill -9; pgrep -x nixos-rebuild 2>/dev/null | xargs -r kill -9; pgrep -x switch-to-configuration 2>/dev/null | xargs -r kill -9; sleep 1; echo KILLED'" 2>&1 | tail -1
+        ssh nexus "bash --norc --noprofile -c 'pgrep -x colmena 2>/dev/null | xargs -r kill -9; pgrep -x deploy 2>/dev/null | xargs -r kill -9; pgrep -f "deploy-rs" 2>/dev/null | xargs -r kill -9; pgrep -f "colmenaHive" 2>/dev/null | xargs -r kill -9; pgrep -x nixos-rebuild 2>/dev/null | xargs -r kill -9; pgrep -x switch-to-configuration 2>/dev/null | xargs -r kill -9; sleep 1; echo KILLED'" 2>&1 | tail -1
         pass "stale deploy process killed"
     else
         fail "in-flight build processes on nexus:$DETECTED — wait for them to finish before deploying"

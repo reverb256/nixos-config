@@ -53,7 +53,9 @@ Distributed-build policy is declared in
 `modules/system/distributed-builds.nix`. Deployment dispatch is separate from
 Nix's builder capability list: `just deploy` and `just deploy-async` invoke
 `/etc/nixos/scripts/deploy/nexus-dispatch.sh`, which runs the canonical
-Colmena apply on Nexus. Zephyr remains the authoring/source-of-truth host.
+**deploy-rs** apply on Nexus (deploy-rs replaced colmena as the deployment
+executor on 2026-08-21 — native autoRollback + magicRollback + confirmTimeout).
+Zephyr remains the authoring/source-of-truth host.
 
 
 | Host | Local max jobs | Role |

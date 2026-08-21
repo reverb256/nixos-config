@@ -56,7 +56,7 @@ Chain via `delegate_task`. Batch independent work.
 - **nexus**: Builder host (46GB). Build everything here.
 - **forge**: Mining node (2x 4060). Never disrupt miners.
 - **sentry**: Control-plane. Inference host.
-- Deploy: `cd /etc/nixos && git add -A && git commit -m "..." && git push origin main && colmena deploy`
+- Deploy: `cd /etc/nixos && git add -A && git commit -m "..." && git push origin main && just deploy` (uses deploy-rs — autoRollback + magicRollback)
 
 ## Self-evolution
 

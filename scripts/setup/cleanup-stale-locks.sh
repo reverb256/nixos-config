@@ -46,18 +46,18 @@ else
   echo "✓ Nix store not found (will be created during build)" >&2
 fi
 
-# Check colmena lock
-echo "Checking colmena lock..." >&2
+# Check colmena/deploy-rs lock
+echo "Checking colmena/deploy-rs lock..." >&2
 if [[ -f "${LOCK_DIR}/colmena-deploy.lock" ]]; then
   lock_age=$(($(date +%s) - $(stat -c %Y "${LOCK_DIR}/colmena-deploy.lock")))
   lock_age_minutes=$((lock_age / 60))
 
-  # Check if there are actually active colmena processes
-  active_colmena=$(ps aux | grep -E '[c]olmena.*apply' || echo "")
+  # Check if there are actually active colmena/deploy-rs processes
+  active_colmena=$(ps aux | grep -E '[c]olmena.*apply|[d]eploy.*deploy-rs|[d]eploy.*\.#' || echo "")
 
   if [[ -n "$active_colmena" && $lock_age_minutes -lt $MAX_AGE_MINUTES ]]; then
     # Active deployment in progress
-    echo "❌ ACTIVE colmena lock found (${lock_age_minutes} minutes old)" >&2
+    echo "❌ ACTIVE colmena/deploy-rs lock found (${lock_age_minutes} minutes old)" >&2
     echo "   Another deployment is in progress" >&2
     ACTIVE_LOCKS=1
   else

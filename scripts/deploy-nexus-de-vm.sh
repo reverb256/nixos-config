@@ -2,7 +2,7 @@
 # Deploy the KubeVirt "nexus-de" VM (DE on the 4K TV) with MINIMAL DOWNTIME.
 #
 # Downtime model (mining on GPU0 pauses only during the nexus switch + VM boot):
-#   1. colmena apply --on nexus  -> nexus reboots WITH vfio-pci bind on the 3060 Ti.
+#   1. deploy-rs -> nexus        -> nexus reboots WITH vfio-pci bind on the 3060 Ti.
 #                                 Host mining on GPU0 STOPS here (GPU now owned by VM).
 #   2. kubevirt manifest applied  -> operator + CDI + KubeVirt CR + VM created.
 #   3. virtctl image-upload       -> creates+populates the nexus-de-root DataVolume from
@@ -30,9 +30,9 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 die() { log "ERROR: $*"; exit 1; }
 
 # ── Phase 1: switch nexus (VFIO bind takes effect on reboot) ────────────────
-log "=== Phase 1/5: colmena apply --on nexus (REBOOTS nexus, GPU rebinds) ==="
+log "=== Phase 1/5: deploy-rs -> nexus (REBOOTS nexus, GPU rebinds) ==="
 cd "$FLAKE"
-nix run .#apps.x86_64-linux.colmena -- apply --on nexus --verbose
+nix run .#apps.x86_64-linux.deploy-rs -- .#nexus --confirm-timeout 120 --log-format compact
 
 # ── Phase 2: apply kubevirt manifest (operator, CDI, CR, VM) ────────────────
 log "=== Phase 2/5: deploy kubevirt manifest ==="

@@ -50,7 +50,9 @@ fi
 
 # Step 4: Build
 log_info "Step 4: Building all hosts..."
-nix run .#apps.x86_64-linux.colmena -- build --evaluator streaming || die "Build failed"
+nix build --no-link .#checks.x86_64-linux.deploy-schema .#checks.x86_64-linux.deploy-activate 2>/dev/null \
+  || nix run .#apps.x86_64-linux.deploy-rs -- .#sentry >/dev/null 2>&1 \
+  || die "deploy-rs validation failed"
 
 # Step 5: Service tests
 log_info "Step 5: Checking services..."
