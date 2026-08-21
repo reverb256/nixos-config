@@ -1377,6 +1377,8 @@
       "NVIDIA_API_KEY" = "NVIDIA_API_KEY";
       "OPENCODE_API_KEY" = "OPENCODE_ZEN_API_KEY";
       "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
+      "EXA_API_KEY" = "EXA_API_KEY";
+      "GITHUB_TOKEN" = "GITHUB_TOKEN";
     };
     managedProviders = {
       "switchyard" = {
