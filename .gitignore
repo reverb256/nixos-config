@@ -22,6 +22,9 @@ certs.bak/
 # ❌ Secrets are now in the private nixos-secrets flake (git+ssh, NOT tracked here).
 #    See flake.nix `inputs.nixos-secrets` — references resolve to the Nix store path.
 echo
+# ── Agent tooling working dirs (local only, never track) ──────────
+.factory/
+.omo/
 # ── Editor backups + patch-rejection artifacts ────────────────────
 # .env files in any shape (operator-only, NOT tracked) — covers .env,
 # .env.secrets, foo.env, mcp-gateway-credentials.env, etc.
