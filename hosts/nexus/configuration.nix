@@ -81,6 +81,9 @@
     # PeakMiner GPU mining stack
     ./peakminer.nix
 
+    # krash2 physical-to-virtual migration VM (physical disk passthrough)
+    ../../modules/services/krash2-win11-vm.nix
+
     # Nix binary cache DISABLED
   ];
   # The repository CA certificate is the sole fleet trust anchor. The matching
@@ -433,7 +436,7 @@
   fileSystems."/build" = {
     device = "tmpfs";
     fsType = "tmpfs";
-    options = [ "size=24G" "mode=1777" "nr_inodes=1M" ];
+    options = ["size=24G" "mode=1777" "nr_inodes=1M"];
   };
 
   # ============================================================================
@@ -765,4 +768,10 @@
 
   # llama-swap across the board: swappable OpenAI-style endpoint on the GPU.
   services.llama-swap-cluster.enable = true;
+
+  # krash2 physical-to-virtual migration VM.
+  # DISABLED until the physical drives are moved into nexus and SVM is
+  # enabled in BIOS. Enable by setting enable = true (and confirm the
+  # bootDisk/dataDisk by-id paths match the moved drives).
+  services.krash2-win11-vm.enable = false;
 }
