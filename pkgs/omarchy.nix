@@ -21,8 +21,16 @@
 # and every command resolves data via the OMARCHY_PATH env var (default
 # /usr/share/omarchy). So the NixOS module that consumes this package must set
 #   environment.sessionVariables.OMARCHY_PATH = "${omarchy}/share/omarchy";
-# for themes/plugins/config/dots to resolve. Nothing here is compiled or
-# patched — Tier 1 is byte-identical upstream, and upstream sync is a rev bump.
+# for themes/plugins/config/dots to resolve. Nothing here is compiled. Tier 1
+# is byte-identical upstream except for the Phase 4 pkg-command shims (see
+# `pkgShimDir` below); upstream sync is a rev bump + shim re-check.
+let
+  # Phase 4 (#659): nix-backed replacements for the pacman/AUR package
+  # commands. Each shim keeps the same `# omarchy:*` metadata as upstream so the
+  # router's command table is unchanged; only the body swaps pacman/yay for
+  # `nix profile`. Overlaid onto the verbatim bin/ tree in installPhase.
+  pkgShimDir = ../modules/omarchy/pkg-shim/bin;
+in
 stdenvNoCC.mkDerivation {
   pname = "omarchy";
   version = lib.removeSuffix "\n" (builtins.readFile "${omarchy}/version");
@@ -55,6 +63,13 @@ stdenvNoCC.mkDerivation {
     for asset in logo.txt icon.txt icon.png logo.svg; do
       [ -f "$asset" ] && cp "$asset" "$runtime_root/$asset"
     done
+
+    # Phase 4 (#659): overlay the nix-backed pkg-command shims over the
+    # verbatim pacman/AUR scripts (same filenames, so the symlink farm below
+    # picks them up unchanged).
+    if [ -d "$pkgShimDir" ]; then
+      cp -f "$pkgShimDir"/* "$runtime_root/bin/"
+    fi
 
     # Symlink farm: bin/omarchy + every bin/omarchy-* onto PATH.
     # The router resolves OMARCHY_BIN_DIR from its own realpath, so symlinking
