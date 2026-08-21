@@ -28,12 +28,16 @@ then {
     };
   });
 
-  # curl: TLS handshake (SHA-256), HTTP/2 header parsing → AVX2
-  curl = prev.curl.overrideAttrs (old: {
-    env = (old.env or {}) // {
-      NIX_CFLAGS_COMPILE = ((old.env or {}).NIX_CFLAGS_COMPILE or "") + " -O3 -march=x86-64-v3 -DNDEBUG";
-    };
-  });
+  # curl: NO LONGER overridden here (2026-08-21). The x86-64-v3 -O3
+  # -march=x86-64-v3 -DNDEBUG tuning on curl broke Lix's HTTPS/HTTP2
+  # transfers: the homelab Lix closure linked the tuned libcurl
+  # (h584x190...) which deadlocked on every cache fetch ("Operation timed
+  # out ... 0 bytes received" while tcpdump showed TCP + data flowing).
+  # The vanilla nixpkgs curl (sfcwbxpk...) works. This matches the known
+  # curl HTTP/2 pause/compression deadlock (lf-/curl reproducer) that
+  # nixpkgs PR #534757 addressed by removing a broken perf patch from the
+  # Lix curl. Keep curl vanilla/cacheable; the AVX2 gain on TLS was
+  # negligible vs the breakage.
 
   # caddy: Go runtime + crypto, TLS edge on your critical path
   caddy = prev.caddy.overrideAttrs (old: {
