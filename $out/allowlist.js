@@ -1,1 +1,0 @@
-# WhatsApp bridge stub

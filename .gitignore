@@ -92,6 +92,12 @@ tmp/
 tmpfile
 Updated API key file
 usb.qcow2
+# ── Syncthing version backups (never track — .stversions is a sync artifact) ──
+.stversions/
+# ── Build outputs accidentally committed at the source root (e.g. `$out/`) ──
+$out/
+# ── Local build artifacts inside package sources (built in-sandbox; never commit) ──
+pkgs/caddy-with-modules/src/caddy-custom
 # ── Vendor / third-party ──────────────────────────────────────────
 vllm-env/
 void-config/
