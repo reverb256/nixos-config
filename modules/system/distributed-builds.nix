@@ -55,7 +55,7 @@ in {
               else if currentHost == "nexus"
               then 3 # 3900X = 24 logical; 5*3=15 threads (62.5%), 9 reserved
               else if currentHost == "sentry"
-              then 4 # R7 1700 = 16 logical; 3*4=12 threads (75%), 4 reserved
+              then 4 # R7 1700 = 16 logical; 2*4=8 threads (50%), 8 reserved for k3s + inference
               else if currentHost == "forge"
               then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under load
                      # is revenue-critical — keep CPU entirely free for k3s + miners.
@@ -75,7 +75,7 @@ in {
               else if currentHost == "nexus"
               then 5 # 5*3=15 threads (62.5%); 9 reserved — primary builder
               else if currentHost == "sentry"
-              then 3 # 3*4=12 threads (75%); 4 reserved for k3s + inference
+              then 2 # 2*4=8 threads (50%); 8 reserved for k3s + inference
               else if currentHost == "forge"
               then 0 # NO local builds: forge is the GPU miner (2x 4060). 95C under
                      # load is revenue-critical — CPU stays fully free for miners + k3s.

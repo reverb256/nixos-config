@@ -44,13 +44,12 @@
   # inference host (Zen 1 R7 1700, 31 GiB, documented hard-lockup history under
   # load). It is capped at 50% of its 16 logical threads: cores=4 x max-jobs=2
   # = 8. Deliberately lower than nexus's 75% — do not raise it to match nexus.
-  # Sentry is capped at 75%: max-jobs=3 x cores=4 = 12 threads of 16 logical
-  # (75% exactly). 2026-08-20 policy (was 2x6; k3s + Vulkan inference retain
-  # the remaining 4 threads).
+  # Sentry is capped at 50%: max-jobs=2 x cores=4 = 8 threads of 16 logical
+  # (50% exactly). 2026-08-21 policy (k3s + Vulkan inference retain 8 threads).
   sharedForcesSentryCapacity =
     lib.strings.hasInfix "currentHost == \"sentry\"" distributedBuilds
-    && lib.strings.hasInfix "then 4 # R7 1700 = 16 logical; 3*4=12 threads" distributedBuilds
-    && lib.strings.hasInfix "then 3 # 3*4=12 threads (75%)" distributedBuilds;
+    && lib.strings.hasInfix "then 4 # R7 1700 = 16 logical; 2*4=8 threads" distributedBuilds
+    && lib.strings.hasInfix "then 2 # 2*4=8 threads (50%)" distributedBuilds;
 
   sharedBuildersUseSubstitutes = lib.strings.hasInfix "builders-use-substitutes" distributedBuilds;
 
