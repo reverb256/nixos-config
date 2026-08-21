@@ -292,7 +292,12 @@ in {
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
-    environment.systemPackages = [ (pkgs.noctalia.overrideAttrs (oldAttrs: oldAttrs // { version = "5.0.0-beta.8"; })) ];
+    # pkgs.noctalia now resolves to the overlays/noctalia.nix override
+    # (latest upstream beta, currently 5.0.0-beta.9). The previous
+    # overrideAttrs here only relabeled the version string — src is computed
+    # before overrideAttrs, so it never changed the shipped binary; a no-op
+    # that drifted from the real package. Removed in favor of the overlay.
+    environment.systemPackages = [ pkgs.noctalia ];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;

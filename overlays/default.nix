@@ -11,6 +11,7 @@ let
   hardwareOverlay = import ./hardware.nix { inherit inputs _final prev; };
   llamaOverlay = import ./llama.nix { inherit inputs _final prev; };
   v3Overlay = import ./x86-64-v3.nix { inherit inputs _final prev; };
+  noctaliaOverlay = import ./noctalia.nix { inherit inputs _final prev; };
 in
 foldl' (acc: overlay: acc // overlay) {} [
   bugfixOverlay
@@ -19,4 +20,5 @@ foldl' (acc: overlay: acc // overlay) {} [
   hardwareOverlay
   llamaOverlay
   v3Overlay
+  noctaliaOverlay
 ]
