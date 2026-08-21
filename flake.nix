@@ -255,6 +255,15 @@
       url = "git+ssh://git@github.com/reverb256/nixos-secrets";
       flake = false;
     };
+    # deploy-rs — the deployment layer (replaces colmena). Provides native
+    # autoRollback + magicRollback (revert if the node becomes unreachable
+    # after activation, surviving reboots) + confirmTimeout. The NixOS
+    # activator runs the SAME `switch-to-configuration` path colmena used, so
+    # secretspec-creds / sops-nix activation scripts are unchanged.
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -267,6 +276,7 @@
     claude-native,
     colmena,
     nixpkgs-xr,
+    deploy-rs,
     ...
   }:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} (
@@ -389,6 +399,57 @@
 
           colmenaHive = colmena.lib.makeHive config.flake.colmena;
 
+          # OUTPUT 3b: deploy — deploy-rs nodes (the deployment layer).
+          # Derives deploy-rs nodes from the SAME typed inventory colmena
+          # reads (targetHost/IP + SSH). Each node deploys the host's
+          # nixosConfigurations system profile via deploy-rs's NixOS
+          # activator, which runs `switch-to-configuration switch` — the
+          # same activation path colmena used, so secretspec-creds and
+          # sops activation scripts are unchanged.
+          #
+          # Rollback semantics (the reason this replaces colmena):
+          #   autoRollback   = true  — revert if activation fails
+          #   magicRollback  = true  — target-side inotify watcher reverts
+          #                            if the deployer can't confirm the node
+          #                            is reachable within confirmTimeout
+          #                            (survives reboots / network changes)
+          #   confirmTimeout = 120   — give the node 2 min to come back
+          #
+          # Topology:
+          #   nexus  = deployment dispatcher/builder (builds everything)
+          #   zephyr = authoring host, never builds (OOM), push closure
+          #   forge  = GPU miner, never build on it, remoteBuild=false
+          #   sentry = flaky host — magicRollback pays off here
+          #
+          # fastConnection=true: deploy-rs copies the whole closure instead
+          # of letting the node substitute (nexus has the LAN cache).
+          deploy = let
+            dlib = deploy-rs.lib.x86_64-linux;
+            # Deployable cluster hosts (excludes WSL/portable standalone
+            # configs that are not colmena/deploy-rs targets).
+            clusterHosts = builtins.removeAttrs hosts ["portable"];
+          in {
+            autoRollback = true;
+            magicRollback = true;
+            confirmTimeout = 120;
+            nodes = builtins.mapAttrs (name: h: {
+              hostname =
+                if h.targetHost == null
+                then null
+                else h.targetHost;
+              sshUser = h.targetUser or "j_kro";
+              user = "root";
+              fastConnection = true;
+              profiles.system = {
+                user = "root";
+                path = dlib.activate.nixos self.nixosConfigurations.${name};
+              };
+            }) clusterHosts;
+          };
+
+          # NOTE: deploy-rs checks are wired in perSystem.checks.deploy-rs below
+          # (not here) to avoid a self-referential config.flake.checks cycle.
+
           overlays.default = import ./overlays/default.nix {inherit inputs;};
 
           # OUTPUT 4: homeConfigurations — consumed from standalone home-manager-config flake
@@ -439,7 +500,10 @@
               if passed
               then pkgs.runCommand "check-${name}" {} "echo '${name}: PASS'; touch $out"
               else throw "test ${name} FAILED: ${builtins.toJSON failures}";
-          in {
+          in
+          # deploy-rs schema + activation validation (deployChecks) — catches
+          # config mistakes before any deploy. Runs via `nix flake check`.
+          (deploy-rs.lib.x86_64-linux.deployChecks config.flake.deploy) // {
             firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
             flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
             host-configuration = mkCheck "host-configuration" ./tests/host-configuration.nix;
@@ -536,6 +600,11 @@
             # output" on `nix build .#apps.colmena.program`).
             program = nixpkgs.lib.getExe colmena.packages.x86_64-linux.colmena;
             meta.description = "Colmena multi-host NixOS deployment";
+          };
+          apps.deploy-rs = {
+            type = "app";
+            program = nixpkgs.lib.getExe deploy-rs.packages.x86_64-linux.deploy-rs;
+            meta.description = "deploy-rs deployment (autoRollback + magicRollback)";
           };
           # Builders machines text (single source of truth, 2026-08-20).
           # `nix eval .#packages.x86_64-linux.buildMachinesText --raw` (or

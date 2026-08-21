@@ -27,11 +27,12 @@ in {
       # the wildcard: it grants every local user trusted-user access to the
       # Nix daemon and its cache/configuration controls.
 
-      # Canonical upstream/specialized cache policy. Public caches are
-      # preferred; cluster caches are fallback-only for intentional custom
-      # derivations. See contracts/cache-policy.nix.
-      substituters = lib.mkForce cachePolicy.substituters;
-      trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
+      # NOTE: substituters / trusted-public-keys are NOT re-set here.
+      # nix-config.nix is the sole owner of the canonical cache policy
+      # (contracts/cache-policy.nix). Setting them in BOTH modules with
+      # mkForce produced a doubled substituter list in every host's
+      # /etc/nix/nix.conf (2026-08-21), doubling timeout cost on slow
+      # caches. The build module only owns builders/cores/offload.
 
       cores = lib.mkForce (
               # CPU-headroom reservation. Per-host build-thread budget is

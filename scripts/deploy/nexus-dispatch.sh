@@ -126,22 +126,18 @@ executor() {
   # Cleanup the worktree on exit (plain return, not exec, so the trap fires).
   trap 'cd /; git -C "$FLAKE" worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
 
-  # Preferred path: the flake-locked `nix run` — declarative, and colmena's
-  # closure substitutes from the LAN cache (verified: signed zephyr-cache-1,
-  # ~170MB) so no from-source GHC rebuild is needed. Use the prebuilt store
-  # path only as a fast-path when present (it is NOT a GC root, so nix-gc can
-  # remove it at any time — the nix run fallback is the durable path).
-  #
-  # NOTE on history: an earlier comment claimed `nix run` OOMs nexus (GHC
-  # rebuild over MemoryMax=45GB, exit 137) and pinned the store path. That was
-  # a cold-cache one-off; once the closure is in the LAN cache it substitutes.
-  COLMENA_BIN="$(ls -d /nix/store/*colmena-0.5.0-pre/bin/colmena 2>/dev/null | head -1 || true)"
-  if [[ -n "$COLMENA_BIN" ]]; then
-    echo "using prebuilt colmena: $COLMENA_BIN"
-    NIX_CMD=("$COLMENA_BIN")
+  # Preferred path: the flake-locked `nix run` for deploy-rs — declarative,
+  # and deploy-rs's closure substitutes from the LAN cache. Use the prebuilt
+  # store path only as a fast-path when present (it is NOT a GC root, so
+  # nix-gc can remove it at any time — the nix run fallback is the durable
+  # path).
+  DEPLOY_RS_BIN="$(ls -d /nix/store/*deploy-rs-*/bin/deploy 2>/dev/null | head -1 || true)"
+  if [[ -n "$DEPLOY_RS_BIN" ]]; then
+    echo "using prebuilt deploy-rs: $DEPLOY_RS_BIN"
+    NIX_CMD=("$DEPLOY_RS_BIN")
   else
-    echo "prebuilt colmena not in store; using nix run (substitutes from LAN cache)" >&2
-    NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.colmena --)
+    echo "prebuilt deploy-rs not in store; using nix run (substitutes from LAN cache)" >&2
+    NIX_CMD=(nix run --option pure-eval false .#apps.x86_64-linux.deploy-rs --)
   fi
 
   # ── COLMENA MACHINES (source of truth, 2026-08-20) ───────────────────
@@ -187,43 +183,31 @@ executor() {
   write_colmena_machines
 
   if [[ "$TARGET" == "nexus" ]]; then
-    # nexus is the local executor host (deployment.targetHost = null). colmena
-    # `apply` only targets SSH hosts — select_nodes() drops nodes with no
-    # targetHost when the goal requires a target host — so the local node must
-    # be deployed with `apply-local` (gated by deployment.allowLocalDeployment).
-    echo "Deploying local node: nexus (apply-local)"
-    # NOTE: apply-local does NOT accept --evaluator (verified); only the
-    # remote `apply` path below gets the streaming evaluator.
-    # Close lock fds BEFORE exec: colmena's child `nix-store --realise`
-    # inherits open fds and deadlocks waiting on its own parent's flock
-    # (observed 2026-08-17: 54-min hang, empty nexus.lock, realise in
-    # ep_poll). flock releases when the fd closes, so closing here is safe.
+    # nexus is the local executor host. deploy-rs targets nexus by its
+    # hostname (10.1.1.120 / null for local); deploy-rs handles the local
+    # profile path. Close lock fds BEFORE exec: deploy-rs's child
+    # `nix-store --realise` inherits open fds and could deadlock waiting on
+    # its own parent's flock (same class as the colmena fd-leak observed
+    # 2026-08-17). flock releases when the fd closes, so closing is safe.
     for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
-    "${NIX_CMD[@]}" apply-local --sudo --node nexus
+    "${NIX_CMD[@]}" .#nexus
     return
   fi
 
-  CMD=(
-    "${NIX_CMD[@]}"
-    apply
-    --eval-node-limit 100
-  )
-  if [[ "$TARGET" != "all" ]]; then
-    CMD+=(--on "$TARGET")
-  fi
-
-  echo "Deploying remote target: $TARGET"
-  # Close lock fds BEFORE exec (same fd-leak deadlock as apply-local above).
-  for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
-  "${CMD[@]}"
-
-  # `apply` skips the local node (targetHost = null); deploy it last so the
-  # executor host converges with the rest of the fleet.
+  # deploy-rs: deploy each target (or all hosts for --target all).
+  # deploy-rs's magicRollback + autoRollback handle per-host safety.
   if [[ "$TARGET" == "all" ]]; then
-    echo "Deploying local node: nexus (apply-local)"
-    # NOTE: apply-local does NOT accept --evaluator (verified); only the
-    # remote `apply` path below gets the streaming evaluator.
-    "${NIX_CMD[@]}" apply-local --sudo --node nexus
+    echo "Deploying all targets via deploy-rs"
+    # Close lock fds BEFORE exec (same fd-leak class as above).
+    for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
+    for h in zephyr nexus forge sentry; do
+      "${NIX_CMD[@]}" .#"$h" || { echo "deploy-rs failed for $h"; exit 1; }
+    done
+  else
+    echo "Deploying target: $TARGET via deploy-rs"
+    # Close lock fds BEFORE exec (same fd-leak class as above).
+    for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
+    "${NIX_CMD[@]}" .#"$TARGET"
   fi
 }
 

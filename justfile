@@ -140,6 +140,10 @@ deploy host="all":
         echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
         exit 1
     }
+    # Deployment executor switched to deploy-rs (2026-08-21): native
+    # autoRollback + magicRollback + confirmTimeout replace the hand-rolled
+    # canary probe. nexus-dispatch.sh still handles the canonical-ref + worktree
+    # + preflight; the colmena apply inside it is replaced by deploy-rs.
     {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
 
     # Layer 2: HM activation for the deployed host(s). nexus is built by
