@@ -1,24 +1,23 @@
 # Noctalia — track the latest upstream beta from nixpkgs master.
 #
-# The pinned nixpkgs input ships 5.0.0-beta.8, but upstream
-# (noctalia-dev/noctalia) and nixpkgs-unstable are on 5.0.0-beta.9. The
-# pinned package's build recipe is byte-identical to master's (same stb'
-# workaround, meson flags, build inputs) — only the version + source differ,
-# so a surgical override is safe and avoids a full nixpkgs input bump.
-# Keep the version/hash in sync with nixpkgs master
-# (pkgs/by-name/no/noctalia/package.nix) on future bumps.
+# 2026-08-21: PINNED to 5.0.0-beta.8. beta.9's build recipe (same stb'
+# workaround, meson flags) keeps failing on librsvg/nodejs deps over the
+# remote builders (stream-ended-unexpectedly + interrupted-by-user), and
+# beta.8 is the known-good, already-built version running via systemd
+# drop-in. Restore this to beta.9 (or later) once upstream or the pinned
+# nixpkgs provides a green build.
 { inputs, _final, prev }:
 let
   inherit (prev) fetchFromGitHub;
 in
 {
   noctalia = prev.noctalia.overrideAttrs (old: {
-    version = "5.0.0-beta.9";
+    version = "5.0.0-beta.8";
     src = fetchFromGitHub {
       owner = "noctalia-dev";
       repo = "noctalia";
-      tag = "v5.0.0-beta.9";
-      hash = "sha256-O07tHqxugZ/XE/90kx/UCZ0YCbHSI88v2ct2ezuCKi4=";
+      tag = "v5.0.0-beta.8";
+      hash = "sha256-ISOU1jKxCdvZg0msJi56rg/172PAi9ZYS+BHxIkaY6Q=";
     };
   });
 }
