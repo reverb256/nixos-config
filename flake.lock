@@ -2540,11 +2540,11 @@
         "zen-browser": "zen-browser_5"
       },
       "locked": {
-        "lastModified": 1787185514,
-        "narHash": "sha256-pr8HlEQ/Grf/Ad6/ySO4YekJyF6TV6MuSCHR+c89TvU=",
+        "lastModified": 1787194583,
+        "narHash": "sha256-innkEpZMb/l09Pba+bLYn2BKX1uqEWD/GEXxG2Dlba4=",
         "ref": "refs/heads/master",
-        "rev": "06dc2ee37347f025f82cf346a26f67fbf7056b88",
-        "revCount": 190,
+        "rev": "1c1a98f20281e4b0aa96a2dfaee317eee21be7f2",
+        "revCount": 192,
         "type": "git",
         "url": "ssh://git@github.com/reverb256/home-manager-config"
       },
