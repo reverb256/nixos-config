@@ -246,6 +246,18 @@
       url = "git+https://github.com/Gitlawb/memlawb?rev=0c9f82d022dace631bd8582ca3508adfab6809a8";
       flake = false;
     };
+    # omarchy — basecamp/omarchy UX layer (themes, router, plugins, shell,
+    # dots). Consumed as a plain source tree (flake = false) and installed
+    # verbatim into the store by pkgs/omarchy.nix, exactly like the
+    # lix/astral-key/memlawb fork-input pattern: pin a rev, keep the build
+    # glue in nixpkgs' stdenv. Tier 1 is a verbatim port (no Hyprland/Arch
+    # coupling); Phases 2-4 adapt under modules/omarchy/{niri-shim,pkg-shim}/.
+    # Upstream sync = bump this rev + `nix flake update omarchy`. No fork,
+    # no vendored copy. Pinned to 7be59e1 (origin/quattro, 2026-08-13).
+    omarchy = {
+      url = "git+https://github.com/basecamp/omarchy?rev=7be59e1f4b7451d352d4673c560168290792590f";
+      flake = false;
+    };
     # nixos-secrets — private flake (git+ssh) holding all sops-encrypted
     # secret YAMLs. Kept separate from this public repo so secrets never
     # land in a public git history. Hosts decrypt via age keys at
