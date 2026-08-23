@@ -2275,11 +2275,11 @@
       },
       "locked": {
         "dir": "pkgs/gitlawb",
-        "lastModified": 1787064759,
-        "narHash": "sha256-W/ae7sl6eliTIT5WHNYF3fmUx6e/V2/vWZb8sH9o4Rs=",
+        "lastModified": 1787485379,
+        "narHash": "sha256-Zj7qJPYb+Q2tLtyX1rOP+yqrTnu3DkvZoauhWdw6F9o=",
         "ref": "refs/heads/main",
-        "rev": "cd867139d2f595136e50b0fa8d9861dbed8384bd",
-        "revCount": 6620,
+        "rev": "f35b9eabeff0def7a1824b6dac55cf6ecb2cad77",
+        "revCount": 6758,
         "type": "git",
         "url": "https://github.com/reverb256/nixos-config"
       },
