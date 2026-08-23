@@ -566,6 +566,26 @@
       "discard=async"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ];
+    "/nix".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/var".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/data/games".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/data/projects".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
   };
 
   # ============================================================================
