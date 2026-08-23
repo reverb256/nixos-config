@@ -136,6 +136,8 @@ git-push:
 deploy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
+    # Extract host value (just 1.57.0: {{host}} expands to name=value form)
+    HOST={{host}}; HOST=${HOST#*=}
     # MANDATORY preflight — never bypass
     {{FLAKE}}/scripts/preflight-check.sh 2>&1 | sed 's/^/  [preflight] /' || {
         echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
@@ -145,18 +147,18 @@ deploy host="all":
     # autoRollback + magicRollback + confirmTimeout replace the hand-rolled
     # canary probe. nexus-dispatch.sh still handles the canonical-ref + worktree
     # + preflight; the colmena apply inside it is replaced by deploy-rs.
-    {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
+    {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "$HOST"
 
     # Layer 2: HM activation for the deployed host(s). nexus is built by
     # hm-deploy's ssh-ng builder; local zephyr uses the same path.
-    if [ "{{host}}" = "all" ]; then
+    if [ "$HOST" = "all" ]; then
         for h in zephyr nexus forge sentry; do
             echo ">>> HM deploy: $h"
             just hm-deploy "$h" || echo "  (hm-deploy $h failed — NixOS switch succeeded, investigate separately)"
         done
     else
-        echo ">>> HM deploy: {{host}}"
-        just hm-deploy "{{host}}"
+        echo ">>> HM deploy: $HOST"
+        just hm-deploy "$HOST"
     fi
 
 # Convenience alias: deploy all 4 hosts (nexus dispatcher, canonical order).
@@ -169,12 +171,14 @@ deploy-all:
 deploy-async host="all":
     #!/usr/bin/env bash
     set -euo pipefail
+    # Extract host value (just 1.57.0: {{host}} expands to name=value form)
+    HOST={{host}}; HOST=${HOST#*=}
     # MANDATORY preflight — never bypass
     {{FLAKE}}/scripts/preflight-check.sh 2>&1 | sed 's/^/  [preflight] /' || {
         echo "Preflight BLOCKED deploy (drift or in-flight build). Fix and retry." >&2
         exit 1
     }
-    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "{{host}}"
+    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "$HOST"
 
 # Legacy direct dispatcher retained as an emergency fallback only. It bypasses
 # the Nexus dispatcher and must not be used for normal operations.
@@ -188,10 +192,11 @@ deploy-direct-legacy host="all":
     }
     echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
     echo ""
-    if [ "{{host}}" = "all" ]; then
+    HOST={{host}}; HOST=${HOST#*=}
+    if [ "$HOST" = "all" ]; then
         TARGETS="{{HOSTS}}"
     else
-        TARGETS="{{host}}"
+        TARGETS="$HOST"
     fi
     for host in $TARGETS; do
         echo "=== $host ==="
@@ -303,13 +308,14 @@ provenance *hosts:
 deploy-nexus host:
     #!/usr/bin/env bash
     set -euo pipefail
-    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
+    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "$HOST"
 
 # Attach to an in-progress Nexus deploy, or start it if missing.
 deploy-nexus-attach host:
     #!/usr/bin/env bash
     set -euo pipefail
-    HOST="{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
     SESSION="nixos-deploy-${HOST}"
     if ssh nexus "tmux has-session -t '$SESSION'" 2>/dev/null; then
         exec ssh -t nexus "tmux attach -t '$SESSION'"
@@ -320,7 +326,7 @@ deploy-nexus-attach host:
 deploy-nexus-logs host:
     #!/usr/bin/env bash
     set -euo pipefail
-    HOST="{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
     LOG="/tmp/nixos-deploy-${HOST}.log"
     exec ssh nexus "tail -f '$LOG'"
 
@@ -328,7 +334,7 @@ deploy-nexus-logs host:
 deploy-nexus-stop host:
     #!/usr/bin/env bash
     set -euo pipefail
-    HOST="{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
     SESSION="nixos-deploy-${HOST}"
     if ssh nexus "tmux has-session -t '$SESSION'" 2>/dev/null; then
         ssh nexus "tmux send-keys -t '$SESSION' C-c"
@@ -358,7 +364,7 @@ deploy-bg target="all":
         exit 1
     fi
     tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
-    tmux send-keys -t "$SESSION" "just deploy {{target}}" Enter
+    TARGET={{target}}; TARGET=${TARGET#*=}; tmux send-keys -t "$SESSION" "just deploy $TARGET" Enter
     echo "Deploy started (tmux: $SESSION)"
     echo "use 'just attach' to view"
 
@@ -454,10 +460,10 @@ hm-switch:
 hm-build host="zephyr":
     #!/usr/bin/env bash
     set -euo pipefail
-    
-    echo ">> home-manager build --flake github:reverb256/home-manager-config#{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
+    echo ">> home-manager build --flake github:reverb256/home-manager-config#$HOST"
     NIX_CONFIG='pure-eval = false' \
-      home-manager build --flake github:reverb256/home-manager-config#{{host}} 2>&1 | tail -20
+      home-manager build --flake "github:reverb256/home-manager-config#${HOST}" 2>&1 | tail -20
 
 # Audit HM state across all hosts: compare each host's LIVE home-manager
 # generation against a fresh build of the CURRENT upstream commit
@@ -541,7 +547,7 @@ hm-deploy host="zephyr":
 
     FLAKE="github:reverb256/home-manager-config"
     export NIX_CONFIG=$'pure-eval = false\nbuilders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
-    HOST="{{host}}"
+    HOST={{host}}; HOST=${HOST#*=}
 
     # Resolve the CURRENT upstream rev fresh (same rationale as hm-audit) and
     # pin the build so a stale branch-resolution cache can't deploy old config.
@@ -676,7 +682,8 @@ rollback:
 rollback-remote host:
     #!/usr/bin/env bash
     set -e
-    ssh {{host}} "sudo nixos-rebuild rollback"
+    HOST={{host}}; HOST=${HOST#*=}
+    ssh "$HOST" "sudo nixos-rebuild rollback"
 
 # ── FLAKE MANAGEMENT ──────────────────────────────────────────────────────────
 
@@ -1125,7 +1132,8 @@ deploy-rs-build:
 
 # Dry-run validation of a host's profile (deployChecks already gate this)
 deploy-rs-check host="sentry":
-    @echo "Validating {{host}} deploy profile..."
+    HOST={{host}}; HOST=${HOST#*=}
+    @echo "Validating $HOST deploy profile..."
     nix build --no-link .#checks.x86_64-linux.deploy-schema .#checks.x86_64-linux.deploy-activate
 
 # Deploy to all hosts through the Nexus dispatcher (which uses deploy-rs)
@@ -1134,7 +1142,7 @@ deploy-rs-deploy:
 
 # Deploy to a single host through the Nexus dispatcher
 deploy-rs-deploy-host host="sentry":
-    @just deploy {{host}}
+    HOST={{host}}; HOST=${HOST#*=}; just deploy "$HOST"
 
 # List all deploy-rs nodes
 deploy-rs-list:
