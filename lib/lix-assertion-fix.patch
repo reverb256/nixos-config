@@ -1,0 +1,20 @@
+--- a/lix/libstore/build/derivation-goal.cc
++++ b/lix/libstore/build/derivation-goal.cc
+@@ -333,7 +333,10 @@
+         switch (retrySubstitution) {
+         case RetrySubstitution::NoNeed:
+             if (substitutionFailed)
+                 retrySubstitution = RetrySubstitution::YesNeed;
+             break;
+         case RetrySubstitution::YesNeed:
+-            // Should not be able to reach this state from here.
+-            assert(false);
++            // Reaching this state means substitution partially failed and
++            // we're in bmCheck mode where we don't return early. Fall through
++            // to build from source rather than crashing the daemon.
++            debug("substitution needed retry but already retried; falling through to build");
+             break;
+         case RetrySubstitution::AlreadyRetried:
+             debug("substitution failed again, but we already retried once. Not retrying again.");
+             break;
+         }

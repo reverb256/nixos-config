@@ -119,7 +119,15 @@ let
             # Fork has absorbed these nixpkgs-side patches in-tree.
             "lix-f2-increase-timeouts-and-max-worker-count.patch"
           ]))
-      (old.patches or []);
+      (old.patches or [])
+      ++ [
+        # 2026-08-23: Fix nix-daemon crash on partial substitution failure.
+        # The Lix homelab fork asserts false in outputsSubstitutionTried when
+        # substitution partially fails (cache timeout on some outputs) and
+        # buildMode is bmCheck (nix flake check). Replace the assert with a
+        # debug log so the daemon falls through to building from source.
+        ./lix-assertion-fix.patch
+      ];
 
     # Tune Lix to this host's CPU. This nixpkgs rev's cc-wrapper has a
     # SINGLE compile-flag channel: NIX_CFLAGS_COMPILE is injected into both
