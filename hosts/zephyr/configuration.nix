@@ -421,6 +421,10 @@
         "/etc/nixos"
         "/home/j_kro/Projects"
         "/home/j_kro/.hermes"
+        "/home/j_kro/Downloads"
+        "/home/j_kro/Documents"
+        "/home/j_kro/Videos"
+        "/home/j_kro/Pictures"
       ];
     };
 
