@@ -143,9 +143,16 @@ else
 fi
 
 # 4b. Nexus nix-daemon health check
+# Check both systemctl and pgrep — systemctl returns 0 (failed state) in
+# container environments even when nix-daemon is running via pgrep.
 NEXUS_DAEMON=$(ssh nexus "systemctl show nix-daemon --property=MainPID --value 2>/dev/null" 2>/dev/null)
+NEXUS_DAEMON_PGREP=$(ssh nexus "pgrep -x nix-daemon | head -1" 2>/dev/null)
 if [[ -z "${NEXUS_DAEMON:-}" || "$NEXUS_DAEMON" == "0" ]]; then
-    fail "nix-daemon not running on nexus — builds will fail"
+    if [[ -n "${NEXUS_DAEMON_PGREP:-}" && "$NEXUS_DAEMON_PGREP" != "0" ]]; then
+        pass "nix-daemon running on nexus (pid $NEXUS_DAEMON_PGREP via pgrep)"
+    else
+        fail "nix-daemon not running on nexus — builds will fail"
+    fi
 else
     pass "nix-daemon running on nexus (pid $NEXUS_DAEMON)"
 fi
