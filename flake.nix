@@ -435,7 +435,7 @@
             nodes = builtins.mapAttrs (name: h: {
               hostname =
                 if h.targetHost == null
-                then null
+                then "localhost"
                 else h.targetHost;
               sshUser = h.targetUser or "j_kro";
               user = "root";
