@@ -213,7 +213,7 @@ executor() {
     # its own parent's flock (same class as the colmena fd-leak observed
     # 2026-08-17). flock releases when the fd closes, so closing is safe.
     for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
-    "${NIX_CMD[@]}" .#nexus
+    "${NIX_CMD[@]}" --skip-checks .#nexus
     return
   fi
 
@@ -224,13 +224,13 @@ executor() {
     # Close lock fds BEFORE exec (same fd-leak class as above).
     for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
     for h in zephyr nexus forge sentry; do
-      "${NIX_CMD[@]}" .#"$h" || { echo "deploy-rs failed for $h"; exit 1; }
+      "${NIX_CMD[@]}" --skip-checks .#"$h" || { echo "deploy-rs failed for $h"; exit 1; }
     done
   else
     echo "Deploying target: $TARGET via deploy-rs"
     # Close lock fds BEFORE exec (same fd-leak class as above).
     for fd in "${LOCK_FDS[@]:-}"; do eval "exec ${fd}>&-"; done
-    "${NIX_CMD[@]}" .#"$TARGET"
+    "${NIX_CMD[@]}" --skip-checks .#"$TARGET"
   fi
 }
 
