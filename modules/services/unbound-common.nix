@@ -113,6 +113,8 @@ in {
         "alertmanager.lan. IN A 10.1.1.140"
         "hermes.lan. IN A 10.1.1.120"
         "api.hermes.lan. IN A 10.1.1.120"
+        # Content site (zephyr)
+        "content.lan. IN A 10.1.1.110"
         # .cluster.local aliases (keep the historical three)
         "search.cluster.local. IN A 10.1.1.100"
         "ai.cluster.local. IN A 10.1.1.100"
