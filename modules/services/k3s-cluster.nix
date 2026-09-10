@@ -173,6 +173,93 @@ in {
       };
     };
 
+    # ── Calico CNI deployment ──────────────────────────────────
+    # When calico.enable is true, deploy the Calico manifests from
+    # /etc/nixos/kubernetes-manifests/calico/ using a two-phase apply
+    # (operator/CRDs first, then CRs) — same pattern as
+    # k8s-manifest-autoapply.nix but triggered directly by the k3s
+    # module so servers that don't enable the autoapply service still
+    # get CNI. Uses kubectl with retry for operator readiness races.
+    systemd.services.k3s-calico-deploy = mkIf (cfg.enable && cfg.calico.enable) {
+      description = "Deploy Calico CNI manifests from k3s-cluster calico.enable";
+      after = [ "k3s.service" ];
+      requires = [ "k3s.service" ];
+      wantedBy = [ "k3s.service" ];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
+      serviceConfig.ExecStart = pkgs.writeShellScript "k3s-calico-deploy" ''
+        set -euo pipefail
+
+        echo "[k3s-calico] Waiting for K3s API to be ready..."
+        WAIT_TIMEOUT=120
+        elapsed=0
+        until ${pkgs.kubectl}/bin/kubectl get nodes &>/dev/null; do
+          sleep 5
+          elapsed=$((elapsed + 5))
+          if [ $elapsed -ge $WAIT_TIMEOUT ]; then
+            echo "[k3s-calico] WARNING: timed out waiting for K3s API"
+            exit 0
+          fi
+        done
+        echo "[k3s-calico] API ready."
+
+        # Phase 1: Deploy tigera-operator (creates CRDs)
+        echo "[k3s-calico] phase 1: tigera-operator"
+        ${pkgs.kubectl}/bin/kubectl apply -f /etc/nixos/kubernetes-manifests/calico/tigera-operator.yaml 2>&1 || true
+
+        # Wait for CRDs to be established
+        CRD_WAIT=90; crd_elapsed=0
+        until ${pkgs.kubectl}/bin/kubectl get crd installations.operator.tigera.io &>/dev/null; do
+          sleep 3
+          crd_elapsed=$((crd_elapsed + 3))
+          if [ $crd_elapsed -ge $CRD_WAIT ]; then
+            echo "[k3s-calico] WARNING: calico CRDs not ready after ${CRD_WAIT}s"
+            break
+          fi
+        done
+        echo "[k3s-calico] CRDs ready."
+
+        # Phase 2: Apply remaining CR manifests (with retry for race)
+        for f in /etc/nixos/kubernetes-manifests/calico/*.yaml; do
+          [ -f "$f" ] || continue
+          basename=$(basename "$f")
+          [ "$basename" = "tigera-operator.yaml" ] && continue
+          echo "[k3s-calico] Applying calico/$basename"
+          ${pkgs.kubectl}/bin/kubectl apply -f "$f" 2>&1 || true
+          # Retry CRs that raced the operator
+          if echo "$basename" | grep -qE "^(tigera-installation|tigera-ippool|tigera-apiserver|felix-configuration|bgp-config|calico-node-clusterrole|network-policies)"; then
+            retry=0
+            until ${pkgs.kubectl}/bin/kubectl apply -f "$f" >/dev/null 2>&1; do
+              retry=$((retry + 1))
+              [ $retry -ge 10 ] && { echo "[k3s-calico] give up on $basename"; break; }
+              sleep 5
+            done
+            echo "[k3s-calico] calico/$basename applied (retries=$retry)"
+          fi
+        done
+
+        # Patch tigera-installation to use VXLAN (default is VXLAN on this cluster)
+        ${pkgs.kubectl}/bin/kubectl patch installation.tigera.io default --type=json \
+          -p='[{"op": "replace", "path": "/spec/calicoNetwork/ipPools/0/natEnabled", "value": false}]' 2>/dev/null || true
+        echo "[k3s-calico] Calico deployment complete."
+      '';
+    };
+
+    # Activation script to deploy Calico on config switch (for hosts that
+    # don't reboot frequently)
+    system.activationScripts.k3s-calico-deploy = mkIf (cfg.enable && cfg.calico.enable) ''
+      if [ -x /etc/systemd/system/k3s-calico-deploy.service ] || systemctl is-active k3s.service &>/dev/null; then
+        echo "k3s-calico-deploy: running Calico manifest apply"
+        ${pkgs.kubectl}/bin/kubectl apply -f /etc/nixos/kubernetes-manifests/calico/tigera-operator.yaml 2>&1 || true
+        for f in /etc/nixos/kubernetes-manifests/calico/*.yaml; do
+          [ -f "$f" ] || continue
+          basename=$(basename "$f")
+          [ "$basename" = "tigera-operator.yaml" ] && continue
+          ${pkgs.kubectl}/bin/kubectl apply -f "$f" 2>&1 || true
+        done
+      fi
+    '';
+
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/rancher/k3s";
