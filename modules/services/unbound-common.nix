@@ -94,7 +94,6 @@ in {
         "grafana.lan. IN A 10.1.1.100"
         "privacy-filter.lan. IN A 10.1.1.100"
         "workspace.lan. IN A 10.1.1.100"
-        "dashboard.lan. IN A 10.1.1.100"
         "maplespike.lan. IN A 10.1.1.100"
         "api.maplespike.lan. IN A 10.1.1.100"
         "mcp.maplespike.lan. IN A 10.1.1.100"
@@ -115,11 +114,55 @@ in {
         "api.hermes.lan. IN A 10.1.1.120"
         # Content site (zephyr)
         "content.lan. IN A 10.1.1.110"
+        # zephyr nginx vhost → forge:8642 (VIP entry was dead; corrected 2026-09-15)
+        "dashboard.lan. IN A 10.1.1.110"
+        # Host records — direct LAN addresses (2026-09-15)
+        "zephyr.lan. IN A 10.1.1.110"
+        "nexus.lan. IN A 10.1.1.120"
+        "forge.lan. IN A 10.1.1.130"
+        "sentry.lan. IN A 10.1.1.140"
+        # Media stack — arr-k3s on nexus; flat *.lan canonical, media.lan portal (2026-09-15)
+        "media.lan. IN A 10.1.1.120"
+        "sonarr.lan. IN A 10.1.1.120"
+        "radarr.lan. IN A 10.1.1.120"
+        "prowlarr.lan. IN A 10.1.1.120"
+        "bazarr.lan. IN A 10.1.1.120"
+        "qb.lan. IN A 10.1.1.120"
+        "jackett.lan. IN A 10.1.1.120"
+        "jellyfin.lan. IN A 10.1.1.120"
+        "tubearchivist.lan. IN A 10.1.1.120"
+        "pilotarr.lan. IN A 10.1.1.120"
+        "jellyseerr.lan. IN A 10.1.1.120"
+        "lidarr.lan. IN A 10.1.1.120"
+        "readarr.lan. IN A 10.1.1.120"
+        # legacy *.media.lan aliases (kept for backcompat)
+        "sonarr.media.lan. IN A 10.1.1.120"
+        "radarr.media.lan. IN A 10.1.1.120"
+        "prowlarr.media.lan. IN A 10.1.1.120"
+        "bazarr.media.lan. IN A 10.1.1.120"
+        "qb.media.lan. IN A 10.1.1.120"
+        "jackett.media.lan. IN A 10.1.1.120"
+        "jellyfin.media.lan. IN A 10.1.1.120"
+        "tubearchivist.media.lan. IN A 10.1.1.120"
+        "pilotarr.media.lan. IN A 10.1.1.120"
+        "jellyseerr.media.lan. IN A 10.1.1.120"
+        "lidarr.media.lan. IN A 10.1.1.120"
+        "readarr.media.lan. IN A 10.1.1.120"
+        # Nexus services (2026-09-15)
+        "approval.lan. IN A 10.1.1.120"
+        "mosaic.lan. IN A 10.1.1.120"
+        "memlawb.lan. IN A 10.1.1.120"
         # .cluster.local aliases (keep the historical three)
         "search.cluster.local. IN A 10.1.1.100"
         "ai.cluster.local. IN A 10.1.1.100"
         "openwebui.cluster.local. IN A 10.1.1.100"
-      ];
+      ]
+      # Local reverse zones (prevent leaking PTR queries) — matches live cluster zone
+      + ''
+        local-zone: "10.in-addr.arpa." static
+        local-zone: "168.192.in-addr.arpa." static
+        local-zone: "16.172.in-addr.arpa." static
+      '';
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [53];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [53];

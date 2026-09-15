@@ -78,6 +78,17 @@
   # Hermes Agent services (runs on nexus as systemd)
   hermesServiceDomains = ["hermes.lan" "api.hermes.lan"];
 
+  # Media stack — arr-k3s on nexus (flat *.lan canonical; legacy *.media.lan aliases kept)
+  mediaServiceDomains = [
+    "media.lan"
+    "sonarr.lan" "radarr.lan" "prowlarr.lan" "bazarr.lan" "qb.lan" "jackett.lan"
+    "jellyfin.lan" "tubearchivist.lan" "pilotarr.lan" "jellyseerr.lan" "lidarr.lan" "readarr.lan"
+    # legacy *.media.lan aliases
+    "sonarr.media.lan" "radarr.media.lan" "prowlarr.media.lan" "bazarr.media.lan"
+    "qb.media.lan" "jackett.media.lan" "jellyfin.media.lan" "tubearchivist.media.lan"
+    "pilotarr.media.lan" "jellyseerr.media.lan" "lidarr.media.lan" "readarr.media.lan"
+  ];
+
   # Tailscale mobile devices
   tailscaleDomains = ["seeker.lan" "reverb256.lan"];
 
@@ -86,7 +97,7 @@
     ingressServiceDomains
     ++ hostServiceDomains
     ++ forgeServiceDomains
-    ++ sentryServiceDomains ++ hermesServiceDomains ++ tailscaleDomains;
+    ++ sentryServiceDomains ++ hermesServiceDomains ++ mediaServiceDomains ++ tailscaleDomains;
 
   # Convert domain list to Unbound local-data records
   # Maps domain → IP based on which list it belongs to
@@ -101,6 +112,8 @@
     then hosts.sentry
     else if builtins.elem domain hermesServiceDomains
     then hosts.nexus
+    else if builtins.elem domain mediaServiceDomains
+    then hosts.nexus
     else if domain == "seeker.lan"
     then "100.84.24.43"
     else if domain == "reverb256.lan"
@@ -113,9 +126,10 @@
   forgeServices = map (d: "${d}. IN A ${domainToIp d}") forgeServiceDomains;
   sentryServices = map (d: "${d}. IN A ${domainToIp d}") sentryServiceDomains;
   hermesServices = map (d: "${d}. IN A ${domainToIp d}") hermesServiceDomains;
+  mediaServices = map (d: "${d}. IN A ${domainToIp d}") mediaServiceDomains;
 
   # All service records combined
-  allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices;
+  allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices ++ mediaServices;
 
   # Host records
   hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
