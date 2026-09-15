@@ -203,7 +203,9 @@
       # 2026-08-20 FRESH BOOTSTRAP: wipe stale sentry k3s state (244M from
       # failed joins) so it re-joins nexus's fresh etcd. One-shot — REVERT
       # to false after the recovery deploy.
-      wipeState = true;
+      # DONE 2026-09-15: sentry promoted to full etcd voter; true here would
+      # destroy its state on every subsequent boot (see note above).
+      wipeState = false;
 
       # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
       # file or directory" on activation is fixed at a different layer:

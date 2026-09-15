@@ -248,7 +248,10 @@
       # 2026-08-20 FRESH BOOTSTRAP: wipe stale forge k3s state (1.3G from
       # failed starts) so it re-joins nexus's fresh etcd. One-shot — REVERT
       # wipeState=false after the recovery deploy.
-      wipeState = true;
+      # DONE 2026-09-15: forge joined the HA etcd (nexus+sentry+forge, all
+      # voters). Reverted to false as the comment above instructed — true
+      # here would wipe forge's state on EVERY activation/boot.
+      wipeState = false;
       calico.enable = true;
       nodeName = "forge";
       serverAddr = "https://10.1.1.120:6443"; # direct nexus join for recovery

@@ -15,7 +15,11 @@
     "https://ezkea.cachix.org?priority=35"
     "https://maplespike.cachix.org?priority=35"
     "https://reverb-os.cachix.org?priority=80"
-    "http://10.1.1.120:50000?priority=90&want-mass-query=true"
+    # 2026-09-15: removed http://10.1.1.120:50000 (nexus LAN cache: the
+    # binary-cache.nix server is gone after the Omarchy migration; every
+    # build paid a ~2min retry storm on the dead endpoint). No LAN
+    # substituter remains — builders must have a reachable store again
+    # before this can come back.
   ];
 
   trustedPublicKeys = [

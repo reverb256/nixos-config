@@ -284,7 +284,10 @@
       # 2026-08-20 FRESH BOOTSTRAP: wipe all k3s state once so nexus re-inits
       # etcd with the STORE token (k3s-cluster-token.yaml) as truth. One-shot
       # only — REVERT wipeState=false after the recovery deploy.
-      wipeState = true;
+      # DONE 2026-09-15: bootstrap completed Sep 12; cluster now 3 voters
+      # (nexus+sentry+forge). Reverted to false — true here would wipe the
+      # LIVE etcd (and every workload's state) on the next activation.
+      wipeState = false;
       nodeName = "nexus";
       serverAddr = "";
       tokenFile = "/run/secrets/k3s-cluster-token";

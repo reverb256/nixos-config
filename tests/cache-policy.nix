@@ -81,13 +81,17 @@ let
     effectiveSettings.trusted-users == ["root" "j_kro"]
     && effectiveSettings.accept-flake-config == false
     && effectiveSettings.require-sigs == true;
-  localCacheKeyExact =
-    builtins.elem "http://10.1.1.110:50000?priority=90&want-mass-query=true" policy.substituters
-    && builtins.elem "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU=" policy.trustedPublicKeys;
+  # 2026-09-15: LAN substituters retired (zephyr 110 + nexus 120 caches both
+  # gone in the Omarchy migration — no nix server left in the fleet). Assert
+  # none sneaks back in and both LAN cache keys stay trusted until removed.
+  lanCachesRetired =
+    !(builtins.any (s: lib.strings.hasInfix ":50000" s) policy.substituters)
+    && builtins.elem "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU=" policy.trustedPublicKeys
+    && builtins.elem "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEqmyFnZ22AOOB/Wx10YHHNo=" policy.trustedPublicKeys;
   customNamesUnique = lib.length (lib.unique policy.intentionalCustomPackages) == lib.length policy.intentionalCustomPackages;
   allCustomNamesNonEmpty = builtins.all (name: name != "") policy.intentionalCustomPackages;
   checks = {
-    inherit cachePolicyShape requiredCachesDeclared nixConfigUsesPolicy distributedUsesPolicy signaturesRequired trustedUsersNoWildcard flakeConfigNotAccepted requiredKeysDeclared allSubstitutersUnique allTrustedKeysUnique publicCacheKeysPresent localCacheKeyExact effectiveTrustSettings customNamesUnique allCustomNamesNonEmpty;
+    inherit cachePolicyShape requiredCachesDeclared nixConfigUsesPolicy distributedUsesPolicy signaturesRequired trustedUsersNoWildcard flakeConfigNotAccepted requiredKeysDeclared allSubstitutersUnique allTrustedKeysUnique publicCacheKeysPresent lanCachesRetired effectiveTrustSettings customNamesUnique allCustomNamesNonEmpty;
   };
   failures = builtins.attrNames (lib.filterAttrs (_: value: !value) checks);
 in {
