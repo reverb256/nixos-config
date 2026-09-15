@@ -116,3 +116,6 @@ void-mklive/
 # ── sops deployment artifacts (local-only, present on host checkouts e.g. forge) ──
 .sops.yaml
 nixos-secrets/
+
+# sops artifact dir (present on host checkouts)
+secrets/ai/
