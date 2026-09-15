@@ -49,6 +49,10 @@
   # unused on all hosts; security-posture hardening, see module header).
   ./modules/system/systemd-mask.nix
 
+  # Homelab Root CA trust anchor — makes *.lan HTTPS (media stack, nexus)
+  # trusted fleet-wide. Public cert only; see modules/security/homelab-ca.nix.
+  ./modules/security/homelab-ca.nix
+
   ./modules/default.nix
 
   {
