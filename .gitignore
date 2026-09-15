@@ -112,3 +112,7 @@ void-mklive/
 # ── Session / agent artifacts ───────────────────────────────────
 .freebuff/
 .plans/
+
+# ── sops deployment artifacts (local-only, present on host checkouts e.g. forge) ──
+.sops.yaml
+nixos-secrets/
