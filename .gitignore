@@ -119,3 +119,9 @@ nixos-secrets/
 
 # sops artifact dir (present on host checkouts)
 secrets/ai/
+
+# ── Local secrets working tree on host checkouts (sops artifacts) ──
+# Only secrets/cloud/cloudflared-token.yaml is tracked (that stays visible).
+secrets/
+!secrets/cloud/
+!secrets/cloud/cloudflared-token.yaml
