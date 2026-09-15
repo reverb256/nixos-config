@@ -213,7 +213,7 @@ in {
           sleep 3
           crd_elapsed=$((crd_elapsed + 3))
           if [ $crd_elapsed -ge $CRD_WAIT ]; then
-            echo "[k3s-calico] WARNING: calico CRDs not ready after ${CRD_WAIT}s"
+            echo "[k3s-calico] WARNING: calico CRDs not ready after ''${CRD_WAIT}s"
             break
           fi
         done
