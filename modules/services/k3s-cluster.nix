@@ -575,8 +575,15 @@ in {
             6443
             2379
             2380
+            179 # calico BGP node-to-node mesh (bird-ready never passes without it)
           ]
         );
+        # Calico VXLAN (4789) + flannel VXLAN (8472) between nodes. Missing
+        # 179/4789 leaves every calico-node at 0/1 (readiness = bird+felix).
+        allowedUDPPorts = mkOptionDefault [
+          4789
+          8472
+        ];
       }
       {
         # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
