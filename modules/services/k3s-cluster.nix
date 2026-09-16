@@ -576,6 +576,7 @@ in {
             2379
             2380
             179 # calico BGP node-to-node mesh (bird-ready never passes without it)
+            5473 # calico typha (remote calico-node clients; missing = no bird/felix config)
           ]
         );
         # Calico VXLAN (4789) + flannel VXLAN (8472) between nodes. Missing
