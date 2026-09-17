@@ -181,6 +181,9 @@
         3900 # Garage S3 API (if needed)
         3901 # Garage RPC (if needed)
         9900 # Hermes A2A gateway (hermes-forge agent card + calls)
+        5473 # Calico Typha (calico-node clients on other nodes MUST reach this
+        #      when sentry's typha is down — 2026-09-16 pod-networking incident)
+        179 # BGP (calico node mesh)
       ];
       allowedTCPPortRanges = [
         {
