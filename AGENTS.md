@@ -1,5 +1,7 @@
 # NixOS Cluster — Agent Guidelines
 
+> 🛑 **DO NOT START NEW WORK IN THIS REPO (2026-09-19).** Superseded — the fleet runs Omarchy and the NixOS-era deploy chain is retired. Route new work to **reverb256/Reverb-OS** (cluster) or **reverb256/homelab-ops** (ops). Tracking: reverb256/Reverb-OS#12. Everything below describes the historical NixOS-era model; references to this repo in skills/AGENTS files should be treated as legacy.
+
 > **Last reviewed:** 2026-08-16 · Source branch: `main` · Verify live state with `just health`.
 
 Flake-based NixOS configuration for a 4-host cluster (Zephyr, Nexus, Forge,
