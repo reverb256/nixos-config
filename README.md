@@ -1,5 +1,11 @@
 # NixOS Cluster Configuration
 
+> ⚠️ **SUPERSEDED — MIGRATION IN PROGRESS (2026-09-19).** The fleet runs **Omarchy** and the NixOS-era deploy chain is retired. **Do not start new work in this repository.**
+>
+> Live successors: **reverb256/Reverb-OS** (cluster — hosts, Home Manager, kubernetes, deploy) · **reverb256/homelab-ops** (ops — scripts, runbooks, workflows). Tracking: reverb256/Reverb-OS#12
+>
+> This repo is kept for history and will be **archived**.
+
 > **Status:** Canonical project entry point
 > **Last Verified:** 2026-08-09
 > **Owner:** j_kro
