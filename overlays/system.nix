@@ -78,6 +78,11 @@
   # host module (modules/services/memlawb-server.nix) can reference
   # pkgs.memlawb/bin/memlawb-server. Source is the pinned `memlawb` flake input.
   memlawb = prev.callPackage ../pkgs/memlawb.nix { inherit (inputs) memlawb; };
+  # omarchy UX layer (themes, router, plugins, shell, dots) — verbatim
+  # Tier-1 port. Source is the pinned `omarchy` flake input (flake=false),
+  # installed to $out/share/omarchy + bin/omarchy* symlink farm by
+  # pkgs/omarchy.nix. Consumed by modules/omarchy/default.nix.
+  omarchy = prev.callPackage ../pkgs/omarchy.nix { inherit (inputs) omarchy; };
   privacy-filter = prev.callPackage ../packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };

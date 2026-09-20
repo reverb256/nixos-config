@@ -5315,6 +5315,23 @@
         "type": "github"
       }
     },
+    "omarchy": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786820569,
+        "narHash": "sha256-ubF8iyLjBtzd2G5QMySRF2nZZaNRoEUIz2CmtgYJ0/c=",
+        "ref": "refs/heads/quattro",
+        "rev": "7be59e1f4b7451d352d4673c560168290792590f",
+        "revCount": 6089,
+        "type": "git",
+        "url": "https://github.com/basecamp/omarchy"
+      },
+      "original": {
+        "rev": "7be59e1f4b7451d352d4673c560168290792590f",
+        "type": "git",
+        "url": "https://github.com/basecamp/omarchy"
+      }
+    },
     "preservation": {
       "locked": {
         "lastModified": 1757436102,
@@ -5390,6 +5407,7 @@
         "nixpkgs": "nixpkgs_22",
         "nixpkgs-xr": "nixpkgs-xr_3",
         "nur": "nur_9",
+        "omarchy": "omarchy",
         "preservation": "preservation_3",
         "scopebuddy": "scopebuddy_3",
         "sops-nix": "sops-nix_3",
