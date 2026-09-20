@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# omarchy:summary=Refresh the package configuration and update all packages (not used on NixOS).
+
+echo "Error: pacman is not used on NixOS." >&2
+echo "System packages are managed declaratively — update via \`just deploy\`." >&2
+exit 1

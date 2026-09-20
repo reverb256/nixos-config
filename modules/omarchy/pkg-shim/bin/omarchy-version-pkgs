@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# omarchy:summary=Print when system packages were last upgraded (last switch time)
+
+# NixOS has no pacman.log. The closest equivalent is the mtime of the current
+# system profile symlink, which nixos-rebuild repoints at each switch.
+ts=$(stat -c '%y' /nix/var/nix/profiles/system 2>/dev/null | cut -d' ' -f1-2)
+date -d "${ts:-now}" "+%A, %B %d %Y at %H:%M"
