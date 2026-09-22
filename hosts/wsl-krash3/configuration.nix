@@ -96,4 +96,20 @@
   # Kernel TUN mode is REQUIRED: userspace networking cannot act as a subnet router.
   # /dev/net/tun exists in this WSL kernel; ip_forward is already 1, pinned here for intent.
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+  # IPv6 forwarding: Tailscale warns "Subnet routes and exit nodes may not work correctly"
+  # without it. Our advertised route is IPv4, but pin it so the warning is gone and IPv6
+  # subnet routing stays possible.
+  boot.kernel.sysctl."net.ipv6.conf.all.forwarding" = 1;
+  # UDP GRO: tailscaled itself reports "UDP GRO forwarding is suboptimally configured on eth0".
+  # This is its documented tune; throughput-only, but it is free and silences the warning.
+  systemd.services.tailscale-udp-gro = {
+    description = "Tune eth0 UDP GRO for Tailscale forwarding";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+    script = ''
+      ${pkgs.ethtool}/bin/ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off || true
+    '';
+  };
 }
