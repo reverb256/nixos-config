@@ -55,11 +55,38 @@
 
   system.stateVersion = "26.11";
 
-  # k3s agent — krash3 node in the homelab cluster (added 2026-09-19).
-  # Keeper part 1/2: this unit starts whenever the distro boots; the Windows
-  # login task "NixOS-WSL-k3s-autostart" (part 2/2) boots the distro at logon.
+  # k3s agent — REMOVED from the cluster 2026-09-22. Kept here, DISABLED, as the
+  # record of what this node used to run and as a one-line reversal
+  # (`enable = true`, then rebuild).
+  #
+  # WHY REMOVED: krash3 (10.1.1.150, Windows 11 + WSL2) cannot exchange pod-IP
+  # traffic in either direction. Measured 2026-09-22 with labelled probe pods:
+  # INTO it is dropped at the Windows/WSL boundary (a nexus pod times out on a
+  # krash3 pod IP, ICMP 100% loss) and OUT of it a NetworkPolicy-policed pod is
+  # denied, because Calico cannot match a krash3-sourced pod against the ingress
+  # policy. It also ships no kernel modules for the Calico overlay. That single
+  # defect caused the tigera-operator restart storm, the calico-apiserver
+  # flapping, the Longhorn CSI churn and the failing daily-snapshot job — while
+  # the node ran no mining workload and could not serve HTTP cross-node.
+  # Decision (owner-delegated): remove krash3 from the k3s cluster. The Windows
+  # host and this WSL distro are otherwise untouched.
+  #
+  # `enable = false` removes the unit from `config.systemd.units` entirely, so a
+  # rebuild cannot regenerate it — that is the only durable form here.
+  # `systemctl disable` / `systemctl mask` do NOT stick:
+  # /etc/systemd/system/k3s-agent.service is a symlink into the read-only nix
+  # store, so the next `nixos-rebuild switch` regenerates it and the node rejoins.
+  #
+  # Keeper part 2/2, ON WINDOWS and deliberately NOT touched: the logon task
+  # "NixOS-WSL-k3s-autostart" still boots this distro at logon. With this unit
+  # disabled the distro starts and stays a cluster non-member.
+  #
+  # Do NOT use the upstream k3s install.sh on this guest: it hardcodes
+  # `rm -f /etc/systemd/system/k3s-agent.service` and writes a generic unit with
+  # no `--node-ip`, which breaks the WSL mirrored-networking identity.
   systemd.services.k3s-agent = {
-    description = "k3s agent (krash3 WSL2 node)";
+    enable = false;
+    description = "k3s agent (krash3 WSL2 node) — DISABLED 2026-09-22";
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
